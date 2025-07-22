@@ -63,4 +63,27 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  subtitle: {
+    marginTop: 10,
+    fontSize: 14,
+    letterSpacing: 1,
+    color: '#999',
+  },
+  socialButtonWhite: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#fff',
+  paddingVertical: 12,
+  paddingHorizontal: 20,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: '#ccc',
+  marginBottom: 12,
+},
+
+googleText: {
+  color: '#4285F4',
+  fontSize: 15,
+  fontWeight: '600',
+},
 });

@@ -1,7 +1,7 @@
+import { styles } from '@/components/style/LayoutStyles'; // Import styles from the LayoutStyles file  
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
-
+import { Text, View } from 'react-native';
 export default function TabLayout() {
   return (
     <Tabs
@@ -77,26 +77,3 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  iconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCircleFocused: {
-    backgroundColor: '#E0E7FF',
-  },
-  underline: {
-    width: 24,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#999',
-    marginTop: 4,
-  },
-});

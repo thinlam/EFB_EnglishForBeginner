@@ -1,16 +1,18 @@
 // components/LoginScreen.tsx
-import { styles } from '@/components/style/LoginStyles'; // Assuming you have a styles file
-import { AntDesign, FontAwesome5 } from '@expo/vector-icons';
+import { styles } from '@/components/style/LoginStyles';
+import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
+  Image,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -33,7 +35,7 @@ export default function LoginScreen() {
       </TouchableOpacity>
 
       <Text style={styles.title}>WELCOME{"\n"}EFB</Text>
-
+      
 
       <Text style={styles.label}>EMAIL</Text>
       <TextInput
@@ -63,10 +65,13 @@ export default function LoginScreen() {
 
       <View style={styles.separator} />
 
-      <TouchableOpacity style={styles.socialButton}>
-        <AntDesign name="google" size={20} color="#fff" style={styles.socialIcon} />
-        <Text style={styles.socialText}>Google Sign in</Text>
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.socialButtonWhite}>
+  <Image
+    source={require('@/assets/images/google-icon.png')} // đường dẫn ảnh biểu tượng "G"
+    style={{ width: 20, height: 20, marginRight: 10 }}
+  />
+  <Text style={styles.googleText}>Google Sign in</Text>
+</TouchableOpacity>
 
       <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
         <FontAwesome5 name="facebook-f" size={20} color="#fff" style={styles.socialIcon} />

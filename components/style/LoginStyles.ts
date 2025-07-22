@@ -80,4 +80,22 @@ export const styles = StyleSheet.create({
     color: '#4F46E5',
     fontWeight: '500',
   },
+  socialButtonWhite: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#fff',
+  paddingVertical: 12,
+  paddingHorizontal: 20,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: '#ccc',
+  marginBottom: 12,
+},
+
+googleText: {
+  color: '#4285F4',
+  fontSize: 15,
+  fontWeight: '600',
+},
+
 });

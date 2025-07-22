@@ -1,9 +1,10 @@
 // app/(auth)/register.tsx
-import { AntDesign, FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
+  Image,
   Text,
   TextInput,
   TouchableOpacity,
@@ -92,10 +93,13 @@ export default function RegisterScreen() {
       </Text>
 
       <View style={{ marginTop: 30 }}>
-        <TouchableOpacity style={styles.socialButton}>
-          <AntDesign name="google" size={20} color="#fff" style={styles.socialIcon} />
-          <Text style={styles.socialText}>Google Sign up</Text>
-        </TouchableOpacity>
+        <TouchableOpacity style={styles.socialButtonWhite}>
+        <Image
+          source={require('@/assets/images/google-icon.png')} // đường dẫn ảnh biểu tượng "G"
+          style={{ width: 20, height: 20, marginRight: 10 }}
+        />
+        <Text style={styles.googleText}>Google</Text>
+      </TouchableOpacity>
 
         <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
           <FontAwesome5 name="facebook-f" size={20} color="#fff" style={styles.socialIcon} />

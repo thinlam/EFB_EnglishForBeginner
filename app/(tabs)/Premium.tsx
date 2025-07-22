@@ -1,5 +1,6 @@
+import { styles } from '@/components/style/PremiumStyles'; // Import styles from the PremiumStyles file
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 export default function PremiumScreen() {
   return (
@@ -9,14 +10,3 @@ export default function PremiumScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-});
