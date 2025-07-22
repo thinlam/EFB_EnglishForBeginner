@@ -1,45 +1,102 @@
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
-
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
+      screenOptions={({ route }) => ({
+        tabBarShowLabel: false,
+        tabBarStyle: {
+          height: 70,
+        },
+        tabBarIcon: ({ focused }) => {
+          const color = focused ? '#4F46E5' : '#666';
+          let icon = null;
+
+          switch (route.name) {
+            case 'index':
+              icon = <Ionicons name="home" size={24} color={color} />;
+              break;
+            case 'WordBook':
+              icon = <FontAwesome5 name="book" size={22} color={color} />;
+              break;
+            case 'rankings':
+              icon = <FontAwesome5 name="trophy" size={22} color={color} />;
+              break;
+            case 'Premium':
+              icon = <Text style={{ fontSize: 24 }}>{'🐵'}</Text>;
+              break;
+            case 'more':
+              icon = <MaterialIcons name="more-horiz" size={24} color={color} />;
+              break;
+          }
+
+          return (
+            <View style={styles.iconWrapper}>
+              <View style={[styles.iconCircle, focused && styles.iconCircleFocused]}>
+                {icon}
+              </View>
+              {focused && <View style={styles.underline} />}
+            </View>
+          );
+        },
+      })}
+    >
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
+    name="index"
+    options={{
+      headerShown: false,
+    }}
+  />
+  <Tabs.Screen
+    name="WordBook"
+    options={{
+      headerShown: false,
+    }}
+  />
+  <Tabs.Screen
+    name="rankings"
+    options={{
+      headerShown: false,
+    }}
+  />
+  <Tabs.Screen
+    name="Premium"
+    options={{
+      headerShown: false,
+    }}
+  />
+  <Tabs.Screen
+    name="more"
+    options={{
+      headerShown: false,
+    }}
+  />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconCircleFocused: {
+    backgroundColor: '#E0E7FF',
+  },
+  underline: {
+    width: 24,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#999',
+    marginTop: 4,
+  },
+});
