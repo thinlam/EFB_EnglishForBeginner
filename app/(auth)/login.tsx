@@ -1,4 +1,3 @@
-// components/LoginScreen.tsx
 import { styles } from '@/components/style/auth/LoginStyles';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,6 +12,8 @@ import {
   View,
 } from 'react-native';
 
+import { auth } from '@/scripts/firebase'; // Đảm bảo đúng đường dẫn
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -20,11 +21,39 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-    if (email === 'test@gmail.com' && password === '123456') {
-      await AsyncStorage.setItem('user', email);
-      router.replace('/');
-    } else {
-      Alert.alert('Lỗi', 'Sai tài khoản hoặc mật khẩu!');
+    if (!email || !password) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu.');
+      return;
+    }
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Lưu thông tin nếu cần
+      await AsyncStorage.setItem('user', JSON.stringify({
+        uid: user.uid,
+        email: user.email,
+      }));
+
+      Alert.alert('Thành công', 'Đăng nhập thành công!');
+      router.replace('(tabs)'); // hoặc trang chính
+    } catch (error: any) {
+      let message = 'Đăng nhập thất bại.';
+      switch (error.code) {
+        case 'auth/invalid-email':
+          message = 'Email không hợp lệ.';
+          break;
+        case 'auth/user-not-found':
+          message = 'Tài khoản không tồn tại.';
+          break;
+        case 'auth/wrong-password':
+          message = 'Sai mật khẩu.';
+          break;
+      }
+
+      Alert.alert('Lỗi', message);
+      console.log('Firebase login error:', error);
     }
   };
 
@@ -35,7 +64,6 @@ export default function LoginScreen() {
       </TouchableOpacity>
 
       <Text style={styles.title}>WELCOME{"\n"}EFB</Text>
-      
 
       <Text style={styles.label}>EMAIL</Text>
       <TextInput
@@ -66,12 +94,12 @@ export default function LoginScreen() {
       <View style={styles.separator} />
 
       <TouchableOpacity style={styles.socialButtonWhite}>
-  <Image
-    source={require('@/assets/images/google-icon.png')} // đường dẫn ảnh biểu tượng "G"
-    style={{ width: 20, height: 20, marginRight: 10 }}
-  />
-  <Text style={styles.googleText}>Google Sign in</Text>
-</TouchableOpacity>
+        <Image
+          source={require('@/assets/images/google-icon.png')}
+          style={{ width: 20, height: 20, marginRight: 10 }}
+        />
+        <Text style={styles.googleText}>Google Sign in</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
         <FontAwesome5 name="facebook-f" size={20} color="#fff" style={styles.socialIcon} />
