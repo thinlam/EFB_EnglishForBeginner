@@ -1,5 +1,5 @@
 // components/LoginScreen.tsx
-import { styles } from '@/components/style/LoginStyles';
+import { styles } from '@/components/style/auth/LoginStyles';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
