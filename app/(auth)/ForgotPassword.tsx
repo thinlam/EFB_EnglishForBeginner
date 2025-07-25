@@ -1,68 +1,116 @@
-    import { styles } from '@/components/style/auth/LoginStyles';
-import { auth } from '@/scripts/firebase';
 import { useRouter } from 'expo-router';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { useState } from 'react';
-import {
-    Alert,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import React, { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-    export default function ForgotPasswordScreen() {
-    const router = useRouter();
-    const [email, setEmail] = useState('');
+export default function ForgotPasswordScreen() {
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [sentOtp, setSentOtp] = useState(false);
+  const [serverOtp, setServerOtp] = useState('');
+  const router = useRouter();
 
-    const handleResetPassword = async () => {
-  if (!email.includes('@')) {
-    Alert.alert('Lỗi', 'Vui lòng nhập email hợp lệ.');
-    return;
-  }
+  const sendOtp = async () => {
+    if (!email.includes('@')) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email hợp lệ.');
+      return;
+    }
 
-  console.log('Email gửi về:', email); // 👈 thêm dòng này để check
+    try {
+      const res = await fetch('https://otp-server-production-6c26.up.railway.app/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
 
-  try {
-    await sendPasswordResetEmail(auth, email);
-    Alert.alert('Thành công', 'Chúng tôi đã gửi link đặt lại mật khẩu vào Gmail của bạn.');
-    router.replace('/login');
-  } catch (error: any) {
-  let message = 'Không thể gửi email đặt lại mật khẩu.';
-  if (error.code === 'auth/user-not-found') {
-    message = 'Email không tồn tại.';
-  } else if (error.code === 'auth/too-many-requests') {
-    message = 'Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau vài phút.';
-  }
+      const data = await res.json();
 
-  Alert.alert('Lỗi', message);
-  console.log('Password reset error:', error);
-}
+      if (res.ok && data.success) {
+        setSentOtp(true);
+        setServerOtp(data.otp);
+        Alert.alert('Thành công', 'OTP đã được gửi đến Gmail của bạn');
+      } else {
+        Alert.alert('Lỗi', data.message || 'Không gửi được OTP');
+      }
+    } catch (err) {
+      console.error('Lỗi gửi OTP:', err);
+      Alert.alert('Lỗi', 'Không thể kết nối đến máy chủ');
+    }
+  };
 
-};
+  const verifyOtp = () => {
+    if (otp === serverOtp) {
+      router.push({
+        pathname: '/reset-password',
+        params: { email },
+      });
+    } else {
+      Alert.alert('Sai mã', 'Mã OTP không đúng');
+    }
+  };
 
-
-    return (
-        <View style={styles.container}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Quay lại</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.title}>Quên mật khẩu</Text>
-
-        <Text style={styles.label}>Nhập email của bạn</Text>
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: '#f8f9ff', justifyContent: 'center', padding: 24 }}>
+      <View style={{ marginBottom: 20 }}>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8, color: '#333' }}>🔐 Nhập Gmail để nhận mã OTP</Text>
         <TextInput
-            placeholder="you@example.com"
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
+          placeholder="example@gmail.com"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          style={{
+            backgroundColor: '#fff',
+            padding: 14,
+            borderRadius: 10,
+            fontSize: 16,
+            shadowColor: '#ccc',
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 2,
+            marginBottom: 20
+          }}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
-            <Text style={styles.buttonText}>Gửi link đặt lại mật khẩu</Text>
-        </TouchableOpacity>
-        </View>
-    );
-    }
+        {sentOtp && (
+          <>
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#444' }}>📩 Nhập mã OTP vừa nhận</Text>
+            <TextInput
+              placeholder="Nhập mã OTP"
+              value={otp}
+              onChangeText={setOtp}
+              keyboardType="numeric"
+              style={{
+                backgroundColor: '#fff',
+                padding: 14,
+                borderRadius: 10,
+                fontSize: 16,
+                shadowColor: '#ccc',
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+                elevation: 2,
+                marginBottom: 20
+              }}
+            />
+          </>
+        )}
+      </View>
+
+      <TouchableOpacity
+        onPress={sentOtp ? verifyOtp : sendOtp}
+        style={{
+          backgroundColor: '#6C63FF',
+          paddingVertical: 14,
+          borderRadius: 10,
+          shadowColor: '#6C63FF',
+          shadowOpacity: 0.3,
+          shadowOffset: { width: 0, height: 2 },
+          shadowRadius: 4,
+          elevation: 4
+        }}
+      >
+        <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+          {sentOtp ? 'XÁC NHẬN OTP' : 'GỬI MÃ VỀ GMAIL'}
+        </Text>
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
+  );
+}
