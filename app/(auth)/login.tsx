@@ -12,32 +12,54 @@ import {
   View,
 } from 'react-native';
 
-import { auth } from '@/scripts/firebase'; // Đảm bảo đúng đường dẫn
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '@/scripts/firebase';
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu.');
+    if (!identifier || !password) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email hoặc tên đăng nhập và mật khẩu.');
       return;
     }
 
+    let loginEmail = identifier;
+
+    // Nếu là username
+    if (!identifier.includes('@')) {
+      try {
+        const q = query(collection(db, 'users'), where('name', '==', identifier.toLowerCase()));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          Alert.alert('Lỗi', 'Không tìm thấy tài khoản với username này.');
+          return;
+        }
+
+        const userData = querySnapshot.docs[0].data();
+        loginEmail = userData.email;
+      } catch (err) {
+        Alert.alert('Lỗi', 'Không thể truy vấn tài khoản.');
+        console.error(err);
+        return;
+      }
+    }
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const user = userCredential.user;
 
-      // Lưu thông tin nếu cần
       await AsyncStorage.setItem('user', JSON.stringify({
         uid: user.uid,
         email: user.email,
       }));
 
       Alert.alert('Thành công', 'Đăng nhập thành công!');
-      router.replace('(tabs)'); // hoặc trang chính
+      router.replace('(tabs)');
     } catch (error: any) {
       let message = 'Đăng nhập thất bại.';
       switch (error.code) {
@@ -57,6 +79,21 @@ export default function LoginScreen() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!identifier.includes('@')) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email để đặt lại mật khẩu.');
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, identifier);
+      Alert.alert('Đã gửi', 'Email đặt lại mật khẩu đã được gửi.');
+    } catch (error: any) {
+      Alert.alert('Lỗi', 'Không thể gửi email đặt lại mật khẩu.');
+      console.error('Password reset error:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/Welcome')}>
@@ -65,23 +102,30 @@ export default function LoginScreen() {
 
       <Text style={styles.title}>WELCOME{"\n"}EFB</Text>
 
-      <Text style={styles.label}>EMAIL</Text>
+      <Text style={styles.label}>EMAIL HOẶC USERNAME</Text>
       <TextInput
-        placeholder="hello@reallygreatsite.com"
+        placeholder="your@gmail.com hoặc username"
         style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
+        value={identifier}
+        onChangeText={setIdentifier}
+        autoCapitalize="none"
       />
 
       <Text style={styles.label}>PASSWORD</Text>
       <TextInput
-        placeholder="••••••••"
+        placeholder="••••••••••••••••••"
         style={styles.input}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
+
+      {/* Quên mật khẩu */}
+      <TouchableOpacity onPress={() => router.push('/ForgotPassword')}>
+        <Text style={[styles.switch, { textAlign: 'right', marginTop: -10 }]}>
+          Quên mật khẩu?
+        </Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Sign in</Text>

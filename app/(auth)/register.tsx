@@ -28,7 +28,10 @@ export default function RegisterScreen() {
       Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin.');
       return;
     }
-
+    if (number.length !== 10 || !/^\d+$/.test(number)) {
+    Alert.alert('Lỗi', 'Số điện thoại phải gồm đúng 9 chữ số.');
+    return;
+  }
     if (password !== confirmPassword) {
       Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp.');
       return;
@@ -49,7 +52,7 @@ export default function RegisterScreen() {
       });
 
       Alert.alert('Thành công', 'Đăng ký thành công!');
-      router.replace('(tabs)'); // Chuyển hướng đến trang chính
+      router.replace('/'); // Chuyển hướng đến trang chính
     } catch (error: any) {
       Alert.alert('Lỗi', error.message || 'Đăng ký thất bại!');
       console.error(error);
@@ -67,13 +70,13 @@ export default function RegisterScreen() {
       <TextInput placeholder="hello@gmail.com" style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" />
 
       <Text style={styles.label}>PHONE NUMBER</Text>
-      <TextInput placeholder="0123456789" style={styles.input} value={number} onChangeText={setNumber} keyboardType="phone-pad" />
+      <TextInput placeholder="0123456789" style={styles.input} value={number} onChangeText={(text) => setNumber(text.replace(/[^0-10]/g, ''))} keyboardType="phone-pad" />
 
       <Text style={styles.label}>PASSWORD</Text>
       <TextInput placeholder="●●●●●●●●●●●●" style={styles.input} value={password} onChangeText={setPassword} secureTextEntry />
 
       <Text style={styles.label}>CONFIRM PASSWORD</Text>
-      <TextInput placeholder="●●●●●●●●●●●●●●" style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+      <TextInput placeholder="●●●●●●●●●●●●" style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Sign up</Text>
