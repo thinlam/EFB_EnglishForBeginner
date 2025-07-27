@@ -1,5 +1,4 @@
-// app/(auth)/register.tsx
-import { auth, db } from '@/scripts/firebase'; // đường dẫn import đúng thư mục
+import { auth, db } from '@/scripts/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -8,6 +7,7 @@ import { useState } from 'react';
 import {
   Alert,
   Image,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -22,37 +22,39 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleRegister = async () => {
     if (!email || !password || !name || !number || !confirmPassword) {
       Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin.');
       return;
     }
-    if (number.length !== 9 || !/^\d+$/.test(number)) {
-    Alert.alert('Lỗi', 'Số điện thoại phải gồm đúng 9 chữ số.');
-    return;
-  }
+
+    if (number.length !== 10 || !/^\d+$/.test(number)) {
+      Alert.alert('Lỗi', 'Số điện thoại phải gồm đúng 10 chữ số.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp.');
       return;
     }
 
     try {
-      // Tạo tài khoản với Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
 
-      // Lưu thông tin người dùng vào Firestore
       await setDoc(doc(db, 'users', uid), {
         name,
         email,
         number,
-        role: 'user', // Set role mặc định
+        role: 'user',
         createdAt: new Date(),
       });
 
       Alert.alert('Thành công', 'Đăng ký thành công!');
-      router.replace('/'); // Chuyển hướng đến trang chính
+      router.replace('/');
     } catch (error: any) {
       Alert.alert('Lỗi', error.message || 'Đăng ký thất bại!');
       console.error(error);
@@ -60,23 +62,80 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      contentContainerStyle={[styles.container, { minHeight: '100%' }]}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={true}
+    >
       <Text style={styles.title}>WELCOME{"\n"}EFB</Text>
 
       <Text style={styles.label}>NAME</Text>
-      <TextInput placeholder="Full Name" style={styles.input} value={name} onChangeText={setName} />
+      <TextInput
+        placeholder="Full Name"
+        style={styles.input}
+        value={name}
+        onChangeText={setName}
+      />
 
       <Text style={styles.label}>EMAIL</Text>
-      <TextInput placeholder="hello@gmail.com" style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" />
+      <TextInput
+        placeholder="hello@gmail.com"
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+      />
 
       <Text style={styles.label}>PHONE NUMBER</Text>
-      <TextInput placeholder="0123456789" style={styles.input} value={number} onChangeText={(text) => setNumber(text.replace(/[^0-9]/g, ''))} keyboardType="phone-pad" />
+      <TextInput
+        placeholder="0123456789"
+        style={styles.input}
+        value={number}
+        onChangeText={(text) => setNumber(text.replace(/[^0-9]/g, ''))}
+        keyboardType="phone-pad"
+      />
 
       <Text style={styles.label}>PASSWORD</Text>
-      <TextInput placeholder="●●●●●●●●●●●●" style={styles.input} value={password} onChangeText={setPassword} secureTextEntry />
+      <View style={{ position: 'relative' }}>
+        <TextInput
+          placeholder="●●●●●●●●●●●●"
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+        />
+        <TouchableOpacity
+          onPress={() => setShowPassword(!showPassword)}
+          style={{ position: 'absolute', right: 12, top: 12 }}
+        >
+          <FontAwesome5
+            name={showPassword ? 'eye' : 'eye-slash'}
+            size={18}
+            color="#888"
+          />
+        </TouchableOpacity>
+      </View>
 
       <Text style={styles.label}>CONFIRM PASSWORD</Text>
-      <TextInput placeholder="●●●●●●●●●●●●" style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+      <View style={{ position: 'relative' }}>
+        <TextInput
+          placeholder="●●●●●●●●●●●●"
+          style={styles.input}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry={!showConfirmPassword}
+        />
+        <TouchableOpacity
+          onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+          style={{ position: 'absolute', right: 12, top: 12 }}
+        >
+          <FontAwesome5
+            name={showConfirmPassword ? 'eye' : 'eye-slash'}
+            size={18}
+            color="#888"
+          />
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Sign up</Text>
@@ -100,6 +159,6 @@ export default function RegisterScreen() {
           <Text style={styles.socialText}>Facebook Sign up</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 }

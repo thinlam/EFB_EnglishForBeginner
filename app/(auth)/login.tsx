@@ -14,12 +14,13 @@ import {
 
 import { auth, db } from '@/scripts/firebase';
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // 👁️
 
   const handleLogin = async () => {
     if (!identifier || !password) {
@@ -29,7 +30,7 @@ export default function LoginScreen() {
 
     let loginEmail = identifier;
 
-    // Nếu là username
+    // Nếu người dùng nhập username
     if (!identifier.includes('@')) {
       try {
         const q = query(collection(db, 'users'), where('name', '==', identifier.toLowerCase()));
@@ -52,14 +53,32 @@ export default function LoginScreen() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const user = userCredential.user;
+      const uid = user.uid;
+
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      if (!userDoc.exists()) {
+        Alert.alert('Lỗi', 'Không tìm thấy dữ liệu người dùng.');
+        return;
+      }
+
+      const userData = userDoc.data();
+      const role = userData.role || 'user';
 
       await AsyncStorage.setItem('user', JSON.stringify({
-        uid: user.uid,
+        uid,
         email: user.email,
+        role,
       }));
 
-      Alert.alert('Thành công', 'Đăng nhập thành công!');
-      router.replace('(tabs)');
+      Alert.alert('Thành công', `Chào mừng ${role === 'admin' ? 'quản trị viên' : 'bạn'}!`);
+
+      if (role === 'admin') {
+        router.replace('/admin-dashboard');
+      } else if (role === 'premium') {
+        router.replace('/premium-home');
+      } else {
+        router.replace('(tabs)');
+      }
     } catch (error: any) {
       let message = 'Đăng nhập thất bại.';
       switch (error.code) {
@@ -112,15 +131,26 @@ export default function LoginScreen() {
       />
 
       <Text style={styles.label}>PASSWORD</Text>
-      <TextInput
-        placeholder="••••••••••••••••••"
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <View style={{ position: 'relative' }}>
+        <TextInput
+          placeholder="••••••••••••••••••"
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+        />
+        <TouchableOpacity
+          onPress={() => setShowPassword(!showPassword)}
+          style={{ position: 'absolute', right: 12, top: 12 }}
+        >
+          <FontAwesome5
+            name={showPassword ? 'eye' : 'eye-slash'}
+            size={18}
+            color="#888"
+          />
+        </TouchableOpacity>
+      </View>
 
-      {/* Quên mật khẩu */}
       <TouchableOpacity onPress={() => router.push('/ForgotPassword')}>
         <Text style={[styles.switch, { textAlign: 'right', marginTop: -10 }]}>
           Quên mật khẩu?
