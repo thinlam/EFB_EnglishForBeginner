@@ -1,3 +1,4 @@
+import { FontAwesome5 } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -6,13 +7,16 @@ import {
   Platform,
   Text,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function ResetPasswordScreen() {
   const { email } = useLocalSearchParams<{ email?: string }>();
   const [password, setPassword] = useState('');
   const [rePassword, setRePassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRePassword, setShowRePassword] = useState(false);
   const router = useRouter();
 
   const handleReset = async () => {
@@ -66,46 +70,71 @@ export default function ResetPasswordScreen() {
         backgroundColor: '#f0f4ff',
       }}
     >
-      <Text style={{ fontSize: 24, fontWeight: 'bold', textAlign: 'center', color: '#6C63FF', marginBottom: 24 }}>
+      <Text style={{
+        fontSize: 24,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        color: '#6C63FF',
+        marginBottom: 24
+      }}>
         🔐 Đặt lại mật khẩu
       </Text>
 
-      <Text style={{ color: '#555', fontSize: 14, marginBottom: 10 }}>Email: <Text style={{ fontWeight: 'bold' }}>{email}</Text></Text>
+      <Text style={{ color: '#555', fontSize: 14, marginBottom: 10 }}>
+        Email: <Text style={{ fontWeight: 'bold' }}>{email}</Text>
+      </Text>
 
-      <TextInput
-        placeholder="Nhập mật khẩu mới"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={{
-          backgroundColor: '#fff',
-          padding: 14,
-          borderRadius: 10,
-          fontSize: 16,
-          marginBottom: 16,
-          shadowColor: '#ccc',
-          shadowOpacity: 0.2,
-          shadowRadius: 4,
-          elevation: 2,
-        }}
-      />
-      <TextInput
-        placeholder="Nhập lại mật khẩu"
-        secureTextEntry
-        value={rePassword}
-        onChangeText={setRePassword}
-        style={{
-          backgroundColor: '#fff',
-          padding: 14,
-          borderRadius: 10,
-          fontSize: 16,
-          marginBottom: 32,
-          shadowColor: '#ccc',
-          shadowOpacity: 0.2,
-          shadowRadius: 4,
-          elevation: 2,
-        }}
-      />
+      {/* Mật khẩu mới */}
+      <View style={{ position: 'relative', marginBottom: 16 }}>
+        <TextInput
+          placeholder="Nhập mật khẩu mới"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+          style={{
+            backgroundColor: '#fff',
+            padding: 14,
+            borderRadius: 10,
+            fontSize: 16,
+            shadowColor: '#ccc',
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 2,
+          }}
+        />
+        <TouchableOpacity
+          onPress={() => setShowPassword(!showPassword)}
+          style={{ position: 'absolute', right: 14, top: 14 }}
+        >
+          <FontAwesome5 name={showPassword ? 'eye' : 'eye-slash'} size={18} color="#888" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Nhập lại mật khẩu */}
+      <View style={{ position: 'relative', marginBottom: 32 }}>
+        <TextInput
+          placeholder="Nhập lại mật khẩu"
+          secureTextEntry={!showRePassword}
+          value={rePassword}
+          onChangeText={setRePassword}
+          style={{
+            backgroundColor: '#fff',
+            padding: 14,
+            borderRadius: 10,
+            fontSize: 16,
+            shadowColor: '#ccc',
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 2,
+          }}
+        />
+        <TouchableOpacity
+          onPress={() => setShowRePassword(!showRePassword)}
+          style={{ position: 'absolute', right: 14, top: 14 }}
+        >
+          <FontAwesome5 name={showRePassword ? 'eye' : 'eye-slash'} size={18} color="#888" />
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity
         onPress={handleReset}

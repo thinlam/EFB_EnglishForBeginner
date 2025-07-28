@@ -116,7 +116,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/Welcome')}>
-        <Text style={styles.backText}>← Quay lại</Text>
+        <Text style={styles.backText}>⬅ Quay lại</Text>
       </TouchableOpacity>
 
       <Text style={styles.title}>WELCOME{"\n"}EFB</Text>
@@ -164,8 +164,12 @@ export default function LoginScreen() {
       <Text style={styles.switch} onPress={() => router.push('/register')}>
         chưa có tài khoản? Đăng ký ngay
       </Text>
-
-      <View style={styles.separator} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 24 }}>
+        <View style={{ flex: 1, height: 1, backgroundColor: '#ccc' }} />
+        <Text style={{ marginHorizontal: 10, color: '#999' }}>hoặc</Text>
+        <View style={{ flex: 1, height: 1, backgroundColor: '#ccc' }} />
+      </View>
+     
 
       <TouchableOpacity style={styles.socialButtonWhite}>
         <Image

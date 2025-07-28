@@ -7,6 +7,8 @@ import { useState } from 'react';
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -62,103 +64,108 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={[styles.container, { minHeight: '100%' }]}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={true}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>WELCOME{"\n"}EFB</Text>
+      <ScrollView
+        contentContainerStyle={[styles.container, { flexGrow: 1 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+      >
+        <Text style={styles.title}>WELCOME{"\n"}EFB</Text>
 
-      <Text style={styles.label}>NAME</Text>
-      <TextInput
-        placeholder="Full Name"
-        style={styles.input}
-        value={name}
-        onChangeText={setName}
-      />
-
-      <Text style={styles.label}>EMAIL</Text>
-      <TextInput
-        placeholder="hello@gmail.com"
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-      />
-
-      <Text style={styles.label}>PHONE NUMBER</Text>
-      <TextInput
-        placeholder="0123456789"
-        style={styles.input}
-        value={number}
-        onChangeText={(text) => setNumber(text.replace(/[^0-9]/g, ''))}
-        keyboardType="phone-pad"
-      />
-
-      <Text style={styles.label}>PASSWORD</Text>
-      <View style={{ position: 'relative' }}>
+        <Text style={styles.label}>NAME</Text>
         <TextInput
-          placeholder="●●●●●●●●●●●●"
+          placeholder="Full Name"
           style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!showPassword}
+          value={name}
+          onChangeText={setName}
         />
-        <TouchableOpacity
-          onPress={() => setShowPassword(!showPassword)}
-          style={{ position: 'absolute', right: 12, top: 12 }}
-        >
-          <FontAwesome5
-            name={showPassword ? 'eye' : 'eye-slash'}
-            size={18}
-            color="#888"
-          />
-        </TouchableOpacity>
-      </View>
 
-      <Text style={styles.label}>CONFIRM PASSWORD</Text>
-      <View style={{ position: 'relative' }}>
+        <Text style={styles.label}>EMAIL</Text>
         <TextInput
-          placeholder="●●●●●●●●●●●●"
+          placeholder="hello@gmail.com"
           style={styles.input}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry={!showConfirmPassword}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
         />
-        <TouchableOpacity
-          onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-          style={{ position: 'absolute', right: 12, top: 12 }}
-        >
-          <FontAwesome5
-            name={showConfirmPassword ? 'eye' : 'eye-slash'}
-            size={18}
-            color="#888"
+
+        <Text style={styles.label}>PHONE NUMBER</Text>
+        <TextInput
+          placeholder="0123456789"
+          style={styles.input}
+          value={number}
+          onChangeText={(text) => setNumber(text.replace(/[^0-9]/g, ''))}
+          keyboardType="phone-pad"
+        />
+
+        <Text style={styles.label}>PASSWORD</Text>
+        <View style={{ position: 'relative' }}>
+          <TextInput
+            placeholder="●●●●●●●●●●●●"
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
           />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            onPress={() => setShowPassword(!showPassword)}
+            style={{ position: 'absolute', right: 12, top: 12 }}
+          >
+            <FontAwesome5
+              name={showPassword ? 'eye' : 'eye-slash'}
+              size={18}
+              color="#888"
+            />
+          </TouchableOpacity>
+        </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Sign up</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.switch} onPress={() => router.push('/login')}>
-        đã có tài khoản? Đăng nhập
-      </Text>
-
-      <View style={{ marginTop: 30 }}>
-        <TouchableOpacity style={styles.socialButtonWhite}>
-          <Image
-            source={require('@/assets/images/google-icon.png')}
-            style={{ width: 20, height: 20, marginRight: 10 }}
+        <Text style={styles.label}>CONFIRM PASSWORD</Text>
+        <View style={{ position: 'relative' }}>
+          <TextInput
+            placeholder="●●●●●●●●●●●●"
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
           />
-          <Text style={styles.googleText}>Google</Text>
+          <TouchableOpacity
+            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            style={{ position: 'absolute', right: 12, top: 12 }}
+          >
+            <FontAwesome5
+              name={showConfirmPassword ? 'eye' : 'eye-slash'}
+              size={18}
+              color="#888"
+            />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>Sign up</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
-          <FontAwesome5 name="facebook-f" size={20} color="#fff" style={styles.socialIcon} />
-          <Text style={styles.socialText}>Facebook Sign up</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        <Text style={styles.switch} onPress={() => router.push('/login')}>
+          đã có tài khoản? Đăng nhập
+        </Text>
+
+        <View style={{ marginTop: 30 }}>
+          <TouchableOpacity style={styles.socialButtonWhite}>
+            <Image
+              source={require('@/assets/images/google-icon.png')}
+              style={{ width: 20, height: 20, marginRight: 10 }}
+            />
+            <Text style={styles.googleText}>Google sign up</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
+            <FontAwesome5 name="facebook-f" size={20} color="#fff" style={styles.socialIcon} />
+            <Text style={styles.socialText}>Facebook Sign up</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

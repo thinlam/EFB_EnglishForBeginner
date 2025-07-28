@@ -7,8 +7,8 @@ export const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
  logo: {
-  width: 160,
-  height: 160,
+  width: 200,
+  height: 200,
   borderRadius: 12, // bo nhẹ 12px
   marginBottom: 20,
 }

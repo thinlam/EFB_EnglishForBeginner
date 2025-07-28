@@ -76,9 +76,9 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   backText: {
-    fontSize: 16,
+    fontSize: 20,
     color: '#4F46E5',
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
   socialButtonWhite: {
   flexDirection: 'row',

@@ -1,6 +1,14 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -49,9 +57,22 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: '#f8f9ff', justifyContent: 'center', padding: 24 }}>
-      <View style={{ marginBottom: 20 }}>
-        <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8, color: '#333' }}>🔐 Nhập Gmail để nhận mã OTP</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{
+        flex: 1,
+        backgroundColor: '#f8f9ff',
+        padding: 24,
+      }}
+    >
+      {/* Nút Quay lại */}
+     
+
+      {/* Form nhập */}
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8, color: '#333' }}>
+          🔐 Nhập Gmail để nhận mã OTP
+        </Text>
         <TextInput
           placeholder="example@gmail.com"
           value={email}
@@ -66,13 +87,15 @@ export default function ForgotPasswordScreen() {
             shadowOpacity: 0.2,
             shadowRadius: 4,
             elevation: 2,
-            marginBottom: 20
+            marginBottom: 20,
           }}
         />
 
         {sentOtp && (
           <>
-            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#444' }}>📩 Nhập mã OTP vừa nhận</Text>
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8, color: '#444' }}>
+              📩 Nhập mã OTP vừa nhận
+            </Text>
             <TextInput
               placeholder="Nhập mã OTP"
               value={otp}
@@ -87,30 +110,33 @@ export default function ForgotPasswordScreen() {
                 shadowOpacity: 0.2,
                 shadowRadius: 4,
                 elevation: 2,
-                marginBottom: 20
+                marginBottom: 20,
               }}
             />
           </>
         )}
-      </View>
 
-      <TouchableOpacity
-        onPress={sentOtp ? verifyOtp : sendOtp}
-        style={{
-          backgroundColor: '#6C63FF',
-          paddingVertical: 14,
-          borderRadius: 10,
-          shadowColor: '#6C63FF',
-          shadowOpacity: 0.3,
-          shadowOffset: { width: 0, height: 2 },
-          shadowRadius: 4,
-          elevation: 4
-        }}
-      >
-        <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
-          {sentOtp ? 'XÁC NHẬN OTP' : 'GỬI MÃ VỀ GMAIL'}
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          onPress={sentOtp ? verifyOtp : sendOtp}
+          style={{
+            backgroundColor: '#6C63FF',
+            paddingVertical: 14,
+            borderRadius: 10,
+            shadowColor: '#6C63FF',
+            shadowOpacity: 0.3,
+            shadowOffset: { width: 0, height: 2 },
+            shadowRadius: 4,
+            elevation: 4,
+          }}
+        >
+          <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
+            {sentOtp ? 'XÁC NHẬN OTP' : 'GỬI MÃ VỀ GMAIL'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.replace('/login')}>
+  <Text style={{ color: '#6C63FF', fontSize: 17,fontWeight: 'bold', textAlign: 'center' }}>⬅ Quay lại trang đăng nhập</Text>
+</TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 }
