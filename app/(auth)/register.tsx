@@ -1,4 +1,5 @@
 import { auth, db } from '@/scripts/firebase';
+import { useGoogleLogin } from '@/scripts/googleAuth';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -26,6 +27,8 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const { promptAsync } = useGoogleLogin();
 
   const handleRegister = async () => {
     if (!email || !password || !name || !number || !confirmPassword) {
@@ -77,7 +80,7 @@ export default function RegisterScreen() {
 
         <Text style={styles.label}>NAME</Text>
         <TextInput
-          placeholder="Full Name"
+          placeholder="Name"
           style={styles.input}
           value={name}
           onChangeText={setName}
@@ -85,7 +88,7 @@ export default function RegisterScreen() {
 
         <Text style={styles.label}>EMAIL</Text>
         <TextInput
-          placeholder="hello@gmail.com"
+          placeholder="EnglishForBeginner@gmail.com"
           style={styles.input}
           value={email}
           onChangeText={setEmail}
@@ -152,7 +155,7 @@ export default function RegisterScreen() {
         </Text>
 
         <View style={{ marginTop: 30 }}>
-          <TouchableOpacity style={styles.socialButtonWhite}>
+          <TouchableOpacity style={styles.socialButtonWhite} onPress={() => promptAsync()}>
             <Image
               source={require('@/assets/images/google-icon.png')}
               style={{ width: 20, height: 20, marginRight: 10 }}
