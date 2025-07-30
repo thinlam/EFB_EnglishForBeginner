@@ -73,7 +73,7 @@ export default function LoginScreen() {
       Alert.alert('Thành công', `Chào mừng ${role === 'admin' ? 'quản trị viên' : 'bạn'}!`);
 
       if (role === 'admin') {
-        router.replace('/admin-dashboard');
+        router.replace('/(admin)/home');
       } else if (role === 'premium') {
         router.replace('/premium-home');
       } else {
