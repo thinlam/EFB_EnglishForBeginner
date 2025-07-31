@@ -4,15 +4,15 @@ import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore'
 import React, { useEffect, useState } from 'react';
 
 import {
-    ActivityIndicator,
-    FlatList,
-    Modal,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  Modal,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function UserListScreen() {
@@ -117,7 +117,7 @@ export default function UserListScreen() {
         />
 
         <View style={styles.roleFilterContainer}>
-          {['all', 'user', 'admin', 'premium'].map(role => (
+          {['all', 'user', 'premium','Maxpremium'].map(role => (
             <TouchableOpacity
               key={role}
               style={[

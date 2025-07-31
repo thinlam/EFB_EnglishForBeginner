@@ -2,23 +2,23 @@
 import { db } from '@/scripts/firebase';
 import { useRouter } from 'expo-router';
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    updateDoc,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  updateDoc,
 } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    FlatList,
-    Modal,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Modal,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function VocabularyScreen() {
@@ -151,6 +151,7 @@ export default function VocabularyScreen() {
           placeholder="🔍 Tìm từ vựng..."
           value={search}
           onChangeText={setSearch}
+          placeholderTextColor={'#888'}
         />
 
         <View style={styles.pickerContainer}>
@@ -159,6 +160,7 @@ export default function VocabularyScreen() {
                 placeholder="Chọn chủ đề..."
                 value={selectedTopic}
                 onChangeText={setSelectedTopic}
+                placeholderTextColor={'#888'}
             />
 </View>
 
@@ -211,24 +213,28 @@ export default function VocabularyScreen() {
                 value={word}
                 onChangeText={setWord}
                 style={styles.input}
+                placeholderTextColor={'#888'}
               />
               <TextInput
                 placeholder="Nghĩa tiếng Việt"
                 value={meaning}
                 onChangeText={setMeaning}
                 style={styles.input}
+                placeholderTextColor={'#888'}
               />
               <TextInput
                 placeholder="Chủ đề (VD: Food)"
                 value={topic}
                 onChangeText={setTopic}
                 style={styles.input}
+                placeholderTextColor={'#888'}
               />
               <TextInput
                 placeholder="Bài học (VD: Lesson 1)"
                 value={lesson}
                 onChangeText={setLesson}
                 style={styles.input}
+                placeholderTextColor={'#888'}
               />
               <View style={styles.modalActions}>
                 <TouchableOpacity style={[styles.addButton, { backgroundColor: 'green' }]} onPress={handleSave}>
@@ -276,6 +282,6 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10, gap: 20 },
   pageButton: { padding: 8, backgroundColor: '#E5E7EB', borderRadius: 6 },
-  backButton: { marginBottom: 10, padding: 10, backgroundColor: '#E5E7EB', borderRadius: 8 },
+  backButton: {marginLeft: 10, padding: 10, backgroundColor: '#E5E7EB', borderRadius: 10 },
   backButtonText: { color: '#111827', fontWeight: 'bold' },
 });

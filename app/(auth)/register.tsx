@@ -84,6 +84,7 @@ export default function RegisterScreen() {
           style={styles.input}
           value={name}
           onChangeText={setName}
+           placeholderTextColor={'#888'}
         />
 
         <Text style={styles.label}>EMAIL</Text>
@@ -93,6 +94,7 @@ export default function RegisterScreen() {
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
+           placeholderTextColor={'#888'}
         />
 
         <Text style={styles.label}>PHONE NUMBER</Text>
@@ -102,6 +104,7 @@ export default function RegisterScreen() {
           value={number}
           onChangeText={(text) => setNumber(text.replace(/[^0-9]/g, ''))}
           keyboardType="phone-pad"
+           placeholderTextColor={'#888'}
         />
 
         <Text style={styles.label}>PASSWORD</Text>
@@ -112,6 +115,7 @@ export default function RegisterScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
+             placeholderTextColor={'#888'}
           />
           <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
@@ -133,6 +137,7 @@ export default function RegisterScreen() {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={!showConfirmPassword}
+             placeholderTextColor={'#888'}
           />
           <TouchableOpacity
             onPress={() => setShowConfirmPassword(!showConfirmPassword)}

@@ -1,0 +1,325 @@
+// GrammarScreen.tsx
+
+import { db } from '@/scripts/firebase';
+import { Picker } from '@react-native-picker/picker';
+import { useRouter } from 'expo-router';
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    updateDoc,
+} from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import {
+    Alert,
+    FlatList,
+    Keyboard,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+export default function GrammarScreen() {
+  const [grammarList, setGrammarList] = useState([]);
+  const [filteredList, setFilteredList] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [level, setLevel] = useState('A1');
+  const [filterLevel, setFilterLevel] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const router = useRouter();
+
+  const grammarRef = collection(db, 'grammar_rules');
+
+  const fetchGrammar = async () => {
+    const snapshot = await getDocs(grammarRef);
+    const data = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setGrammarList(data);
+  };
+
+  useEffect(() => {
+    fetchGrammar();
+  }, []);
+
+  useEffect(() => {
+    filterGrammar();
+  }, [grammarList, searchText, filterLevel]);
+
+  const filterGrammar = () => {
+    const filtered = grammarList.filter((item) => {
+      const matchText = item.title.toLowerCase().includes(searchText.toLowerCase());
+      const matchLevel = filterLevel ? item.level === filterLevel : true;
+      return matchText && matchLevel;
+    });
+    setFilteredList(filtered);
+  };
+
+  const handleSave = async () => {
+    if (!title.trim()) return Alert.alert('Thiếu tiêu đề');
+
+    if (editingItem) {
+      await updateDoc(doc(db, 'grammar_rules', editingItem.id), {
+        title,
+        description,
+        level,
+      });
+    } else {
+      await addDoc(grammarRef, { title, description, level });
+    }
+
+    setModalVisible(false);
+    setEditingItem(null);
+    setTitle('');
+    setDescription('');
+    setLevel('A1');
+    fetchGrammar();
+  };
+
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, 'grammar_rules', id));
+    fetchGrammar();
+  };
+
+  const handleEdit = (item) => {
+    setEditingItem(item);
+    setTitle(item.title);
+    setDescription(item.description);
+    setLevel(item.level);
+    setModalVisible(true);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Quản lý Ngữ pháp</Text>
+
+      <View style={styles.filterRow}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="🔍 Tìm theo tiêu đề..."
+          value={searchText}
+          onChangeText={setSearchText}
+        />
+        <View style={styles.filterPicker}>
+          <Picker
+            selectedValue={filterLevel}
+            onValueChange={(value) => setFilterLevel(value)}
+            style={Platform.OS === 'ios' ? {} : { height: 42 }}
+          >
+            <Picker.Item label="All" value="" />
+            <Picker.Item label="A1" value="A1" />
+            <Picker.Item label="A2" value="A2" />
+            <Picker.Item label="B1" value="B1" />
+            <Picker.Item label="B2" value="B2" />
+            <Picker.Item label="C1" value="C1" />
+          </Picker>
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+        <Text style={styles.addButtonText}>+ Thêm mới</Text>
+      </TouchableOpacity>
+
+      <FlatList
+        data={filteredList}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        renderItem={({ item }) => (
+          <View style={styles.item}>
+            <Text style={styles.itemTitle}>
+              {item.title} <Text style={styles.level}>({item.level})</Text>
+            </Text>
+            <Text style={styles.itemDesc}>{item.description}</Text>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(item)}>
+                <Text style={styles.buttonText}>Sửa</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item.id)}>
+                <Text style={styles.buttonText}>Xoá</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      />
+
+      <TouchableOpacity onPress={() => router.back()}>
+        <Text style={styles.back}>⬅ Quay lại</Text>
+      </TouchableOpacity>
+
+      {/* Modal Thêm/Sửa */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                {editingItem ? '✏️ Sửa ngữ pháp' : '➕ Thêm ngữ pháp'}
+              </Text>
+
+              <TextInput
+                placeholder="Tiêu đề"
+                value={title}
+                onChangeText={setTitle}
+                style={styles.input}
+              />
+              <TextInput
+                placeholder="Mô tả"
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                style={[styles.input, { height: 200, textAlignVertical: 'top' }]}
+              />
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={level}
+                  onValueChange={setLevel}
+                  style={Platform.OS === 'ios' ? { height: 200 } : { height: 42 }}
+                >
+                  <Picker.Item label="A1" value="A1" />
+                  <Picker.Item label="A2" value="A2" />
+                  <Picker.Item label="B1" value="B1" />
+                  <Picker.Item label="B2" value="B2" />
+                  <Picker.Item label="C1" value="C1" />
+                </Picker>
+              </View>
+
+              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Lưu</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Text style={{ textAlign: 'center', marginTop: 10 }}>Huỷ</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' },
+
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    height: 42,
+  },
+  filterPicker: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    width: 100,
+    height: 42,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+
+  item: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+  },
+  itemTitle: { fontWeight: 'bold', fontSize: 16 },
+  level: { color: '#6B7280', fontSize: 14 },
+  itemDesc: { fontSize: 14, color: '#555', marginTop: 6 },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    gap: 12,
+  },
+  editButton: {
+    backgroundColor: '#E5E7EB',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+  },
+  deleteButton: {
+    backgroundColor: '#F87171',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+  },
+  buttonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  addButton: {
+    backgroundColor: '#6366F1',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  addButtonText: { color: '#fff', fontWeight: 'bold' },
+  back: {
+    textAlign: 'center',
+    marginTop: 10,
+    color: '#555',
+  },
+
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalContent: {
+    marginHorizontal: 20,
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 10,
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    marginBottom: 10,
+    height: 42,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  saveButton: {
+    backgroundColor: '#10B981',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+});

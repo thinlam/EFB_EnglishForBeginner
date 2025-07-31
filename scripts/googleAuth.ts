@@ -1,4 +1,5 @@
-import { makeRedirectUri } from 'expo-auth-session';
+// import { makeRedirectUri } from 'expo-auth-session';
+import * as AuthSession from 'expo-auth-session';
 import { useAuthRequest } from 'expo-auth-session/providers/google';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -16,11 +17,14 @@ export const useGoogleLogin = () => {
     clientId: '10598642218-8umi339c42ilv84eiu3u63lm1fv0d0th.apps.googleusercontent.com',
     androidClientId: '10598642218-odka0u7fl2pprj7qcqabuo6te79jnfo8.apps.googleusercontent.com',
     webClientId: '10598642218-8umi339c42ilv84eiu3u63lm1fv0d0th.apps.googleusercontent.com',
-    
-    // ✅ Sử dụng proxy của Expo để xử lý redirect URL
-   redirectUri: makeRedirectUri({
-    scheme: 'myapp', // 👈 giống với app.json
-      // 👈 bắt buộc khi test trên Expo Go
+    // redirectUri: AuthSession.makeRedirectUri(
+    // { scheme: 'myapp' }, // Only valid options here
+    //   true // Use Expo proxy (true for Expo Go)
+    // ),
+  //   // ✅ Sử dụng proxy của Expo để xử lý redirect URL
+   redirectUri: AuthSession.makeRedirectUri({
+    // scheme: 'myapp', // 👈 giống với app.json
+    // useProxy: true,  // 👈 bắt buộc khi test trên Expo Go
   }),
   });
 

@@ -78,6 +78,7 @@ export default function ForgotPasswordScreen() {
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
+           placeholderTextColor={'#888'}
           style={{
             backgroundColor: '#fff',
             padding: 14,
@@ -101,6 +102,7 @@ export default function ForgotPasswordScreen() {
               value={otp}
               onChangeText={setOtp}
               keyboardType="numeric"
+              placeholderTextColor={'#888'}
               style={{
                 backgroundColor: '#fff',
                 padding: 14,

@@ -11,15 +11,15 @@ export default function AdminHomeScreen() {
   const router = useRouter();
 
   const features = [
-    { title: '👤 Quản lý người dùng', path: '/(admin)/user-list' },
-    { title: '📚 Quản lý từ vựng', path: '/(admin)/vocabulary' },
-    { title: '🧠 Quản lý ngữ pháp' },
-    { title: '🎧 Quản lý luyện nghe' },
-    { title: '🎮 Quản lý trò chơi' },
-    { title: '📝 Quản lý bài kiểm tra' },
-    { title: '📊 Thống kê & Xếp hạng' },
-    { title: '💬 Gửi thông báo' },
-    { title: '⚙️ Cài đặt hệ thống', path: '/(admin)/system-setting' },
+    { title: ' Quản lý người dùng', path: '/(admin)/user-list' },
+    { title: ' Quản lý từ vựng', path: '/(admin)/vocabulary' },
+    { title: ' Quản lý ngữ pháp',  path: '/(admin)/grammar'},
+    { title: ' Quản lý luyện nghe' },
+    { title: ' Quản lý trò chơi' },
+    { title: ' Quản lý bài kiểm tra' },
+    { title: ' Thống kê & Xếp hạng' },
+    { title: ' Gửi thông báo' },
+    { title: ' Cài đặt hệ thống', path: '/(admin)/system-setting' },
   ];
 
   return (
