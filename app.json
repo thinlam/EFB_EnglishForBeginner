@@ -1,39 +1,42 @@
 {
   "expo": {
-    "name": "MyApp",
-    "slug": "MyApp",
-    
+    "name": "EFB - English For Beginners",
+    "slug": "efb",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon_1024x1024.png",
     "scheme": "com.efb.userapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "platforms": ["ios", "android", "web"],
+    "splash": {
+      "image": "./assets/images/splash_1242x2436.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFE3B0"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.mycompany.myapp",
+      "package": "com.efb.userapp",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#FFE3B0"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "bundler": "metro",
+      "bundler": "webpack",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#FFE3B0"
         }
       ]
     ],

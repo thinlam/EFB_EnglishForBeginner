@@ -1,4 +1,5 @@
 // app/(admin)/vocabulary.tsx
+import { styles } from '@/components/style/VocabularyStyles';
 import { db } from '@/scripts/firebase';
 import { useRouter } from 'expo-router';
 import {
@@ -14,13 +15,11 @@ import {
   FlatList,
   Modal,
   SafeAreaView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-
 export default function VocabularyScreen() {
   const router = useRouter();
   const [vocabList, setVocabList] = useState([]);
@@ -140,9 +139,7 @@ export default function VocabularyScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <TouchableOpacity onPress={() => router.push('/(admin)/home')} style={styles.backButton}>
-          <Text style={styles.backButtonText}>⬅ Quay lại</Text>
-        </TouchableOpacity>
+        
 
         <Text style={styles.title}>📚 Quản lý từ vựng</Text>
 
@@ -192,7 +189,9 @@ export default function VocabularyScreen() {
             </View>
           )}
         />
-
+        <TouchableOpacity onPress={() => router.push('/(admin)/home')} style={styles.backButton}>
+          <Text style={styles.backButtonText}>⬅ Quay lại</Text>
+        </TouchableOpacity>
         <View style={styles.pagination}>
           <TouchableOpacity onPress={handlePrevPage} style={styles.pageButton}>
             <Text>⬅</Text>
@@ -201,6 +200,7 @@ export default function VocabularyScreen() {
           <TouchableOpacity onPress={handleNextPage} style={styles.pageButton}>
             <Text>➡</Text>
           </TouchableOpacity>
+          
         </View>
 
         {/* Modal thêm/sửa */}
@@ -252,36 +252,3 @@ export default function VocabularyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F9FAFB' },
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
-  input: {
-    borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 10,
-    marginBottom: 12, backgroundColor: '#fff', fontSize: 16, color: '#000',
-  },
-  pickerContainer: { backgroundColor: '#fff', borderRadius: 10, borderColor: '#ccc' },
-  picker: { height: 50, width: '100%' },
-  addButton: { backgroundColor: '#6366F1', padding: 12, borderRadius: 12, alignItems: 'center', marginBottom: 10 },
-  addButtonText: { color: '#fff', fontWeight: 'bold' },
-  card: {
-    backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 10,
-    borderColor: '#ddd', borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between',
-  },
-  word: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
-  meaning: { fontSize: 16, color: '#374151' },
-  sub: { fontSize: 13, color: '#6B7280', marginTop: 4 },
-  actions: { flexDirection: 'row', gap: 10 },
-  editButton: { backgroundColor: '#E0F2FE', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
-  deleteButton: { backgroundColor: '#FEE2E2', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
-  editText: { color: '#0369A1', fontWeight: '600' },
-  deleteText: { color: '#B91C1C', fontWeight: '600' },
-  modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modal: { backgroundColor: '#fff', padding: 24, borderRadius: 16, width: '85%' },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 14 },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10, gap: 20 },
-  pageButton: { padding: 8, backgroundColor: '#E5E7EB', borderRadius: 6 },
-  backButton: {marginLeft: 10, padding: 10, backgroundColor: '#E5E7EB', borderRadius: 10 },
-  backButtonText: { color: '#111827', fontWeight: 'bold' },
-});

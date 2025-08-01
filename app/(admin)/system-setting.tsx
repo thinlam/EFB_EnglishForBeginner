@@ -2,12 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -39,9 +39,7 @@ export default function SystemSettingScreen() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <ScrollView style={styles.container}>
-        <TouchableOpacity onPress={() => router.push('/(admin)/home')} style={styles.backButton}>
-                  <Text style={styles.backButtonText}>⬅ Quay lại</Text>
-                </TouchableOpacity>
+        
         <Text style={styles.title}>⚙️ Cài đặt hệ thống</Text>
 
        <>
@@ -57,8 +55,13 @@ export default function SystemSettingScreen() {
 
         <SettingItem icon="🚪" label="Đăng xuất" onPress={handleLogout} danger />
       </ScrollView>
+      <TouchableOpacity onPress={() => router.push('/(admin)/home')} style={styles.backButton}>
+                  <Text style={styles.backButtonText}>⬅ Quay lại</Text>
+                </TouchableOpacity>
     </SafeAreaView>
+    
   );
+  
 }
 
 const styles = StyleSheet.create({
@@ -85,6 +88,6 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: 16,
   },
-  backButton: { marginBottom: 10, padding: 10, backgroundColor: '#E5E7EB', borderRadius: 20 },
+  backButton: {marginLeft: 20, padding: 20, backgroundColor: '#E5E7EB', borderRadius: 10 , alignSelf: 'center' },
   backButtonText: { color: '#111827', fontWeight: 'bold' },
 });

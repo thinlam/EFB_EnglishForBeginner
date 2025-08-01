@@ -1,18 +1,17 @@
+import { styles } from '@/components/style/UserDetailStyles';
 import { db } from '@/scripts/firebase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-
 export default function UserDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -118,49 +117,3 @@ export default function UserDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  container: {
-    flex: 1,
-    padding: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
-  },
-  label: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#333',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  button: {
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  backButton: {
-    padding: 12,
-    backgroundColor: '#ccc',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontWeight: 'bold',
-  },
-});
