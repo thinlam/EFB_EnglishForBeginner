@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "EFB - English For Beginners",
-    "slug": "efb",
+    "slug": "MyApp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon_1024x1024.png",
@@ -18,6 +18,8 @@
     },
     "android": {
       "package": "com.efb.userapp",
+       "compileSdkVersion": 34,
+  "targetSdkVersion": 34,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FFE3B0"
