@@ -2,24 +2,79 @@ import { styles } from '@/components/style/auth/LoginStyles';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
 import { auth, db } from '@/scripts/firebase';
-import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { useGoogleLogin } from '@/scripts/googleAuth';
+import {
+  GoogleAuthProvider,
+  sendPasswordResetEmail,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+} from 'firebase/auth';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+} from 'firebase/firestore';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // 👁️
+  const [showPassword, setShowPassword] = useState(false);
+
+  const { promptAsync, response } = useGoogleLogin();
+
+  useEffect(() => {
+    const handleGoogleResponse = async () => {
+      if (response?.type === 'success') {
+        try {
+          const idToken = response.authentication?.idToken;
+          const credential = GoogleAuthProvider.credential(idToken);
+          const result = await signInWithCredential(auth, credential);
+          const user = result.user;
+
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (!userDocSnap.exists()) {
+            await setDoc(userDocRef, {
+              name: user.displayName,
+              email: user.email,
+              number: '',
+              role: 'user',
+              createdAt: new Date(),
+            });
+          }
+
+          await AsyncStorage.setItem('user', JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            role: 'user',
+          }));
+
+          Alert.alert('Thành công', 'Đăng nhập bằng Google thành công!');
+          router.replace('(tabs)');
+        } catch (error) {
+          console.error('Google login error:', error);
+          Alert.alert('Lỗi', 'Không thể đăng nhập bằng Google.');
+        }
+      }
+    };
+
+    handleGoogleResponse();
+  }, [response]);
 
   const handleLogin = async () => {
     if (!identifier || !password) {
@@ -29,7 +84,6 @@ export default function LoginScreen() {
 
     let loginEmail = identifier;
 
-    // Nếu người dùng nhập username
     if (!identifier.includes('@')) {
       try {
         const q = query(collection(db, 'users'), where('name', '==', identifier.toLowerCase()));
@@ -91,7 +145,6 @@ export default function LoginScreen() {
           message = 'Sai mật khẩu.';
           break;
       }
-
       Alert.alert('Lỗi', message);
       console.log('Firebase login error:', error);
     }
@@ -138,7 +191,7 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!showPassword}
-           placeholderTextColor={'#888'}
+          placeholderTextColor={'#888'}
         />
         <TouchableOpacity
           onPress={() => setShowPassword(!showPassword)}
@@ -153,9 +206,7 @@ export default function LoginScreen() {
       </View>
 
       <TouchableOpacity onPress={() => router.push('/ForgotPassword')}>
-        <Text style={[styles.switch, { textAlign: 'right', marginTop: -10 }]}>
-          Quên mật khẩu?
-        </Text>
+        <Text style={[styles.switch, { textAlign: 'right', marginTop: -10 }]}>Quên mật khẩu?</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
@@ -165,19 +216,20 @@ export default function LoginScreen() {
       <Text style={styles.switch} onPress={() => router.push('/register')}>
         chưa có tài khoản? Đăng ký ngay
       </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 24 }}>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 24 }}>
         <View style={{ flex: 1, height: 1, backgroundColor: '#ccc' }} />
         <Text style={{ marginHorizontal: 10, color: '#999' }}>hoặc</Text>
         <View style={{ flex: 1, height: 1, backgroundColor: '#ccc' }} />
       </View>
-     
 
       <TouchableOpacity
-  style={[styles.socialButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc' }]}
->
-  <FontAwesome5 name="google" size={20} color="#DB4437" style={styles.socialIcon} />
-  <Text style={[styles.socialText, { color: '#444' }]}>Google Sign in</Text>
-</TouchableOpacity>
+        style={[styles.socialButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc' }]}
+        onPress={() => promptAsync()}
+      >
+        <FontAwesome5 name="google" size={20} color="#DB4437" style={styles.socialIcon} />
+        <Text style={[styles.socialText, { color: '#444' }]}>Google Sign in</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
         <FontAwesome5 name="facebook-f" size={20} color="#fff" style={styles.socialIcon} />

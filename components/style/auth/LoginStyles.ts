@@ -74,9 +74,12 @@ export const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 8,
   },
   backText: {
-    fontSize: 20,
+    fontSize: 14,
     color: '#4F46E5',
     fontWeight: 'bold',
   },

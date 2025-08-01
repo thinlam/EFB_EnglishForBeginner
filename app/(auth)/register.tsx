@@ -109,7 +109,7 @@ export default function RegisterScreen() {
         <Text style={styles.label}>PASSWORD</Text>
         <View style={{ position: 'relative' }}>
           <TextInput
-            placeholder="●●●●●●●●●●●●"
+            placeholder="••••••••••••••••••"
             style={styles.input}
             value={password}
             onChangeText={setPassword}
@@ -131,7 +131,7 @@ export default function RegisterScreen() {
         <Text style={styles.label}>CONFIRM PASSWORD</Text>
         <View style={{ position: 'relative' }}>
           <TextInput
-            placeholder="●●●●●●●●●●●●"
+            placeholder="••••••••••••••••••"
             style={styles.input}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -159,13 +159,10 @@ export default function RegisterScreen() {
         </Text>
 
         <View style={{ marginTop: 30 }}>
-          <TouchableOpacity
-  style={[styles.socialButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc' }]}
-  onPress={() => promptAsync()}
->
-  <FontAwesome5 name="google" size={20} color="#DB4437" style={styles.socialIcon} />
-  <Text style={[styles.socialText, { color: '#444' }]}>Google Sign up</Text>
-</TouchableOpacity>
+          <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc' }]} onPress={() => promptAsync()}>
+            <FontAwesome5 name="google" size={20} color="#DB4437" style={styles.socialIcon} />
+            <Text style={[styles.socialText, { color: '#444' }]}>Google Sign up</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
             <FontAwesome5 name="facebook-f" size={20} color="#fff" style={styles.socialIcon} />

@@ -136,7 +136,7 @@ export default function ForgotPasswordScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.replace('/login')}>
-  <Text style={{ color: '#6C63FF', fontSize: 17,fontWeight: 'bold', textAlign: 'center' }}>⬅ Quay lại trang đăng nhập</Text>
+  <Text style={{ color: '#6C63FF', fontSize: 17,fontWeight: 'bold', textAlign: 'center', }}>⬅ Quay lại trang đăng nhập</Text>
 </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
