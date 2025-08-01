@@ -173,12 +173,11 @@ export default function LoginScreen() {
       </View>
      
 
-      <TouchableOpacity style={styles.socialButtonWhite}>
-        <Image
-          source={require('@/assets/images/google-icon.png')}
-          style={{ width: 20, height: 20, marginRight: 10 }}
-        />
-        <Text style={styles.googleText}>Google Sign in</Text>
+      <TouchableOpacity
+  style={[styles.socialButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc' }]}
+>
+  <FontAwesome5 name="google" size={20} color="#DB4437" style={styles.socialIcon} />
+  <Text style={[styles.socialText, { color: '#444' }]}>Google Sign in</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
