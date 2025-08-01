@@ -1,38 +1,46 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fff',
   },
   container: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 60,
+    padding: 16,
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
-    alignSelf: 'center',
-    marginBottom: 30,
-    color: '#111827',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#111',
   },
   card: {
     backgroundColor: '#6366F1',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    marginBottom: 18,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   cardText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  cardSubItem: {
+    backgroundColor: '#f2f2f2',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginLeft: 20,
+    marginBottom: 8,
+    borderRadius: 12,
+  },
+  cardSubText: {
+    fontSize: 14,
+    color: '#333',
   },
 });
