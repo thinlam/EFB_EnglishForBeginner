@@ -5,11 +5,10 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
-  Image,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 import { auth, db } from '@/scripts/firebase';
@@ -178,7 +177,7 @@ export default function LoginScreen() {
 >
   <FontAwesome5 name="google" size={20} color="#DB4437" style={styles.socialIcon} />
   <Text style={[styles.socialText, { color: '#444' }]}>Google Sign in</Text>
-      </TouchableOpacity>
+</TouchableOpacity>
 
       <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
         <FontAwesome5 name="facebook-f" size={20} color="#fff" style={styles.socialIcon} />

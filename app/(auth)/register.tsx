@@ -7,14 +7,13 @@ import { doc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { styles } from '../../components/style/auth/RegisterStyles';
 
@@ -160,13 +159,13 @@ export default function RegisterScreen() {
         </Text>
 
         <View style={{ marginTop: 30 }}>
-          <TouchableOpacity style={styles.socialButtonWhite} onPress={() => promptAsync()}>
-            <Image
-              source={require('@/assets/images/google-icon.png')}
-              style={{ width: 20, height: 20, marginRight: 10 }}
-            />
-            <Text style={styles.googleText}>Google sign up</Text>
-          </TouchableOpacity>
+          <TouchableOpacity
+  style={[styles.socialButton, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc' }]}
+  onPress={() => promptAsync()}
+>
+  <FontAwesome5 name="google" size={20} color="#DB4437" style={styles.socialIcon} />
+  <Text style={[styles.socialText, { color: '#444' }]}>Google Sign up</Text>
+</TouchableOpacity>
 
           <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#1877F2' }]}>
             <FontAwesome5 name="facebook-f" size={20} color="#fff" style={styles.socialIcon} />
