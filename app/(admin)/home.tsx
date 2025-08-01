@@ -20,10 +20,34 @@ export default function AdminHomeScreen() {
         { title: 'Từ vựng', path: '/(admin)/vocabulary' },
         { title: 'Ngữ pháp', path: '/(admin)/grammar' },
         { title: 'Luyện nghe' },
-        { title: 'Trò chơi' },
+        { title: 'Luyện nói' },
+        { title: 'Luyện đọc' },
+        { title: 'Luyện viết' },
         { title: 'Bài kiểm tra' },
       ],
     },
+    {
+  title: '🗓️ Lịch học & Kế hoạch',
+  children: [
+    { title: 'Quản lý lịch học', path: '/(admin)/schedule' },
+    { title: 'Kế hoạch học tập', path: '/(admin)/learning-plan' },
+  ],
+},
+    {
+      title: '📚 Tài liệu & Hỗ trợ',
+      children: [
+        { title: 'Tài liệu học tập' },
+        { title: 'Hỗ trợ kỹ thuật', path: '/(admin)/support' },
+      ],
+    },
+    {
+  title: '💰 Điểm & Thưởng',
+  children: [
+    { title: 'Trò chơi' },
+    { title: 'Quản lý coin', path: '/(admin)/coin' },
+    { title: 'Phần thưởng / Xếp hạng', path: '/(admin)/rewards' },
+  ],
+},
     
     {
       title: '📊 Thống kê & Thông báo',
@@ -32,6 +56,15 @@ export default function AdminHomeScreen() {
         { title: 'Gửi thông báo' },
       ],
     },
+    {
+  title: '💎 Gói học & Nâng cấp',
+  children: [
+    { title: 'Quản lý gói học', path: '/(admin)/plans' },
+    { title: 'Giao dịch & Nâng cấp', path: '/(admin)/transactions' },
+  ],
+},
+
+
     {
       title: '👥 Người dùng & Hệ thống',
       children: [
