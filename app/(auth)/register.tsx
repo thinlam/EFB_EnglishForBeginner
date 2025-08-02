@@ -58,7 +58,7 @@ export default function RegisterScreen() {
       });
 
       Alert.alert('Thành công', 'Đăng ký thành công!');
-      router.replace('/');
+      router.replace('/(onboarding)/SelectLevel');
     } catch (error: any) {
       Alert.alert('Lỗi', error.message || 'Đăng ký thất bại!');
       console.error(error);

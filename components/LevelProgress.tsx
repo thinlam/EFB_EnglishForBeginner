@@ -1,9 +1,24 @@
-import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function LevelProgress() {
-  const level = 1;
-  const expProgress = 0.0; // 40%
+  const [level, setLevel] = useState(1);
+  const [lesson, setLesson] = useState(1);
+
+  useEffect(() => {
+    const loadProgress = async () => {
+      const storedLevel = await AsyncStorage.getItem('user_level');
+      const storedLesson = await AsyncStorage.getItem('user_lesson');
+
+      setLevel(storedLevel ? parseInt(storedLevel) : 1);
+      setLesson(storedLesson ? parseInt(storedLesson) : 1);
+    };
+
+    loadProgress();
+  }, []);
+
+  const expProgress = (lesson % 3 === 0) ? 1 : ((lesson - 1) % 3) / 3;
 
   return (
     <View style={styles.container}>
@@ -26,7 +41,7 @@ const styles = StyleSheet.create({
   levelInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom:8,
+    marginBottom: 8,
   },
   badge: {
     fontSize: 24,
@@ -44,6 +59,6 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#4ade80', // xanh lá
+    backgroundColor: '#4ade80',
   },
 });

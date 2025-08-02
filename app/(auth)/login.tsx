@@ -47,25 +47,48 @@ export default function LoginScreen() {
           const user = result.user;
 
           const userDocRef = doc(db, 'users', user.uid);
-          const userDocSnap = await getDoc(userDocRef);
+          let userDocSnap = await getDoc(userDocRef);
+
           if (!userDocSnap.exists()) {
             await setDoc(userDocRef, {
               name: user.displayName,
               email: user.email,
               number: '',
               role: 'user',
+              level: null,
+              startMode: null,
               createdAt: new Date(),
             });
+            userDocSnap = await getDoc(userDocRef); // reload
           }
+
+          const userData = userDocSnap.data();
+          const role = userData.role || 'user';
+          const level = userData.level || null;
+          const startMode = userData.startMode || null;
 
           await AsyncStorage.setItem('user', JSON.stringify({
             uid: user.uid,
             email: user.email,
-            role: 'user',
+            role,
           }));
 
           Alert.alert('Thành công', 'Đăng nhập bằng Google thành công!');
-          router.replace('(tabs)');
+
+          if (role === 'admin') {
+            router.replace('/(admin)/home');
+          } else if (role === 'premium') {
+            router.replace('/premium-home');
+          } else {
+            if (startMode) {
+              router.replace('(tabs)');
+            } else if (level !== null) {
+              router.replace('(tabs)');
+            } else {
+              router.replace('/(onboarding)/SelectLevel');
+            }
+          }
+
         } catch (error) {
           console.error('Google login error:', error);
           Alert.alert('Lỗi', 'Không thể đăng nhập bằng Google.');
@@ -116,6 +139,8 @@ export default function LoginScreen() {
 
       const userData = userDoc.data();
       const role = userData.role || 'user';
+      const level = userData.level || null;
+      const startMode = userData.startMode || null;
 
       await AsyncStorage.setItem('user', JSON.stringify({
         uid,
@@ -130,8 +155,15 @@ export default function LoginScreen() {
       } else if (role === 'premium') {
         router.replace('/premium-home');
       } else {
-        router.replace('(tabs)');
+        if (startMode) {
+          router.replace('(tabs)');
+        } else if (level !== null) {
+          router.replace('(tabs)');
+        } else {
+          router.replace('/(onboarding)/SelectLevel');
+        }
       }
+
     } catch (error: any) {
       let message = 'Đăng nhập thất bại.';
       switch (error.code) {
