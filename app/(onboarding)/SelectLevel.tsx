@@ -5,13 +5,13 @@ import { useRouter } from 'expo-router';
 import { doc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
-    Animated,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -118,6 +118,13 @@ export default function SelectLevelScreen() {
           <TouchableOpacity style={styles.button} onPress={handleContinue}>
             <Text style={styles.buttonText}>TIẾP TỤC</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+  style={styles.backButton}
+  onPress={() => router.replace('/(tabs)')}>
+  <Text style={styles.backButtonText}>← Trở về trang chính</Text>
+</TouchableOpacity>
+
         </Animated.View>
       )}
     </SafeAreaView>
@@ -186,5 +193,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     textTransform: 'uppercase',
+  },
+  backButton: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  backButtonText: {
+    color: '#1D4ED8',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+    textAlign: 'center',
   },
 });

@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -35,7 +35,7 @@ export default function ChooseStartModeScreen() {
     if (selected === 'basic') {
       router.replace({ pathname: '/(tabs)', params: { lessonId: 1 } });
     } else {
-      router.replace('/(test)/TestIntroScreen');
+      router.replace('/(onboarding)/TestIntroScreen'); // chuyển đến bài test
     }
   };
 

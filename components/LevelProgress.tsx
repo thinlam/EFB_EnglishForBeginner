@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function LevelProgress() {
-  const [level, setLevel] = useState(1);
+  const [level, setLevel] = useState(0);
   const [lesson, setLesson] = useState(1);
 
   useEffect(() => {
@@ -11,7 +11,7 @@ export default function LevelProgress() {
       const storedLevel = await AsyncStorage.getItem('user_level');
       const storedLesson = await AsyncStorage.getItem('user_lesson');
 
-      setLevel(storedLevel ? parseInt(storedLevel) : 1);
+      setLevel(storedLevel ? parseInt(storedLevel) : 0);
       setLesson(storedLesson ? parseInt(storedLesson) : 1);
     };
 
@@ -24,7 +24,9 @@ export default function LevelProgress() {
     <View style={styles.container}>
       <View style={styles.levelInfo}>
         <Text style={styles.badge}>🏅</Text>
-        <Text style={styles.levelText}>Level {level}</Text>
+        <Text style={styles.levelText}>
+          {level > 0 ? `Level ${level}` : '🎯 Chưa xác định trình độ'}
+        </Text>
       </View>
 
       <View style={styles.progressBarBackground}>
