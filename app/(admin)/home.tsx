@@ -23,7 +23,8 @@ export default function AdminHomeScreen() {
         { title: 'Luyện nói' },
         { title: 'Luyện đọc' },
         { title: 'Luyện viết' },
-        { title: 'Bài kiểm tra' },
+       { title: 'Bài kiểm tra', path: '/(admin)/testList' },
+
       ],
     },
     {
