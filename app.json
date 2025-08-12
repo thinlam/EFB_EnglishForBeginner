@@ -7,7 +7,11 @@
     "icon": "./assets/images/icon_1024x1024.png",
     "scheme": "com.efb.userapp",
     "userInterfaceStyle": "automatic",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "splash": {
       "image": "./assets/images/splash_1242x2436.png",
       "resizeMode": "contain",
@@ -18,8 +22,8 @@
     },
     "android": {
       "package": "com.efb.userapp",
-       "compileSdkVersion": 34,
-  "targetSdkVersion": 34,
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FFE3B0"
@@ -40,7 +44,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#FFE3B0"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,3 +1,13 @@
+/**
+ * Dự án: EFB - English For Beginners
+ * \* Mục đích: Xây dựng ứng dụng học tiếng Anh cơ bản.
+ * người dùng: Người mới bắt đầu học tiếng Anh.
+ * Chức năng: Đăng nhập, đăng ký, học từ vựng, ngữ pháp, luyện nghe nói.
+ * Công nghệ: React Native, Expo, Firebase.
+ * \* Tác giả: [NHÓM EFB]
+ * Ngày tạo: 01/06/2025
+ */
+
 import { styles } from '@/components/style/LayoutStyles'; // Import styles from the LayoutStyles file  
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
