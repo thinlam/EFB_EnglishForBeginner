@@ -8,14 +8,13 @@
  * Ngày tạo: 01/06/2025
  */
 
-
-
 /**
  * LoginScreen.tsx
  * -------------------------------------------------------------------
  * - Đăng nhập email/username + password, Google OAuth.
  * - Lưu phiên bằng SecureStore (an toàn hơn AsyncStorage).
  * - Có chú thích gọn để dễ bảo trì.
+ * - Nút "Quên mật khẩu?" → điều hướng sang /forgot-password (flow OTP).
  * -------------------------------------------------------------------
  */
 
@@ -35,7 +34,6 @@ import { auth, db } from '@/scripts/firebase';
 import { useGoogleLogin } from '@/scripts/googleAuth';
 import {
   GoogleAuthProvider,
-  sendPasswordResetEmail,
   signInWithCredential,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
@@ -225,19 +223,10 @@ export default function LoginScreen() {
     }
   };
 
-  // QUÊN MẬT KHẨU (yêu cầu nhập email)
-  const handleForgotPassword = async () => {
-    if (!identifier.includes('@')) {
-      Alert.alert('Lỗi', 'Vui lòng nhập email để đặt lại mật khẩu.');
-      return;
-    }
-    try {
-      await sendPasswordResetEmail(auth, identifier);
-      Alert.alert('Đã gửi', 'Email đặt lại mật khẩu đã được gửi.');
-    } catch (e) {
-      console.error('Password reset error:', e);
-      Alert.alert('Lỗi', 'Không thể gửi email đặt lại mật khẩu.');
-    }
+  // QUÊN MẬT KHẨU → ĐI ĐẾN FLOW OTP (/forgot-password)
+  const handleForgotPassword = () => {
+    const email = identifier.includes('@') ? encodeURIComponent(identifier.trim()) : '';
+    router.push(`/ForgotPassword${email ? `?email=${email}` : ''}`);
   };
 
   // UI
