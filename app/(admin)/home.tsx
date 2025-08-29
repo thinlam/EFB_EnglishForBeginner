@@ -19,7 +19,7 @@ export default function AdminHomeScreen() {
       children: [
         { title: 'Từ vựng', path: '/(admin)/vocabulary' },
         { title: 'Ngữ pháp', path: '/(admin)/grammar' },
-        { title: 'Luyện nghe' },
+        { title: 'Luyện nghe',path: '/(admin)/listen' },
         { title: 'Luyện nói' },
         { title: 'Luyện đọc' },
         { title: 'Luyện viết' },
