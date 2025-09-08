@@ -113,9 +113,10 @@ export default function ListenScreen() {
           </TouchableOpacity>
 
           {/* Tạo mới */}
-          <TouchableOpacity onPress={() => router.push('/(admin)/listen/create')}>
-            <Ionicons name="add-circle" size={28} color={COLORS.create} />
-          </TouchableOpacity>
+         <TouchableOpacity onPress={() => router.push('/listencreate')}>
+  <Ionicons name="add-circle" size={28} color="#4ade80" />
+</TouchableOpacity>
+
         </View>
       </View>
 
