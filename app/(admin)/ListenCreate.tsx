@@ -1,4 +1,3 @@
-// app/(admin)/listencreate.tsx
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
@@ -24,10 +23,6 @@ import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 function slugify(s: string) {
   return s.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '').slice(0, 60);
 }
-async function uriToBlob(uri: string): Promise<Blob> {
-  const res = await fetch(uri);
-  return await res.blob();
-}
 function guessContentType(filename: string) {
   const ext = (filename?.split('.').pop() || '').toLowerCase();
   switch (ext) {
@@ -49,19 +44,22 @@ function guessContentType(filename: string) {
   }
 }
 
-// Web: dùng thẳng File; Native: thử blob -> fallback base64 (Uint8Array)
+// Web: dùng File; Native: thử Blob -> fallback base64 (Uint8Array) + kiểm tra file rỗng
 async function getUploadData(p: { uri: string; file?: File | null }): Promise<Blob | File | Uint8Array> {
-  if (Platform.OS === 'web' && p.file) return p.file;       // Web có File từ picker
+  if (Platform.OS === 'web' && p.file) return p.file;
 
   // Native: thử blob trước
   try {
-    const blob = await uriToBlob(p.uri);
+    const res = await fetch(p.uri);
+    const blob = await res.blob();
     if ((blob as any)?.size > 0) return blob;
-  } catch (_) {
-    // ignore -> fallback
-  }
+  } catch {}
 
-  // Fallback: đọc base64 bằng FileSystem rồi chuyển thành Uint8Array
+  // Fallback: kiểm tra file tồn tại + đọc base64
+  const info = await FileSystem.getInfoAsync(p.uri);
+  if (!info.exists || (info.size ?? 0) === 0) {
+    throw new Error('File không tồn tại hoặc kích thước = 0 (iOS có thể trả URI không hợp lệ), vui lòng chọn lại.');
+  }
   const base64 = await FileSystem.readAsStringAsync(p.uri, { encoding: FileSystem.EncodingType.Base64 });
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   return bytes;
@@ -73,15 +71,18 @@ export default function ListenCreateSingleRoute() {
 
   const [title, setTitle] = useState('');
   const [transcript, setTranscript] = useState('');
-  const [urlInput, setUrlInput] = useState(''); // có thể dán URL mp3/mp4 sẵn
+  const [urlInput, setUrlInput] = useState(''); // có thể dán URL có sẵn
   const [picked, setPicked] = useState<{
     name: string;
     uri: string;
-    file?: File | null;        // web có
-    mimeType?: string | null;  // web có
+    file?: File | null;
+    mimeType?: string | null;
   } | null>(null);
+
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number>(0);
+  const [speedText, setSpeedText] = useState('');
+  const [etaText, setEtaText] = useState('');
 
   const pickMedia = async () => {
     const r = await DocumentPicker.getDocumentAsync({
@@ -103,7 +104,7 @@ export default function ListenCreateSingleRoute() {
       setPicked({
         name: f.name ?? 'media',
         uri: f.uri,
-        // @ts-ignore expo types có thể chưa expose .file/.mimeType
+        // @ts-ignore (expo có thể chưa expose)
         file: (f as any)?.file ?? null,
         mimeType: (f as any)?.mimeType ?? null,
       });
@@ -118,6 +119,8 @@ export default function ListenCreateSingleRoute() {
 
     setBusy(true);
     setProgress(0);
+    setSpeedText('');
+    setEtaText('');
 
     try {
       let finalUrl = urlInput.trim();
@@ -135,20 +138,39 @@ export default function ListenCreateSingleRoute() {
         const path = `listens/${slug}.${ext}`;
         const storageRef = ref(storage, path);
 
-        const data = await getUploadData(picked); // File (web) | Blob (native) | Uint8Array (fallback)
+        const data = await getUploadData(picked);
 
         await new Promise<void>((resolve, reject) => {
-          const task = uploadBytesResumable(storageRef, data as any, { contentType: mime });
+          const start = Date.now();
+          const task = uploadBytesResumable(storageRef, data as any, {
+            contentType: mime || 'application/octet-stream',
+          });
+
           task.on(
             'state_changed',
             (s) => {
-              if (s.totalBytes) {
-                setProgress(Math.round((s.bytesTransferred / s.totalBytes) * 100));
-              } else {
+              if (!s.totalBytes) {
                 setProgress(0);
+                return;
               }
+              const pct = Math.round((s.bytesTransferred / s.totalBytes) * 100);
+              setProgress(pct);
+
+              const elapsed = (Date.now() - start) / 1000; // giây
+              const speed = s.bytesTransferred / Math.max(elapsed, 0.001); // bytes/s
+              const remain = (s.totalBytes - s.bytesTransferred) / Math.max(speed, 1);
+              setSpeedText(`${(speed / 1e6).toFixed(2)} MB/s`);
+              setEtaText(`ETA ${remain.toFixed(1)}s`);
             },
-            (err) => reject(err),
+            (err: any) => {
+              const server =
+                err?.customData?.serverResponse ||
+                err?.serverResponse ||
+                err?.message ||
+                JSON.stringify(err);
+              Alert.alert('Upload lỗi', `${err?.code ?? ''}\n${server}`);
+              reject(err);
+            },
             () => resolve()
           );
         });
@@ -157,7 +179,6 @@ export default function ListenCreateSingleRoute() {
         mediaType = mime;
       }
 
-      // nếu chỉ dán URL thủ công
       if (!mediaType && finalUrl) {
         mediaType = finalUrl.toLowerCase().endsWith('.mp4') ? 'video/mp4' : 'audio/mpeg';
       }
@@ -165,13 +186,12 @@ export default function ListenCreateSingleRoute() {
       await addDoc(collection(db, 'listens'), {
         title: title.trim(),
         transcript: transcript.trim(),
-        audioUrl: finalUrl,       // giữ tên field cũ để list không cần sửa
+        audioUrl: finalUrl,       // giữ field cũ
         mediaType: mediaType ?? null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
-      // Trở về danh sách
       router.replace('/listen');
     } catch (e: any) {
       console.error(e);
@@ -179,13 +199,15 @@ export default function ListenCreateSingleRoute() {
     } finally {
       setBusy(false);
       setProgress(0);
+      setSpeedText('');
+      setEtaText('');
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0b1220', paddingTop: insets.top, padding: 16 }}>
       <StatusBar barStyle="light-content" />
-      <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 12 }}>
+      <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 16 }}>
         Tạo bài nghe (mp3/mp4)
       </Text>
 
@@ -257,14 +279,14 @@ export default function ListenCreateSingleRoute() {
       </TouchableOpacity>
 
       {!!picked && (
-        <Text style={{ color: '#9ca3af', marginBottom: 10 }} numberOfLines={1}>
+        <Text style={{ color: '#9ca3af', marginBottom: 6 }} numberOfLines={1}>
           📄 {picked.name}
         </Text>
       )}
 
       {busy && (
         <Text style={{ color: '#9ca3af', marginBottom: 10 }}>
-          Đang upload… {progress}%
+          Đang upload… {progress}% {speedText ? `• ${speedText}` : ''} {etaText ? `• ${etaText}` : ''}
         </Text>
       )}
 

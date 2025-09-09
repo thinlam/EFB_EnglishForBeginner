@@ -3,6 +3,7 @@ import { COLORS, ListenStyles } from '@/components/style/ListenStyles';
 import { db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
+
 import {
   collection,
   deleteDoc,
@@ -17,6 +18,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   RefreshControl,
   StatusBar,
   Text,
@@ -30,7 +32,7 @@ type Listen = {
   title: string;
   audioUrl?: string;
   transcript?: string;
-  mediaType?: string | null; // ⬅️ thêm để biết audio/video
+  mediaType?: string | null;
   createdAt?: Date | null;
 };
 
@@ -70,7 +72,6 @@ export default function ListenScreen() {
     loadData();
   }, [loadData]);
 
-  // 🔄 Tự refresh khi quay về màn hình này
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -105,20 +106,12 @@ export default function ListenScreen() {
   return (
     <View style={[ListenStyles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
+
       {/* Header */}
       <View style={ListenStyles.header}>
         <Text style={ListenStyles.headerTitle}>Quản lý Listen</Text>
 
         <View style={ListenStyles.headerActions}>
-          {/* (Tuỳ) Seed từ assets lên Firebase: chỉ giữ nếu bạn có route này */}
-          {/* <TouchableOpacity
-            onPress={() => router.push('/listen/seed')}
-            style={ListenStyles.seedIconWrap}
-          >
-            <Ionicons name="cloud-upload-outline" size={24} color={COLORS.seed} />
-          </TouchableOpacity> */}
-
-          {/* Tạo mới */}
           <TouchableOpacity onPress={() => router.push('/listencreate')}>
             <Ionicons name="add-circle" size={28} color={COLORS.create} />
           </TouchableOpacity>
@@ -135,7 +128,8 @@ export default function ListenScreen() {
           ListEmptyComponent={
             <View style={ListenStyles.emptyWrap}>
               <Text style={ListenStyles.emptyText}>
-                Chưa có bài nghe nào. Bấm <Text style={ListenStyles.emptyTextPlus}>+</Text> để tạo mới.
+                Chưa có bài nghe nào. Bấm <Text style={ListenStyles.emptyTextPlus}>+</Text> để tạo
+                mới.
               </Text>
             </View>
           }
@@ -150,10 +144,32 @@ export default function ListenScreen() {
               )}
 
               {!!item.audioUrl && (
-                <Text style={ListenStyles.itemMeta} numberOfLines={1}>
-                  {item.mediaType?.startsWith('video') ? '🎞️' : '🔊'} {item.audioUrl}
-                </Text>
+                <TouchableOpacity
+                  onPress={async () => {
+                    try {
+                      const raw = item.audioUrl!.trim();
+                      const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+                      const can = await Linking.canOpenURL(url);
+                      if (can) await Linking.openURL(url);
+                      else Alert.alert('Không mở được link', url);
+                    } catch (e: any) {
+                      Alert.alert('Lỗi', e?.message ?? 'Không mở được link');
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      ListenStyles.itemMeta,
+                      { color: '#60a5fa', textDecorationLine: 'underline' },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.mediaType?.startsWith('video') ? '🎞️' : '🔊'} {item.audioUrl}
+                  </Text>
+                </TouchableOpacity>
               )}
+
               {!!item.transcript && (
                 <Text style={ListenStyles.itemMeta2} numberOfLines={2}>
                   📝 {item.transcript}
@@ -161,13 +177,6 @@ export default function ListenScreen() {
               )}
 
               <View style={ListenStyles.itemActions}>
-                {/* Nếu đã có route edit [id].tsx thì bật lại nút dưới đây */}
-                {/* <TouchableOpacity
-                  onPress={() => router.push(`/(admin)/listen/${item.id}`)}
-                  style={ListenStyles.itemEditBtn}
-                >
-                  <Ionicons name="create-outline" size={22} color={COLORS.edit} />
-                </TouchableOpacity> */}
                 <TouchableOpacity onPress={() => onDelete(item.id)}>
                   <Ionicons name="trash-outline" size={22} color={COLORS.del} />
                 </TouchableOpacity>
