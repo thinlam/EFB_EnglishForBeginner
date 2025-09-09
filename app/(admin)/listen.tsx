@@ -1,8 +1,8 @@
 // app/(admin)/listen/index.tsx
-
+import { COLORS, ListenStyles } from '@/components/style/ListenStyles';
 import { db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   collection,
   deleteDoc,
@@ -25,14 +25,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// ⬇️ THÊM DÒNG NÀY (đúng path thư mục style của bạn)
-import { COLORS, ListenStyles } from '@/components/style/ListenStyles';
-
 type Listen = {
   id: string;
   title: string;
   audioUrl?: string;
   transcript?: string;
+  mediaType?: string | null; // ⬅️ thêm để biết audio/video
   createdAt?: Date | null;
 };
 
@@ -55,6 +53,7 @@ export default function ListenScreen() {
           title: raw.title ?? '(Không tiêu đề)',
           audioUrl: raw.audioUrl ?? '',
           transcript: raw.transcript ?? '',
+          mediaType: raw.mediaType ?? null,
           createdAt: raw.createdAt instanceof Timestamp ? raw.createdAt.toDate() : null,
         };
       });
@@ -70,6 +69,13 @@ export default function ListenScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // 🔄 Tự refresh khi quay về màn hình này
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -104,19 +110,18 @@ export default function ListenScreen() {
         <Text style={ListenStyles.headerTitle}>Quản lý Listen</Text>
 
         <View style={ListenStyles.headerActions}>
-          {/* Seed từ assets lên Firebase */}
-          <TouchableOpacity
-            onPress={() => router.push('/(admin)/listen/seed')}
+          {/* (Tuỳ) Seed từ assets lên Firebase: chỉ giữ nếu bạn có route này */}
+          {/* <TouchableOpacity
+            onPress={() => router.push('/listen/seed')}
             style={ListenStyles.seedIconWrap}
           >
             <Ionicons name="cloud-upload-outline" size={24} color={COLORS.seed} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {/* Tạo mới */}
-         <TouchableOpacity onPress={() => router.push('/listencreate')}>
-  <Ionicons name="add-circle" size={28} color="#4ade80" />
-</TouchableOpacity>
-
+          <TouchableOpacity onPress={() => router.push('/listencreate')}>
+            <Ionicons name="add-circle" size={28} color={COLORS.create} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -130,9 +135,7 @@ export default function ListenScreen() {
           ListEmptyComponent={
             <View style={ListenStyles.emptyWrap}>
               <Text style={ListenStyles.emptyText}>
-                Chưa có bài nghe nào. Hãy bấm biểu tượng{' '}
-                <Text style={ListenStyles.emptyTextEm}>Seed</Text> để đẩy mp3 từ assets lên hoặc
-                bấm <Text style={ListenStyles.emptyTextPlus}>+</Text> để tạo mới.
+                Chưa có bài nghe nào. Bấm <Text style={ListenStyles.emptyTextPlus}>+</Text> để tạo mới.
               </Text>
             </View>
           }
@@ -148,7 +151,7 @@ export default function ListenScreen() {
 
               {!!item.audioUrl && (
                 <Text style={ListenStyles.itemMeta} numberOfLines={1}>
-                  🔊 {item.audioUrl}
+                  {item.mediaType?.startsWith('video') ? '🎞️' : '🔊'} {item.audioUrl}
                 </Text>
               )}
               {!!item.transcript && (
@@ -158,12 +161,13 @@ export default function ListenScreen() {
               )}
 
               <View style={ListenStyles.itemActions}>
-                <TouchableOpacity
+                {/* Nếu đã có route edit [id].tsx thì bật lại nút dưới đây */}
+                {/* <TouchableOpacity
                   onPress={() => router.push(`/(admin)/listen/${item.id}`)}
                   style={ListenStyles.itemEditBtn}
                 >
                   <Ionicons name="create-outline" size={22} color={COLORS.edit} />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
                 <TouchableOpacity onPress={() => onDelete(item.id)}>
                   <Ionicons name="trash-outline" size={22} color={COLORS.del} />
                 </TouchableOpacity>
