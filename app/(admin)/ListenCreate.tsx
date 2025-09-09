@@ -1,3 +1,4 @@
+// app/(admin)/listencreate.tsx
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
@@ -44,21 +45,19 @@ function guessContentType(filename: string) {
   }
 }
 
-// Web: dùng File; Native: thử Blob -> fallback base64 (Uint8Array) + kiểm tra file rỗng
+// Web: dùng File; Native: thử Blob -> fallback base64 (Uint8Array) + kiểm tra size
 async function getUploadData(p: { uri: string; file?: File | null }): Promise<Blob | File | Uint8Array> {
   if (Platform.OS === 'web' && p.file) return p.file;
 
-  // Native: thử blob trước
   try {
     const res = await fetch(p.uri);
     const blob = await res.blob();
     if ((blob as any)?.size > 0) return blob;
   } catch {}
 
-  // Fallback: kiểm tra file tồn tại + đọc base64
   const info = await FileSystem.getInfoAsync(p.uri);
   if (!info.exists || (info.size ?? 0) === 0) {
-    throw new Error('File không tồn tại hoặc kích thước = 0 (iOS có thể trả URI không hợp lệ), vui lòng chọn lại.');
+    throw new Error('File không tồn tại hoặc kích thước = 0. Vui lòng chọn lại file.');
   }
   const base64 = await FileSystem.readAsStringAsync(p.uri, { encoding: FileSystem.EncodingType.Base64 });
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
@@ -71,7 +70,7 @@ export default function ListenCreateSingleRoute() {
 
   const [title, setTitle] = useState('');
   const [transcript, setTranscript] = useState('');
-  const [urlInput, setUrlInput] = useState(''); // có thể dán URL có sẵn
+  const [urlInput, setUrlInput] = useState('');
   const [picked, setPicked] = useState<{
     name: string;
     uri: string;
@@ -104,7 +103,7 @@ export default function ListenCreateSingleRoute() {
       setPicked({
         name: f.name ?? 'media',
         uri: f.uri,
-        // @ts-ignore (expo có thể chưa expose)
+        // @ts-ignore (expo types có thể chưa expose .file/.mimeType trên web)
         file: (f as any)?.file ?? null,
         mimeType: (f as any)?.mimeType ?? null,
       });
@@ -138,13 +137,37 @@ export default function ListenCreateSingleRoute() {
         const path = `listens/${slug}.${ext}`;
         const storageRef = ref(storage, path);
 
+        // Lấy dữ liệu upload + kiểm tra size
         const data = await getUploadData(picked);
+        let dataSize = 0;
+        let dataKind = 'unknown';
+        if (Platform.OS === 'web' && (data as any) instanceof File) {
+          dataSize = (data as File).size || 0;
+          dataKind = 'File';
+        } else if (typeof (data as any).size === 'number') {
+          dataSize = (data as any).size; // Blob
+          dataKind = 'Blob';
+        } else if (data instanceof Uint8Array) {
+          dataSize = data.byteLength;
+          dataKind = 'Uint8Array';
+        }
+        if (!dataSize) {
+          Alert.alert('File rỗng', `Không đọc được dữ liệu (size=0). Kiểu: ${dataKind}`);
+          setBusy(false);
+          return;
+        }
 
+        // Upload + watchdog 10s nếu không tiến triển
         await new Promise<void>((resolve, reject) => {
           const start = Date.now();
           const task = uploadBytesResumable(storageRef, data as any, {
             contentType: mime || 'application/octet-stream',
           });
+
+          const watchdog = setTimeout(() => {
+            try { task.cancel(); } catch {}
+            reject(new Error('Upload không có tiến triển sau 10 giây. Kiểm tra quyền/URI/bucket/mạng.'));
+          }, 10000);
 
           task.on(
             'state_changed',
@@ -156,22 +179,34 @@ export default function ListenCreateSingleRoute() {
               const pct = Math.round((s.bytesTransferred / s.totalBytes) * 100);
               setProgress(pct);
 
-              const elapsed = (Date.now() - start) / 1000; // giây
-              const speed = s.bytesTransferred / Math.max(elapsed, 0.001); // bytes/s
-              const remain = (s.totalBytes - s.bytesTransferred) / Math.max(speed, 1);
-              setSpeedText(`${(speed / 1e6).toFixed(2)} MB/s`);
-              setEtaText(`ETA ${remain.toFixed(1)}s`);
+              if (s.bytesTransferred > 0) {
+                const elapsed = (Date.now() - start) / 1000;
+                const speed = s.bytesTransferred / Math.max(elapsed, 0.001); // bytes/s
+                const remain = (s.totalBytes - s.bytesTransferred) / Math.max(speed, 1);
+                setSpeedText(`${(speed / 1e6).toFixed(2)} MB/s`);
+                setEtaText(`ETA ${remain.toFixed(1)}s`);
+              } else {
+                setSpeedText('');
+                setEtaText('');
+              }
             },
             (err: any) => {
+              clearTimeout(watchdog);
               const server =
                 err?.customData?.serverResponse ||
                 err?.serverResponse ||
                 err?.message ||
                 JSON.stringify(err);
-              Alert.alert('Upload lỗi', `${err?.code ?? ''}\n${server}`);
+              Alert.alert(
+                'Upload lỗi',
+                `${err?.code ?? 'storage/unknown'}\n${server}\n\nKiểu: ${dataKind}, size: ${dataSize}`
+              );
               reject(err);
             },
-            () => resolve()
+            () => {
+              clearTimeout(watchdog);
+              resolve();
+            }
           );
         });
 
@@ -186,7 +221,7 @@ export default function ListenCreateSingleRoute() {
       await addDoc(collection(db, 'listens'), {
         title: title.trim(),
         transcript: transcript.trim(),
-        audioUrl: finalUrl,       // giữ field cũ
+        audioUrl: finalUrl,
         mediaType: mediaType ?? null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
