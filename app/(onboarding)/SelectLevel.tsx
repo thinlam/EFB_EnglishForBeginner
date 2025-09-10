@@ -60,7 +60,7 @@ export default function SelectLevelScreen() {
   useEffect(() => {
     const checkPrevious = async () => {
       const cefr = await AsyncStorage.getItem('efb.level'); // ← cùng 1 key
-      if (cefr) router.replace('/(tabs)/home');
+      if (cefr) router.replace('/(tabs)');
     };
     checkPrevious();
   }, []);
