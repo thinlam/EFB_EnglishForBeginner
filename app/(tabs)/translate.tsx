@@ -1,4 +1,4 @@
-import * as Clipboard from 'expo-clipboard';
+import { setStringAsync } from 'expo-clipboard'; // ✅ SỬA
 import { useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import React, { useEffect, useRef, useState } from 'react';
@@ -130,7 +130,6 @@ export default function TranslateScreen() {
     }
     setLoading(true);
     try {
-      // Nếu auto + đích là vi/en, cứ gửi "auto|vi" hoặc "auto|en"
       const from = srcLang;
       const to = tgtLang === 'auto' ? (srcLang === 'en' ? 'vi' : 'en') : tgtLang;
       const result = await translate(input, from, to);
@@ -167,7 +166,7 @@ export default function TranslateScreen() {
   };
 
   const copyResult = async () => {
-    await Clipboard.setStringAsync(output || '');
+    await setStringAsync(output || '');    // ✅ SỬA
     if (output) Alert.alert('Đã sao chép', 'Kết quả đã copy vào clipboard.');
   };
 
