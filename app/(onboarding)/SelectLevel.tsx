@@ -1,18 +1,14 @@
 /**
- * Dự án: EFB - English For Beginners
- * * Mục đích: Xây dựng ứng dụng học tiếng Anh cơ bản.
- * người dùng: Người mới bắt đầu học tiếng Anh.
- * Chức năng: Đăng nhập, đăng ký, học từ vựng, ngữ pháp, luyện nghe nói.
- * Công nghệ: React Native, Expo, Firebase.
- * * Tác giả: [NHÓM EFB]
- * Ngày tạo: 01/06/2025
+ * SelectLevelScreen.tsx — Chỉ dùng Firestore để quyết định redirect
+ * - Không auto-redirect theo AsyncStorage nữa (tránh dính user cũ)
+ * - Lưu Firestore + (tuỳ chọn) lưu AsyncStorage sau khi chọn
  */
 
 import { auth, db } from '@/scripts/firebase';
 import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import {
   Alert,
@@ -26,12 +22,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 /* --- Map số sao → CEFR --- */
-const STAR_TO_CEFR: Record<number, 'A1' | 'A2' | 'B1' | 'B2' | 'C1'> = {
+const STAR_TO_CEFR: Record<number, 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'> = {
   1: 'A1',
   2: 'A2',
   3: 'B1',
   4: 'B2',
-  5: 'C1', // ← đổi thành 'C2' nếu muốn level cao nhất là C2
+  5: 'C1',
+  // 6: 'C2', // bật nếu muốn thêm 6 sao
 };
 
 /* --- Dữ liệu hiển thị lựa chọn --- */
@@ -40,7 +37,8 @@ const levels = [
   { id: 2, stars: 2, label: 'Tôi biết vài từ thông dụng' },
   { id: 3, stars: 3, label: 'Tôi có thể giao tiếp cơ bản' },
   { id: 4, stars: 4, label: 'Tôi có thể nói và viết nhiều chủ đề' },
-  { id: 5, stars: 5, label: 'Tôi có thể đi sâu vào hiểu hầu hết các chủ đề' },
+  { id: 5, stars: 5, label: 'Tôi có thể hiểu đa số chủ đề' },
+  // { id: 6, stars: 6, label: 'Tôi gần như thành thạo (C2)' },
 ];
 
 const levelMessages: Record<number, string> = {
@@ -49,20 +47,37 @@ const levelMessages: Record<number, string> = {
   3: '💬 Giao tiếp cơ bản – bắt đầu thực hành ngay thôi!',
   4: '🧠 Bạn đã có nền – hãy đào sâu và hoàn thiện!',
   5: '🚀 Bạn gần như thành thạo – chỉ cần tinh chỉnh thêm thôi!',
+  // 6: '🏆 C2 – duy trì phong độ và luyện kỹ năng nâng cao!',
 };
 
 export default function SelectLevelScreen() {
   const router = useRouter();
   const [selectedStars, setSelectedStars] = useState<number | null>(null);
+  const [checking, setChecking] = useState(true);
   const fadeAnim = useState(new Animated.Value(0))[0];
 
-  /* --- Kiểm tra nếu đã chọn trước đó: dùng cùng 1 key 'efb.level' --- */
+  // 🔎 Chỉ kiểm tra Firestore. Nếu users/{uid}.levelCefr đã có → vào tabs.
   useEffect(() => {
-    const checkPrevious = async () => {
-      const cefr = await AsyncStorage.getItem('efb.level'); // ← cùng 1 key
-      if (cefr) router.replace('/(tabs)');
+    const checkFromFirestore = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          setChecking(false);
+          return;
+        }
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        const cefr = snap.exists() ? (snap.get('levelCefr') as string | undefined) : undefined;
+
+        if (cefr) {
+          router.replace('/(tabs)');
+        } else {
+          setChecking(false); // chưa có level → ở lại màn chọn
+        }
+      } catch {
+        setChecking(false);
+      }
     };
-    checkPrevious();
+    checkFromFirestore();
   }, []);
 
   const handleSelect = (stars: number) => {
@@ -80,20 +95,22 @@ export default function SelectLevelScreen() {
 
     try {
       const user = auth.currentUser;
-
-      if (user) {
-        await setDoc(
-          doc(db, 'users', user.uid),
-          {
-            levelStars: selectedStars, // VD: 5
-            levelCefr: cefr,           // VD: 'C1'
-            updatedAt: new Date(),
-          },
-          { merge: true }
-        );
+      if (!user) {
+        Alert.alert('Lỗi', 'Bạn chưa đăng nhập.');
+        return;
       }
 
-      // Lưu local để HomeScreen đọc ngay cả khi chưa login
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          levelStars: selectedStars,
+          levelCefr: cefr,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // (tuỳ chọn) Lưu local để HomeScreen đọc nhanh — không ảnh hưởng redirect lần đầu
       await AsyncStorage.setItem('efb.level', cefr);
 
       router.replace('/(onboarding)/ChooseStartModeScreen');
@@ -104,7 +121,7 @@ export default function SelectLevelScreen() {
 
   const renderStars = (count: number) => (
     <View style={styles.starContainer}>
-      {[...Array(5)].map((_, i) => (
+      {Array.from({ length: 5 }).map((_, i) => (
         <FontAwesome
           key={i}
           name="star"
@@ -115,6 +132,15 @@ export default function SelectLevelScreen() {
       ))}
     </View>
   );
+
+  // Trong lúc check Firestore, hiển thị skeleton rất nhẹ (tránh nhấp nháy)
+  if (checking) {
+    return (
+      <SafeAreaView style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ color: '#6b7280' }}>Đang tải…</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
