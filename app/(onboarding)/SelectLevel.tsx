@@ -1,10 +1,10 @@
 /**
  * Dự án: EFB - English For Beginners
- * \* Mục đích: Xây dựng ứng dụng học tiếng Anh cơ bản.
+ * * Mục đích: Xây dựng ứng dụng học tiếng Anh cơ bản.
  * người dùng: Người mới bắt đầu học tiếng Anh.
  * Chức năng: Đăng nhập, đăng ký, học từ vựng, ngữ pháp, luyện nghe nói.
  * Công nghệ: React Native, Expo, Firebase.
- * \* Tác giả: [NHÓM EFB]
+ * * Tác giả: [NHÓM EFB]
  * Ngày tạo: 01/06/2025
  */
 
@@ -25,6 +25,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+/* --- Map số sao → CEFR --- */
+const STAR_TO_CEFR: Record<number, 'A1' | 'A2' | 'B1' | 'B2' | 'C1'> = {
+  1: 'A1',
+  2: 'A2',
+  3: 'B1',
+  4: 'B2',
+  5: 'C1', // ← đổi thành 'C2' nếu muốn level cao nhất là C2
+};
+
+/* --- Dữ liệu hiển thị lựa chọn --- */
 const levels = [
   { id: 1, stars: 1, label: 'Tôi mới học tiếng Anh' },
   { id: 2, stars: 2, label: 'Tôi biết vài từ thông dụng' },
@@ -43,19 +53,20 @@ const levelMessages: Record<number, string> = {
 
 export default function SelectLevelScreen() {
   const router = useRouter();
-  const [selected, setSelected] = useState<number | null>(null);
+  const [selectedStars, setSelectedStars] = useState<number | null>(null);
   const fadeAnim = useState(new Animated.Value(0))[0];
 
+  /* --- Kiểm tra nếu đã chọn trước đó: dùng cùng 1 key 'efb.level' --- */
   useEffect(() => {
     const checkPrevious = async () => {
-      const level = await AsyncStorage.getItem('user_level');
-      if (level) router.replace('/(tabs)/home');
+      const cefr = await AsyncStorage.getItem('efb.level'); // ← cùng 1 key
+      if (cefr) router.replace('/(tabs)/home');
     };
     checkPrevious();
   }, []);
 
-  const handleSelect = (id: number) => {
-    setSelected(id);
+  const handleSelect = (stars: number) => {
+    setSelectedStars(stars);
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 400,
@@ -64,18 +75,27 @@ export default function SelectLevelScreen() {
   };
 
   const handleContinue = async () => {
-    if (!selected) return;
+    if (!selectedStars) return;
+    const cefr = STAR_TO_CEFR[selectedStars]; // sao → CEFR
+
     try {
       const user = auth.currentUser;
+
       if (user) {
         await setDoc(
           doc(db, 'users', user.uid),
-          { level: selected, updatedAt: new Date() },
+          {
+            levelStars: selectedStars, // VD: 5
+            levelCefr: cefr,           // VD: 'C1'
+            updatedAt: new Date(),
+          },
           { merge: true }
         );
-      } else {
-        await AsyncStorage.setItem('user_level', selected.toString());
       }
+
+      // Lưu local để HomeScreen đọc ngay cả khi chưa login
+      await AsyncStorage.setItem('efb.level', cefr);
+
       router.replace('/(onboarding)/ChooseStartModeScreen');
     } catch (err) {
       Alert.alert('Lỗi', 'Không thể lưu trình độ.');
@@ -108,9 +128,9 @@ export default function SelectLevelScreen() {
           <TouchableOpacity
             style={[
               styles.optionCard,
-              selected === item.id && styles.optionCardSelected,
+              selectedStars === item.stars && styles.optionCardSelected,
             ]}
-            onPress={() => handleSelect(item.id)}
+            onPress={() => handleSelect(item.stars)}
             activeOpacity={0.85}
           >
             {renderStars(item.stars)}
@@ -119,22 +139,20 @@ export default function SelectLevelScreen() {
         )}
       />
 
-      {selected && (
+      {selectedStars !== null && (
         <Animated.View style={[styles.feedbackBox, { opacity: fadeAnim }]}>
-          <Text style={styles.feedbackText}>
-            {levelMessages[selected]}
-          </Text>
+          <Text style={styles.feedbackText}>{levelMessages[selectedStars]}</Text>
 
           <TouchableOpacity style={styles.button} onPress={handleContinue}>
             <Text style={styles.buttonText}>TIẾP TỤC</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-  style={styles.backButton}
-  onPress={() => router.replace('/(tabs)')}>
-  <Text style={styles.backButtonText}>← Trở về trang chính</Text>
-</TouchableOpacity>
-
+            style={styles.backButton}
+            onPress={() => router.replace('/(tabs)')}
+          >
+            <Text style={styles.backButtonText}>← Trở về trang chính</Text>
+          </TouchableOpacity>
         </Animated.View>
       )}
     </SafeAreaView>
