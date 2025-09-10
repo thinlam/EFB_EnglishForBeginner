@@ -337,7 +337,7 @@ function navigateByRole(role: Role, startMode: string | null, level: number | nu
     if (startMode || level !== null) {
       router.replace('/(tabs)');
     } else {
-      router.replace('/(onboarding)/SelectLevel');
+      router.replace('/(onboarding)/TestIntroScreen'); // <-- chuyển sang kiểm tra trình độ
     }
   }
 }
