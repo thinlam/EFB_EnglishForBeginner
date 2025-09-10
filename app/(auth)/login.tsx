@@ -335,7 +335,7 @@ function navigateByRole(role: Role, startMode: string | null, level: number | nu
     router.replace('/premium-home');
   } else {
     if (startMode || level !== null) {
-      router.replace('(tabs)');
+      router.replace('/(tabs)');
     } else {
       router.replace('/(onboarding)/SelectLevel');
     }
