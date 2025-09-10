@@ -5,6 +5,7 @@
 import { auth, db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router'; // ← THÊM
 import { doc, getDoc } from 'firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -40,7 +41,8 @@ const FILTER_CARDS_BY_LEVEL = true;
 
 export default function HomeScreen() {
   const [level, setLevel] = useState<string>('A1');
-  const insets = useSafeAreaInsets(); // ← lấy safe area (tai thỏ/giọt nước)
+  const insets = useSafeAreaInsets();
+  const router = useRouter(); // ← THÊM
 
   useEffect(() => {
     (async () => {
@@ -82,8 +84,21 @@ export default function HomeScreen() {
     );
   };
 
+  // ← THÊM: điều hướng theo card (chỉ xử lý "Dịch" theo yêu cầu)
+  const handlePress = (item: Item) => {
+    if (item.id === '6' || item.title === 'Dịch') {
+      router.push('/(tabs)/translate');
+      return;
+    }
+    // Các card khác sẽ bổ sung route sau
+  };
+
   const renderItem = ({ item }: { item: Item }) => (
-    <TouchableOpacity activeOpacity={0.9} style={[styles.card, { backgroundColor: item.color }]}>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={[styles.card, { backgroundColor: item.color }]}
+      onPress={() => handlePress(item)} // ← THÊM
+    >
       <Ionicons name={item.icon} size={22} color="#fff" />
       <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
       {renderLevels(item.levels)}
@@ -95,8 +110,8 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.screen, { paddingTop: insets.top }]} // tránh tai thỏ/giọt nước
-      edges={['top', 'left', 'right']} // để bottom cho FlatList tính riêng
+      style={[styles.screen, { paddingTop: insets.top }]}
+      edges={['top', 'left', 'right']}
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Cấp hiện tại:</Text>
@@ -113,10 +128,9 @@ export default function HomeScreen() {
         columnWrapperStyle={{ justifyContent: 'space-between' }}
         contentContainerStyle={{
           padding: 12,
-          paddingBottom: (insets.bottom || 16) + 24, // chừa khoảng cho home indicator / tab bar
+          paddingBottom: (insets.bottom || 16) + 24,
         }}
         showsVerticalScrollIndicator={false}
-        // iOS tự canh với notch + nav bar:
         {...(Platform.OS === 'ios' ? { contentInsetAdjustmentBehavior: 'automatic' as const } : {})}
       />
     </SafeAreaView>
