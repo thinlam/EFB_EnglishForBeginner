@@ -78,6 +78,11 @@ export default function TranslateScreen() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+
+// chuyển đổi từ của hải đang làm có code
+
+
+
   /* ======== Lịch sử ======== */
   const [history, setHistory] = useState<any[]>([]);
   async function loadHistory() {

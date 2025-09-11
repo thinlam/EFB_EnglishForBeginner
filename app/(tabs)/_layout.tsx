@@ -31,9 +31,6 @@ export default function TabLayout() {
             case 'WordBook':
               icon = <FontAwesome5 name="book" size={22} color={color} />;
               break;
-            case 'rankings':
-              icon = <FontAwesome5 name="trophy" size={22} color={color} />;
-              break;
             case 'Premium':
               icon = <Text style={{ fontSize: 24 }}>{'🐵'}</Text>;
               break;
@@ -66,12 +63,6 @@ export default function TabLayout() {
     }}
   />
   <Tabs.Screen
-    name="rankings"
-    options={{
-      headerShown: false,
-    }}
-  />
-  <Tabs.Screen
     name="Premium"
     options={{
       headerShown: false,
@@ -81,6 +72,13 @@ export default function TabLayout() {
     name="more"
     options={{
       headerShown: false,
+    }}
+  />
+  <Tabs.Screen
+    name="translate"
+    options={{
+      headerShown: false,
+      href: null,
     }}
   />
     </Tabs>
