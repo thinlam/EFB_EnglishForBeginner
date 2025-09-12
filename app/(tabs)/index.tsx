@@ -59,6 +59,7 @@ const DATA: Item[] = [
   // cam đỏ → đỏ nâu (khác Reading)
   { id: '7', title: 'Bảng xếp hạng', icon: 'trophy',
     gradient: ['#FB923C', '#B91C1C'] as const, subtitle: 'Xếp hạng', levels: ['Ranking'] },
+  {id: '8', title: 'calendar', icon: 'calendar', gradient: ['#FBBF24', '#D97706'] as const, subtitle: 'Lịch học', levels: ['Tool']},
 ];
 
 const FILTER_CARDS_BY_LEVEL = true;
