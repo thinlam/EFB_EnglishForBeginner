@@ -34,6 +34,9 @@ export default function TabLayout() {
             case 'Premium':
               icon = <Text style={{ fontSize: 24 }}>{'🐵'}</Text>;
               break;
+            case 'Profile':
+              icon = <Ionicons name="person" size={24} color={color} />;
+              break;  
             case 'more':
               icon = <MaterialIcons name="more-horiz" size={24} color={color} />;
               break;
@@ -64,6 +67,12 @@ export default function TabLayout() {
   />
   <Tabs.Screen
     name="Premium"
+    options={{
+      headerShown: false,
+    }}
+  />
+  <Tabs.Screen
+    name="Profile"
     options={{
       headerShown: false,
     }}
