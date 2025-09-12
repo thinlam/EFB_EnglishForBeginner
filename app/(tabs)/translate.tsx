@@ -16,9 +16,12 @@ import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp } f
 /* ================= MyMemory – dịch 2 chiều (EN|VI hoặc VI|EN) ================= */
 const TRANSLATE_ENDPOINT = 'https://api.mymemory.translated.net/get';
 
+/* ============ Dictionary (IPA + audio) ============ */
+type Pron = { ipa?: string; audio?: string };
+const DICT_ENDPOINT = (w: string) => `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w)}`;
+
 function decodeMaybe(s: string) {
   try {
-    // Nếu có pattern %xx → thử decode (bug hay gặp trên iOS)
     if (/%[0-9A-Fa-f]{2}/.test(s)) return decodeURIComponent(s);
   } catch {}
   return s;
@@ -30,16 +33,10 @@ async function translateBidirectional(
   tgt: 'en' | 'vi'
 ): Promise<string> {
   if (!text.trim()) return '';
-
-  // encode đúng 1 lần cho tham số q
   const url = `${TRANSLATE_ENDPOINT}?q=${encodeURIComponent(text)}&langpair=${src}|${tgt}&mt=1`;
-
   const res = await fetch(url, { method: 'GET' });
   const json = await res.json();
-
   let out: string = json?.responseData?.translatedText || '';
-
-  // HTML entities → ký tự thật
   out = out
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
@@ -47,19 +44,41 @@ async function translateBidirectional(
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .trim();
-
-  // iOS đôi khi trả URL-encoded → giải mã
   out = decodeMaybe(out);
-
-  // nếu trả lại y hệt input coi như fail
   if (!out || out.toLowerCase() === text.toLowerCase()) return '';
   return out;
+}
+
+/** Lấy IPA + audio cho từ tiếng Anh (có cache). */
+async function fetchPronunciationEn(word: string): Promise<Pron | null> {
+  try {
+    const res = await fetch(DICT_ENDPOINT(word));
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    // data[0].phonetics: [{ text: "/wɜːd/", audio: "..." }, ...]
+    const first = Array.isArray(data) ? data[0] : null;
+    const phonetics: any[] = first?.phonetics || [];
+    // Ưu tiên bản có audio, nếu không có thì lấy bản có text (IPA)
+    const withAudio = phonetics.find(p => p?.audio) || phonetics[0];
+
+    const ipa: string | undefined =
+      withAudio?.text ||
+      (phonetics.find(p => p?.text)?.text) ||
+      undefined;
+    const audio: string | undefined = withAudio?.audio || undefined;
+
+    if (!ipa && !audio) return null;
+    return { ipa, audio };
+  } catch {
+    return null;
+  }
 }
 
 type Lang = 'en' | 'vi';
 
 export default function TranslateScreen() {
-  const router = useRouter(); // (để sẵn nếu cần điều hướng)
+  const router = useRouter();
 
   /* ======== Trạng thái ======== */
   const [autoTranslate, setAutoTranslate] = useState(true);
@@ -71,8 +90,8 @@ export default function TranslateScreen() {
   const [tgtLang, setTgtLang] = useState<Lang>('vi');
 
   // Văn bản
-  const [srcText, setSrcText] = useState(''); // nguồn (EN hoặc VI)
-  const [tgtText, setTgtText] = useState(''); // đích
+  const [srcText, setSrcText] = useState('');
+  const [tgtText, setTgtText] = useState('');
 
   // Giới hạn ký tự
   const MAX = 500;
@@ -108,49 +127,59 @@ export default function TranslateScreen() {
     } catch {}
   }
 
-  /* ======== Gõ nguồn: cắt 500 + xoá theo khi người dùng xoá ======== */
+  /* ======== Gõ nguồn ======== */
   const onChangeSrc = (val: string) => {
     const clipped = val.length > MAX ? val.slice(0, MAX) : val;
     if (clipped.length < prevLenRef.current) {
-      // đang xoá → xoá luôn gợi ý & bản dịch
       setSuggested('');
       setTgtText('');
+      // Nếu đang xóa, cũng hạ panel phát âm
+      setSelectedWord('');
+      setPron(null);
     }
     prevLenRef.current = clipped.length;
     setSrcText(clipped);
   };
 
-  /* ======== Debounce gợi ý ======== */
-  useEffect(() => {
-    if (!autoTranslate) return;
-    if (!srcText.trim()) { setSuggested(''); setTgtText(''); return; }
-    if (tgtText.trim().length > 0) return; // không đè khi user đã nhập tay
+  // --- thay useEffect auto dịch ---
+useEffect(() => {
+  if (!autoTranslate) return;
+  if (!srcText.trim()) { 
+    setTgtText(''); 
+    return; 
+  }
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        setSuggesting(true);
-        const r = await translateBidirectional(srcText.trim(), srcLang, tgtLang);
-        setSuggested(r || '');
-      } catch {
-        setSuggested('');
-      } finally {
-        setSuggesting(false);
-      }
-    }, 500);
+  if (debounceRef.current) clearTimeout(debounceRef.current);
+  debounceRef.current = setTimeout(async () => {
+    try {
+      setSuggesting(true);
+      const r = await translateBidirectional(srcText.trim(), srcLang, tgtLang);
+      setTgtText(r || '');
+      if (r) saveHistory(srcText, r, srcLang, tgtLang);
+    } catch {
+      setTgtText('');
+    } finally {
+      setSuggesting(false);
+    }
+  }, 500);
 
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [srcText, autoTranslate, tgtText, srcLang, tgtLang]);
+  return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+}, [srcText, autoTranslate, srcLang, tgtLang]);
 
-  const acceptSuggestion = () => { if (suggested) setTgtText(suggested); };
+// --- bỏ toàn bộ biến/logic liên quan đến suggested & acceptSuggestion ---
+// const [suggested, setSuggested] = useState('');
+// chip gợi ý ... => xoá luôn
+
+
+  // const acceptSuggestion = () => { if (suggested) setTgtText(suggested); };
 
   const handleTranslateManual = async () => {
-    if (!srcText.trim()) { setTgtText(''); setSuggested(''); return; }
-    const r = await translateBidirectional(srcText.trim(), srcLang, tgtLang);
-    setTgtText(r || '');
-    setSuggested(r || '');
-    if (r) saveHistory(srcText, r, srcLang, tgtLang);
-  };
+  if (!srcText.trim()) { setTgtText(''); return; }
+  const r = await translateBidirectional(srcText.trim(), srcLang, tgtLang);
+  setTgtText(r || '');
+  if (r) saveHistory(srcText, r, srcLang, tgtLang);
+};
+
 
   /* ======== Tools ======== */
   const copyResult = async () => {
@@ -174,10 +203,82 @@ export default function TranslateScreen() {
       setTgtText('');
       setSuggested('');
       prevLenRef.current = Math.min(tgtText.length, MAX);
+      // Reset panel phát âm khi đổi chiều
+      setSelectedWord('');
+      setPron(null);
     }
   };
 
   const langLabel = (l: Lang) => (l === 'en' ? 'EN' : 'VI');
+
+  /* ======== Phát âm khi chạm từ EN ======== */
+  const [selectedWord, setSelectedWord] = useState('');
+  const [pron, setPron] = useState<Pron | null>(null);
+  const [loadingPron, setLoadingPron] = useState(false);
+  const pronCacheRef = useRef<Record<string, Pron>>({});
+
+  const normalizeWord = (w: string) => w.toLowerCase().replace(/^[^a-zA-Z']+|[^a-zA-Z']+$/g, '');
+
+  const onPressWord = async (raw: string) => {
+    const w = normalizeWord(raw);
+    if (!w) return;
+    setSelectedWord(w);
+    setPron(null);
+    // Cache
+    if (pronCacheRef.current[w]) {
+      setPron(pronCacheRef.current[w]);
+      return;
+    }
+    setLoadingPron(true);
+    const p = await fetchPronunciationEn(w);
+    if (p) {
+      pronCacheRef.current[w] = p;
+      setPron(p);
+    } else {
+      setPron(null);
+    }
+    setLoadingPron(false);
+  };
+
+  const renderWordChips = () => {
+    if (!(srcLang === 'en' && tgtLang === 'vi' && srcText.trim())) return null;
+    const parts = srcText.split(/\s+/);
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {parts.map((w, idx) => (
+          <TouchableOpacity key={`${w}-${idx}`} onPress={() => onPressWord(w)} style={[S.chip, { paddingVertical: 6 }]}>
+            <Text style={[S.chipText, { fontWeight: '600' }]}>{w}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
+  const renderPronPanel = () => {
+    if (!(srcLang === 'en' && tgtLang === 'vi' && selectedWord)) return null;
+    return (
+      <View style={[S.histItem, { marginTop: 8 }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontWeight: '700', fontSize: 16 }}>{selectedWord}</Text>
+          <TouchableOpacity onPress={() => speak(selectedWord, 'en')}>
+            <Text style={{ fontWeight: '600' }}>🔊 Phát âm</Text>
+          </TouchableOpacity>
+        </View>
+
+        {loadingPron ? (
+          <View style={{ marginTop: 8 }}><ActivityIndicator /></View>
+        ) : pron ? (
+          <View style={{ marginTop: 6 }}>
+            {pron.ipa ? <Text style={{ fontSize: 16, color: '#374151' }}>IPA: <Text style={{ fontWeight: '600' }}>{pron.ipa}</Text></Text> : null}
+            {/* Nếu muốn phát audio chuẩn từ API (ngoài TTS), có thể dùng AV của expo-av. Ở đây dùng TTS cho đơn giản. */}
+            {!pron.ipa && <Text style={{ color: '#6b7280' }}>Không tìm thấy phiên âm. Đã bật TTS.</Text>}
+          </View>
+        ) : (
+          <Text style={{ marginTop: 6, color: '#6b7280' }}>Không tìm thấy dữ liệu phát âm.</Text>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={S.wrap}>
@@ -219,6 +320,9 @@ export default function TranslateScreen() {
           </Text>
         </View>
 
+        {/* Khi EN→VI: hiển thị chips từng từ để chạm lấy IPA */}
+        {renderWordChips()}
+
         {/* Chip gợi ý */}
         {autoTranslate && !tgtText.trim() ? (
           <View>
@@ -246,6 +350,9 @@ export default function TranslateScreen() {
           />
         </View>
 
+        {/* Panel phát âm nằm NGAY BÊN DƯỚI kết quả */}
+        {renderPronPanel()}
+
         {/* Nút hành động */}
         <View style={S.btnRow}>
           <TouchableOpacity style={S.btn} onPress={handleTranslateManual}>
@@ -253,7 +360,11 @@ export default function TranslateScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={S.btnGrey}
-            onPress={() => { setSrcText(''); setTgtText(''); setSuggested(''); prevLenRef.current = 0; }}
+            onPress={() => {
+              setSrcText(''); setTgtText(''); setSuggested('');
+              setSelectedWord(''); setPron(null);
+              prevLenRef.current = 0;
+            }}
           >
             <Text style={S.btnText}>Xoá</Text>
           </TouchableOpacity>
@@ -280,6 +391,8 @@ export default function TranslateScreen() {
                 setSrcText(item.srcText?.slice(0, MAX) || '');
                 setTgtText(item.result || '');
                 setSuggested(item.result || '');
+                setSelectedWord('');
+                setPron(null);
                 prevLenRef.current = Math.min((item.srcText || '').length, MAX);
               }}
             >
