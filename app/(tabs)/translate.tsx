@@ -2,7 +2,7 @@
 import { setStringAsync } from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -52,22 +52,48 @@ const S = {
 
 /* ======== MyMemory – dịch 2 chiều (EN|VI hoặc VI|EN) ======== */
 const TRANSLATE_ENDPOINT = 'https://api.mymemory.translated.net/get';
-async function translateBidirectional(text: string, src: 'en' | 'vi', tgt: 'en' | 'vi'): Promise<string> {
+
+function decodeMaybe(s: string) {
+  try {
+    // Nếu có pattern %xx → thử decode
+    if (/%[0-9A-Fa-f]{2}/.test(s)) return decodeURIComponent(s);
+  } catch {}
+  return s;
+}
+
+async function translateBidirectional(
+  text: string,
+  src: 'en' | 'vi',
+  tgt: 'en' | 'vi'
+): Promise<string> {
   if (!text.trim()) return '';
-  const url = `${TRANSLATE_ENDPOINT}?q=${encodeURIComponent(text)}&langpair=${src}|${tgt}`;
-  const res = await fetch(url);
-  const json = await res.json();
-  const raw: string | undefined = json?.responseData?.translatedText;
-  const out = (raw || '')
+
+  // encode đúng 1 lần cho tham số q
+// encode đúng 1 lần cho tham số q
+const url = `${TRANSLATE_ENDPOINT}?q=${encodeURIComponent(text)}&langpair=${src}|${tgt}&mt=1`;
+
+const res = await fetch(url, { method: 'GET' });
+const json = await res.json();
+
+let out: string = json?.responseData?.translatedText || '';
+
+  // HTML entities → ký tự thật
+  out = out
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
     .trim();
 
-  // Nếu server trả lại nguyên văn → coi như không dịch được
+  // iOS: đôi khi server trả URL-encoded → giải mã
+  out = decodeMaybe(out);
+
+  // nếu trả lại y hệt input coi như fail
   if (!out || out.toLowerCase() === text.toLowerCase()) return '';
   return out;
 }
+
 
 type Lang = 'en' | 'vi';
 
