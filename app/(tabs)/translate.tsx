@@ -6,56 +6,19 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+/* Styles tách riêng */
+import { TranslateStyles as S } from '@/components/style/TranslateStyle';
+
 /* Firebase */
 import { auth, db } from '@/scripts/firebase';
 import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp } from 'firebase/firestore';
 
-/* ======== Styles ======== */
-const S = {
-  wrap: { flex: 1, backgroundColor: '#fff' as const },
-  container: { padding: 16 },
-  title: { fontSize: 20, fontWeight: '700' as const, marginBottom: 12 },
-
-  row: { flexDirection: 'row' as const, alignItems: 'center' as const },
-  toggle: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, marginBottom: 8 },
-
-  box: {
-    minHeight: 110, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12,
-    padding: 12, textAlignVertical: 'top' as const, fontSize: 16, backgroundColor: '#fff'
-  },
-  hint: { fontSize: 12, color: '#6b7280', marginTop: 6, marginBottom: 8 },
-
-  btnRow: { flexDirection: 'row' as const, gap: 8, marginTop: 10 },
-  btn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' as const, backgroundColor: '#2563eb' },
-  btnGrey: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' as const, backgroundColor: '#6b7280' },
-  btnText: { color: '#fff', fontWeight: '600' as const },
-
-  chip: {
-    alignSelf: 'flex-start', backgroundColor: '#e8f5e9', borderRadius: 8,
-    paddingVertical: 6, paddingHorizontal: 10, marginTop: 8, borderWidth: 1, borderColor: '#c8e6c9'
-  },
-  chipText: { color: '#1b5e20' },
-
-  tools: { flexDirection: 'row' as const, gap: 8, marginTop: 10 },
-  toolBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#e5e7eb' },
-  toolText: { color: '#111827', fontWeight: '500' as const },
-
-  sectionTitle: { marginTop: 18, marginBottom: 8, fontWeight: '700' as const },
-  histItem: { padding: 10, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 8 },
-  histSmall: { fontSize: 12, color: '#6b7280' },
-
-  swapBtn: { marginLeft: 'auto', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#fef3c7' },
-  counterRow: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
-  counter: { fontSize: 12, color: '#6b7280' },
-  counterWarn: { fontSize: 12, color: '#b91c1c', fontWeight: '700' as const },
-};
-
-/* ======== MyMemory – dịch 2 chiều (EN|VI hoặc VI|EN) ======== */
+/* ================= MyMemory – dịch 2 chiều (EN|VI hoặc VI|EN) ================= */
 const TRANSLATE_ENDPOINT = 'https://api.mymemory.translated.net/get';
 
 function decodeMaybe(s: string) {
   try {
-    // Nếu có pattern %xx → thử decode
+    // Nếu có pattern %xx → thử decode (bug hay gặp trên iOS)
     if (/%[0-9A-Fa-f]{2}/.test(s)) return decodeURIComponent(s);
   } catch {}
   return s;
@@ -69,13 +32,12 @@ async function translateBidirectional(
   if (!text.trim()) return '';
 
   // encode đúng 1 lần cho tham số q
-// encode đúng 1 lần cho tham số q
-const url = `${TRANSLATE_ENDPOINT}?q=${encodeURIComponent(text)}&langpair=${src}|${tgt}&mt=1`;
+  const url = `${TRANSLATE_ENDPOINT}?q=${encodeURIComponent(text)}&langpair=${src}|${tgt}&mt=1`;
 
-const res = await fetch(url, { method: 'GET' });
-const json = await res.json();
+  const res = await fetch(url, { method: 'GET' });
+  const json = await res.json();
 
-let out: string = json?.responseData?.translatedText || '';
+  let out: string = json?.responseData?.translatedText || '';
 
   // HTML entities → ký tự thật
   out = out
@@ -86,7 +48,7 @@ let out: string = json?.responseData?.translatedText || '';
     .replace(/&gt;/g, '>')
     .trim();
 
-  // iOS: đôi khi server trả URL-encoded → giải mã
+  // iOS đôi khi trả URL-encoded → giải mã
   out = decodeMaybe(out);
 
   // nếu trả lại y hệt input coi như fail
@@ -94,11 +56,10 @@ let out: string = json?.responseData?.translatedText || '';
   return out;
 }
 
-
 type Lang = 'en' | 'vi';
 
 export default function TranslateScreen() {
-  const router = useRouter();
+  const router = useRouter(); // (để sẵn nếu cần điều hướng)
 
   /* ======== Trạng thái ======== */
   const [autoTranslate, setAutoTranslate] = useState(true);
@@ -110,7 +71,7 @@ export default function TranslateScreen() {
   const [tgtLang, setTgtLang] = useState<Lang>('vi');
 
   // Văn bản
-  const [srcText, setSrcText] = useState(''); // nguồn (có thể EN hoặc VI)
+  const [srcText, setSrcText] = useState(''); // nguồn (EN hoặc VI)
   const [tgtText, setTgtText] = useState(''); // đích
 
   // Giới hạn ký tự
@@ -149,10 +110,9 @@ export default function TranslateScreen() {
 
   /* ======== Gõ nguồn: cắt 500 + xoá theo khi người dùng xoá ======== */
   const onChangeSrc = (val: string) => {
-    // cắt ở 500
     const clipped = val.length > MAX ? val.slice(0, MAX) : val;
-    // nếu đang xoá (độ dài giảm) → xoá luôn gợi ý & bản dịch để tránh lệch
     if (clipped.length < prevLenRef.current) {
+      // đang xoá → xoá luôn gợi ý & bản dịch
       setSuggested('');
       setTgtText('');
     }
@@ -182,9 +142,7 @@ export default function TranslateScreen() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [srcText, autoTranslate, tgtText, srcLang, tgtLang]);
 
-  const acceptSuggestion = () => {
-    if (suggested) setTgtText(suggested);
-  };
+  const acceptSuggestion = () => { if (suggested) setTgtText(suggested); };
 
   const handleTranslateManual = async () => {
     if (!srcText.trim()) { setTgtText(''); setSuggested(''); return; }
@@ -207,12 +165,10 @@ export default function TranslateScreen() {
   };
 
   const swapLangs = () => {
-    // đảo chiều
     const newSrc = tgtLang;
     const newTgt = srcLang;
     setSrcLang(newSrc);
     setTgtLang(newTgt);
-    // chuyển kết quả sang nguồn để dịch ngược nếu muốn
     if (tgtText) {
       setSrcText(tgtText.slice(0, MAX));
       setTgtText('');
