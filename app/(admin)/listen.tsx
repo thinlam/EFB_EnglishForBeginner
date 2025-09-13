@@ -5,25 +5,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  Timestamp,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    Timestamp,
 } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Linking,
-  RefreshControl,
-  StatusBar,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Linking,
+    RefreshControl,
+    StatusBar,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -112,7 +112,7 @@ export default function ListenScreen() {
         <Text style={ListenStyles.headerTitle}>Quản lý Listen</Text>
 
         <View style={ListenStyles.headerActions}>
-          <TouchableOpacity onPress={() => router.push('/listencreate')}>
+          <TouchableOpacity onPress={() => router.push('/ListenCreate')}>
             <Ionicons name="add-circle" size={28} color={COLORS.create} />
           </TouchableOpacity>
         </View>
