@@ -1,4 +1,3 @@
-// app/(tabs)/translate.tsx
 // Dịch trực tiếp khi gõ (debounce), không có nút Translate.
 
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
@@ -11,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   PermissionsAndroid,
   Platform,
   Text,
@@ -178,8 +178,13 @@ export default function TranslateScreen() {
   };
 
   const langFull = (l: Lang) => (l === 'en' ? 'English' : 'Vietnamese');
-  const langShort = (l: Lang) => (l === 'en' ? 'EN' : 'VI');
   const localeOf = (l: Lang) => (l === 'en' ? 'en-US' : 'vi-VN');
+
+  /* ======== Ảnh cờ theo ngôn ngữ ======== */
+  const flagOf = (l: Lang) =>
+    l === 'en'
+      ? require('@/assets/images/CO-MI.png')        // 🇺🇸 (đổi đuôi nếu file khác .png)
+      : require('@/assets/images/CO-VIETNAM.png');  // 🇻🇳
 
   /* ======== Voice setup ======== */
   useEffect(() => {
@@ -277,8 +282,10 @@ export default function TranslateScreen() {
         {/* Header chọn ngôn ngữ + Swap */}
         <View style={S.langRow}>
           <TouchableOpacity style={S.langBtn} onPress={() => setSrcLang(srcLang === 'en' ? 'vi' : 'en')}>
-            <Text style={S.langText}>{langFull(srcLang)}</Text>
-            <Text style={S.langSub}>{langShort(srcLang)}</Text>
+            <View style={S.langBtnCol}>
+              <Image source={flagOf(srcLang)} style={S.flag} />
+              <Text style={S.langText}>{langFull(srcLang)}</Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={S.swapMid} onPress={swapLangs}>
@@ -286,8 +293,10 @@ export default function TranslateScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={S.langBtn} onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}>
-            <Text style={S.langText}>{langFull(tgtLang)}</Text>
-            <Text style={S.langSub}>{langShort(tgtLang)}</Text>
+            <View style={S.langBtnCol}>
+              <Image source={flagOf(tgtLang)} style={S.flag} />
+              <Text style={S.langText}>{langFull(tgtLang)}</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -320,7 +329,7 @@ export default function TranslateScreen() {
             <Text style={srcText.length >= MAX ? S.counterWarn : S.counter}>{srcText.length}/{MAX}</Text>
           </View>
 
-          {/* Hành động: chỉ còn copy, speak, mic */}
+          {/* Hành động: copy, speak, mic */}
           <View style={S.actionRow}>
             <View style={{ flex: 1 }} />
             <View style={S.iconRowRight}>
@@ -370,11 +379,11 @@ export default function TranslateScreen() {
           </View>
         </View>
 
-        {/* Pronounce panel */}
+        {/* Panel phát âm */}
         {renderPronPanel()}
 
         {/* History */}
-        <Text style={S.sectionTitle}>🕘 Lịch sử gần đây</Text>
+        <Text style={S.sectionTitle}>Lịch sử gần đây</Text>
         <FlatList
           data={history}
           keyExtractor={(item) => item.id}
