@@ -1,18 +1,27 @@
-// Dịch trực tiếp khi gõ (debounce), KHÔNG mic, KHÔNG nút Translate.
+// app/(tabs)/translate.tsx
+// DỊCH TRỰC TIẾP KHI GÕ — KHÔNG MIC
+// - Debounce 450ms
+// - Swap EN/VI
+// - Copy & TTS
+// - Chips từng từ (EN→VI) -> IPA
+// - Lưu lịch sử Firestore (20 mục gần nhất)
+// - Bấm ra ngoài để ẩn bàn phím
 
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { setStringAsync } from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
+  Keyboard,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -55,6 +64,7 @@ async function translateBidirectional(text: string, src: 'en' | 'vi', tgt: 'en' 
 /* ============ Dictionary (IPA + audio) ============ */
 type Pron = { ipa?: string; audio?: string };
 const DICT_ENDPOINT = (w: string) => `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w)}`;
+
 async function fetchPronunciationEn(word: string): Promise<Pron | null> {
   try {
     const res = await fetch(DICT_ENDPOINT(word));
@@ -83,13 +93,9 @@ export default function TranslateScreen() {
   const [srcText, setSrcText] = useState('');
   const [tgtText, setTgtText] = useState('');
 
-  // limit nhập
   const MAX = 500;
   const prevLenRef = useRef(0);
-
-  // debounce dịch trực tiếp + guard chống ghi đè kết quả cũ
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const requestIdRef = useRef(0);
 
   /* ======== History ======== */
   const [history, setHistory] = useState<any[]>([]);
@@ -120,7 +126,7 @@ export default function TranslateScreen() {
     } catch {}
   }
 
-  /* ======== Gõ nguồn: limit + dọn phụ ======== */
+  /* ======== Gõ nguồn ======== */
   const onChangeSrc = (val: string) => {
     const clipped = val.length > MAX ? val.slice(0, MAX) : val;
     if (clipped.length < prevLenRef.current) {
@@ -135,36 +141,25 @@ export default function TranslateScreen() {
   /* ======== Dịch trực tiếp (debounce) ======== */
   useEffect(() => {
     if (!srcText.trim()) { setTgtText(''); return; }
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    const id = ++requestIdRef.current;
-
     debounceRef.current = setTimeout(async () => {
       try {
         const r = await translateBidirectional(srcText.trim(), srcLang, tgtLang);
-        if (id === requestIdRef.current) {
-          setTgtText(r || '');
-          if (r) saveHistory(srcText, r, srcLang, tgtLang);
-        }
+        setTgtText(r || '');
+        if (r) saveHistory(srcText, r, srcLang, tgtLang);
       } catch {}
     }, 450);
-
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [srcText, srcLang, tgtLang]);
 
-  /* ======== Copy & TTS ======== */
+  /* ======== Tools ======== */
   const copySource = async () => { await setStringAsync(srcText || ''); if (srcText) Alert.alert('Đã sao chép', 'Đã copy văn bản nguồn.'); };
   const copyResult = async () => { await setStringAsync(tgtText || ''); if (tgtText) Alert.alert('Đã sao chép', 'Đã copy bản dịch.'); };
   const speak = (text: string, lang: Lang) => {
     const voice = lang === 'vi' ? 'vi-VN' : 'en-US';
     if (!text.trim()) return;
-    try {
-      Speech.stop();
-      Speech.speak(text, { language: voice, rate: 1.0, pitch: 1.0 });
-    } catch {
-      // fallback nhẹ (hiếm khi cần)
-      Speech.speak(text, { language: 'en-US' });
-    }
+    Speech.stop();
+    Speech.speak(text, { language: voice, rate: 1.0, pitch: 1.0 });
   };
 
   /* ======== Swap ======== */
@@ -182,14 +177,12 @@ export default function TranslateScreen() {
   };
 
   const langFull = (l: Lang) => (l === 'en' ? 'English' : 'Vietnamese');
-
-  /* ======== Ảnh cờ theo ngôn ngữ ======== */
   const flagOf = (l: Lang) =>
     l === 'en'
-      ? require('@/assets/images/CO-MI.png')        // 🇺🇸
-      : require('@/assets/images/CO-VIETNAM.png');  // 🇻🇳
+      ? require('@/assets/images/CO-MI.png')
+      : require('@/assets/images/CO-VIETNAM.png');
 
-  /* ======== Pronounce per word (EN→VI) ======== */
+  /* ======== Pronounce per word ======== */
   const [selectedWord, setSelectedWord] = useState('');
   const [pron, setPron] = useState<Pron | null>(null);
   const [loadingPron, setLoadingPron] = useState(false);
@@ -230,7 +223,6 @@ export default function TranslateScreen() {
             <Text style={S.pronSpeak}>🔊 Phát âm</Text>
           </TouchableOpacity>
         </View>
-
         {loadingPron ? (
           <View style={{ marginTop: 8 }}><ActivityIndicator /></View>
         ) : pron ? (
@@ -250,130 +242,127 @@ export default function TranslateScreen() {
 
   return (
     <SafeAreaView style={S.wrap}>
-      <View style={S.container}>
-        {/* Header chọn ngôn ngữ + Swap */}
-        <View style={S.langRow}>
-          <TouchableOpacity style={S.langBtn} onPress={() => setSrcLang(srcLang === 'en' ? 'vi' : 'en')}>
-            <View style={S.langBtnCol}>
-              <Image source={flagOf(srcLang)} style={S.flag} />
-              <Text style={S.langText}>{langFull(srcLang)}</Text>
+      {/* Bọc toàn bộ trong TouchableWithoutFeedback để ẩn bàn phím */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={S.container}>
+          {/* Header chọn ngôn ngữ */}
+          <View style={S.langRow}>
+            <TouchableOpacity style={S.langBtn} onPress={() => setSrcLang(srcLang === 'en' ? 'vi' : 'en')}>
+              <View style={S.langBtnCol}>
+                <Image source={flagOf(srcLang)} style={S.flag} />
+                <Text style={S.langText}>{langFull(srcLang)}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={S.swapMid} onPress={swapLangs}>
+              <Text style={S.swapMidIcon}>⇆</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={S.langBtn} onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}>
+              <View style={S.langBtnCol}>
+                <Image source={flagOf(tgtLang)} style={S.flag} />
+                <Text style={S.langText}>{langFull(tgtLang)}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* CARD 1 */}
+          <View style={S.card}>
+            <Text style={S.cardTitle}>Translate from ({langFull(srcLang)})</Text>
+            <View style={S.srcBoxWrap}>
+              <TextInput
+                placeholder={`Nhập ${srcLang === 'en' ? 'English' : 'Vietnamese'}... (≤ 500 ký tự)`}
+                value={srcText}
+                onChangeText={onChangeSrc}
+                multiline
+                style={S.textArea}
+                placeholderTextColor="#9ca3af"
+                autoCapitalize="none"
+              />
+              {!!srcText && (
+                <TouchableOpacity
+                  onPress={() => { setSrcText(''); setTgtText(''); setSelectedWord(''); setPron(null); prevLenRef.current = 0; }}
+                  style={S.clearBtn}
+                >
+                  <Text style={S.clearBtnText}>✕</Text>
+                </TouchableOpacity>
+              )}
             </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={S.swapMid} onPress={swapLangs}>
-            <Text style={S.swapMidIcon}>⇆</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={S.langBtn} onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}>
-            <View style={S.langBtnCol}>
-              <Image source={flagOf(tgtLang)} style={S.flag} />
-              <Text style={S.langText}>{langFull(tgtLang)}</Text>
+            <View style={S.counterRow}>
+              <Text style={S.hint}>Gõ {srcLang === 'en' ? 'tiếng Anh' : 'tiếng Việt'} ở đây.</Text>
+              <Text style={srcText.length >= MAX ? S.counterWarn : S.counter}>{srcText.length}/{MAX}</Text>
             </View>
-          </TouchableOpacity>
-        </View>
+            <View style={S.actionRow}>
+              <View style={{ flex: 1 }} />
+              <View style={S.iconRowRight}>
+                <TouchableOpacity style={S.iconBtn} onPress={copySource}>
+                  <MaterialIcons name="content-copy" size={18} color="#1f2937" />
+                </TouchableOpacity>
+                <TouchableOpacity style={S.iconBtn} onPress={() => speak(srcText, srcLang)}>
+                  <Ionicons name="volume-medium" size={18} color="#1f2937" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
 
-        {/* CARD 1: Translate from */}
-        <View style={S.card}>
-          <Text style={S.cardTitle}>Translate from ({langFull(srcLang)})</Text>
+          {/* Chips EN→VI */}
+          {renderWordChips()}
 
-          <View style={S.srcBoxWrap}>
+          {/* CARD 2 */}
+          <View style={S.card}>
+            <Text style={S.cardTitle}>Translate to ({langFull(tgtLang)})</Text>
             <TextInput
-              placeholder={`Nhập ${srcLang === 'en' ? 'English' : 'Vietnamese'}... (≤ 500 ký tự)`}
-              value={srcText}
-              onChangeText={onChangeSrc}
+              placeholder={`Nghĩa ${tgtLang === 'vi' ? 'tiếng Việt' : 'tiếng Anh'}`}
+              value={tgtText}
+              onChangeText={setTgtText}
               multiline
               style={S.textArea}
               placeholderTextColor="#9ca3af"
-              autoCapitalize="none"
             />
-            {!!srcText && (
+            <View style={S.actionRow}>
+              <View style={{ flex: 1 }} />
+              <View style={S.iconRowRight}>
+                <TouchableOpacity style={S.iconBtn} onPress={copyResult}>
+                  <MaterialIcons name="content-copy" size={18} color="#1f2937" />
+                </TouchableOpacity>
+                <TouchableOpacity style={S.iconBtn} onPress={() => speak(tgtText, tgtLang)}>
+                  <Ionicons name="volume-medium" size={18} color="#1f2937" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* IPA Panel */}
+          {renderPronPanel()}
+
+          {/* History */}
+          <Text style={S.sectionTitle}>Lịch sử gần đây</Text>
+          <FlatList
+            data={history}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }: any) => (
               <TouchableOpacity
-                onPress={() => { setSrcText(''); setTgtText(''); setSelectedWord(''); setPron(null); prevLenRef.current = 0; }}
-                style={S.clearBtn}
+                style={S.histItem}
+                onPress={() => {
+                  setSrcLang((item.srcLang as Lang) || 'en');
+                  setTgtLang((item.tgtLang as Lang) || 'vi');
+                  setSrcText(item.srcText?.slice(0, MAX) || '');
+                  setTgtText(item.result || '');
+                  setSelectedWord(''); setPron(null);
+                  prevLenRef.current = Math.min((item.srcText || '').length, MAX);
+                }}
               >
-                <Text style={S.clearBtnText}>✕</Text>
+                <Text style={S.histSmall}>
+                  {String(item.srcLang).toUpperCase()} → {String(item.tgtLang).toUpperCase()}
+                </Text>
+                <Text numberOfLines={2} style={{ marginTop: 2 }}>{item.srcText}</Text>
+                <Text numberOfLines={2} style={{ marginTop: 4, color: '#111827', fontWeight: '600' }}>{item.result}</Text>
               </TouchableOpacity>
             )}
-          </View>
-
-          <View style={S.counterRow}>
-            <Text style={S.hint}>Gõ {srcLang === 'en' ? 'tiếng Anh' : 'tiếng Việt'} ở đây.</Text>
-            <Text style={srcText.length >= MAX ? S.counterWarn : S.counter}>{srcText.length}/{MAX}</Text>
-          </View>
-
-          {/* Hành động: copy, speak */}
-          <View style={S.actionRow}>
-            <View style={{ flex: 1 }} />
-            <View style={S.iconRowRight}>
-              <TouchableOpacity style={S.iconBtn} onPress={copySource} accessibilityLabel="Copy source">
-                <MaterialIcons name="content-copy" size={18} color="#1f2937" />
-              </TouchableOpacity>
-              <TouchableOpacity style={S.iconBtn} onPress={() => speak(srcText, srcLang)} accessibilityLabel="Speak source">
-                <Ionicons name="volume-medium" size={18} color="#1f2937" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Chips từ (EN→VI) */}
-        {renderWordChips()}
-
-        {/* CARD 2: Translate to */}
-        <View style={S.card}>
-          <Text style={S.cardTitle}>Translate to ({langFull(tgtLang)})</Text>
-
-          <TextInput
-            placeholder={`Nghĩa ${tgtLang === 'vi' ? 'tiếng Việt' : 'tiếng Anh'}`}
-            value={tgtText}
-            onChangeText={setTgtText}
-            multiline
-            style={S.textArea}
-            placeholderTextColor="#9ca3af"
+            ListEmptyComponent={<Text style={S.hint}>Chưa có lịch sử.</Text>}
           />
-
-          <View style={S.actionRow}>
-            <View style={{ flex: 1 }} />
-            <View style={S.iconRowRight}>
-              <TouchableOpacity style={S.iconBtn} onPress={copyResult} accessibilityLabel="Copy result">
-                <MaterialIcons name="content-copy" size={18} color="#1f2937" />
-              </TouchableOpacity>
-              <TouchableOpacity style={S.iconBtn} onPress={() => speak(tgtText, tgtLang)} accessibilityLabel="Speak result">
-                <Ionicons name="volume-medium" size={18} color="#1f2937" />
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
-
-        {/* Panel phát âm */}
-        {renderPronPanel()}
-
-        {/* History */}
-        <Text style={S.sectionTitle}>Lịch sử gần đây</Text>
-        <FlatList
-          data={history}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }: any) => (
-            <TouchableOpacity
-              style={S.histItem}
-              onPress={() => {
-                setSrcLang((item.srcLang as Lang) || 'en');
-                setTgtLang((item.tgtLang as Lang) || 'vi');
-                setSrcText(item.srcText?.slice(0, MAX) || '');
-                setTgtText(item.result || '');
-                setSelectedWord(''); setPron(null);
-                prevLenRef.current = Math.min((item.srcText || '').length, MAX);
-              }}
-            >
-              <Text style={S.histSmall}>
-                {String(item.srcLang).toUpperCase()} → {String(item.tgtLang).toUpperCase()}
-              </Text>
-              <Text numberOfLines={2} style={{ marginTop: 2 }}>{item.srcText}</Text>
-              <Text numberOfLines={2} style={{ marginTop: 4, color: '#111827', fontWeight: '600' }}>{item.result}</Text>
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={<Text style={S.hint}>Chưa có lịch sử.</Text>}
-        />
-      </View>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

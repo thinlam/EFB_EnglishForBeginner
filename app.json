@@ -7,16 +7,18 @@
     "icon": "./assets/images/icon_1024x1024.png",
     "scheme": "com.efb.userapp",
     "userInterfaceStyle": "automatic",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "splash": {
       "image": "./assets/images/splash_1242x2436.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFE3B0"
     },
     "ios": {
-      "bundleIdentifier": "com.efb.userapp",
-      "supportsTablet": true,
-      "deploymentTarget": "15.1"
+      "supportsTablet": true
     },
     "android": {
       "package": "com.efb.userapp",
@@ -27,7 +29,6 @@
         "backgroundColor": "#FFE3B0"
       },
       "edgeToEdgeEnabled": true
-     
     },
     "web": {
       "bundler": "metro",
@@ -44,14 +45,7 @@
           "backgroundColor": "#FFE3B0"
         }
       ],
-      "expo-secure-store",
-      [
-        "expo-build-properties",
-        {
-          "ios": { "deploymentTarget": "15.1" }
-        }
-      ]
-
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
