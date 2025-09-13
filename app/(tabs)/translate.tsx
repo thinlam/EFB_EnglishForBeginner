@@ -1,7 +1,6 @@
-// Dịch trực tiếp khi gõ (debounce), không có nút Translate.
+// Dịch trực tiếp khi gõ (debounce), KHÔNG mic, KHÔNG nút Translate.
 
-import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import Voice from '@react-native-voice/voice';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { setStringAsync } from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
@@ -11,8 +10,6 @@ import {
   Alert,
   FlatList,
   Image,
-  PermissionsAndroid,
-  Platform,
   Text,
   TextInput,
   TouchableOpacity,
@@ -86,15 +83,13 @@ export default function TranslateScreen() {
   const [srcText, setSrcText] = useState('');
   const [tgtText, setTgtText] = useState('');
 
-  // ghi âm
-  const [isRecording, setIsRecording] = useState(false);
-
   // limit nhập
   const MAX = 500;
   const prevLenRef = useRef(0);
 
-  // debounce dịch trực tiếp
+  // debounce dịch trực tiếp + guard chống ghi đè kết quả cũ
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
 
   /* ======== History ======== */
   const [history, setHistory] = useState<any[]>([]);
@@ -140,19 +135,22 @@ export default function TranslateScreen() {
   /* ======== Dịch trực tiếp (debounce) ======== */
   useEffect(() => {
     if (!srcText.trim()) { setTgtText(''); return; }
-    if (isRecording) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    const id = ++requestIdRef.current;
+
     debounceRef.current = setTimeout(async () => {
       try {
         const r = await translateBidirectional(srcText.trim(), srcLang, tgtLang);
-        setTgtText(r || '');
-        if (r) saveHistory(srcText, r, srcLang, tgtLang);
+        if (id === requestIdRef.current) {
+          setTgtText(r || '');
+          if (r) saveHistory(srcText, r, srcLang, tgtLang);
+        }
       } catch {}
     }, 450);
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [srcText, srcLang, tgtLang, isRecording]);
+  }, [srcText, srcLang, tgtLang]);
 
   /* ======== Copy & TTS ======== */
   const copySource = async () => { await setStringAsync(srcText || ''); if (srcText) Alert.alert('Đã sao chép', 'Đã copy văn bản nguồn.'); };
@@ -160,7 +158,13 @@ export default function TranslateScreen() {
   const speak = (text: string, lang: Lang) => {
     const voice = lang === 'vi' ? 'vi-VN' : 'en-US';
     if (!text.trim()) return;
-    Speech.stop(); Speech.speak(text, { language: voice, rate: 1.0, pitch: 1.0 });
+    try {
+      Speech.stop();
+      Speech.speak(text, { language: voice, rate: 1.0, pitch: 1.0 });
+    } catch {
+      // fallback nhẹ (hiếm khi cần)
+      Speech.speak(text, { language: 'en-US' });
+    }
   };
 
   /* ======== Swap ======== */
@@ -178,44 +182,12 @@ export default function TranslateScreen() {
   };
 
   const langFull = (l: Lang) => (l === 'en' ? 'English' : 'Vietnamese');
-  const localeOf = (l: Lang) => (l === 'en' ? 'en-US' : 'vi-VN');
 
   /* ======== Ảnh cờ theo ngôn ngữ ======== */
   const flagOf = (l: Lang) =>
     l === 'en'
-      ? require('@/assets/images/CO-MI.png')        // 🇺🇸 (đổi đuôi nếu file khác .png)
+      ? require('@/assets/images/CO-MI.png')        // 🇺🇸
       : require('@/assets/images/CO-VIETNAM.png');  // 🇻🇳
-
-  /* ======== Voice setup ======== */
-  useEffect(() => {
-    Voice.onSpeechResults = (e: any) => {
-      const text = e?.value?.[0] || '';
-      if (text) onChangeSrc(text);
-    };
-    Voice.onSpeechError = () => setIsRecording(false);
-    Voice.onSpeechEnd = () => setIsRecording(false);
-    return () => { Voice.destroy().then(Voice.removeAllListeners); };
-  }, []);
-
-  const ensureMicPermission = async () => {
-    if (Platform.OS !== 'android') return true;
-    const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
-  };
-
-  const toggleRecord = async () => {
-    try {
-      if (!isRecording) {
-        const ok = await ensureMicPermission();
-        if (!ok) { Alert.alert('Thiếu quyền', 'App cần quyền micro để ghi âm.'); return; }
-        setIsRecording(true);
-        await Voice.start(localeOf(srcLang));
-      } else {
-        setIsRecording(false);
-        await Voice.stop();
-      }
-    } catch { setIsRecording(false); }
-  };
 
   /* ======== Pronounce per word (EN→VI) ======== */
   const [selectedWord, setSelectedWord] = useState('');
@@ -329,7 +301,7 @@ export default function TranslateScreen() {
             <Text style={srcText.length >= MAX ? S.counterWarn : S.counter}>{srcText.length}/{MAX}</Text>
           </View>
 
-          {/* Hành động: copy, speak, mic */}
+          {/* Hành động: copy, speak */}
           <View style={S.actionRow}>
             <View style={{ flex: 1 }} />
             <View style={S.iconRowRight}>
@@ -338,13 +310,6 @@ export default function TranslateScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={S.iconBtn} onPress={() => speak(srcText, srcLang)} accessibilityLabel="Speak source">
                 <Ionicons name="volume-medium" size={18} color="#1f2937" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[S.iconBtnMic, isRecording && S.iconBtnMicOn]}
-                onPress={toggleRecord}
-                accessibilityLabel={isRecording ? 'Stop recording' : 'Start recording'}
-              >
-                <MaterialCommunityIcons name={isRecording ? 'microphone' : 'microphone-outline'} size={18} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
