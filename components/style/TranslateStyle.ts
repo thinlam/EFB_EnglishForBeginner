@@ -17,8 +17,22 @@ export const TranslateStyles = StyleSheet.create({
     paddingHorizontal: 12,
     alignItems: 'center',
   },
+
+  // 👉 Cờ nằm trên – chữ nằm dưới (thẳng hàng dọc)
+  langBtnCol: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  flag: {
+    width: 36,
+    height: 24,
+    borderRadius: 3,
+    resizeMode: 'cover',
+  },
   langText: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  langSub: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+
   swapMid: {
     paddingHorizontal: 10,
     paddingVertical: 10,
@@ -78,15 +92,6 @@ export const TranslateStyles = StyleSheet.create({
   /* Hàng hành động dưới mỗi thẻ */
   actionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
 
-  /* Nút Translate */
-  translateBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  translateBtnText: { color: '#fff', fontWeight: '700' },
-
   /* Cụm icon phải: copy/speaker xám, mic xanh tròn */
   iconRowRight: { flexDirection: 'row', gap: 10, marginLeft: 'auto' },
   iconBtn: {
@@ -95,7 +100,7 @@ export const TranslateStyles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e5e7eb', // xám nhạt
+    backgroundColor: '#e5e7eb',
   },
   iconBtnMic: {
     width: 36,
@@ -103,10 +108,10 @@ export const TranslateStyles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563eb', // xanh lam nổi bật (giống ảnh)
+    backgroundColor: '#2563eb',
   },
   iconBtnMicOn: {
-    backgroundColor: '#1d4ed8', // đậm hơn khi đang ghi
+    backgroundColor: '#1d4ed8',
   },
 
   /* Chips từ */
