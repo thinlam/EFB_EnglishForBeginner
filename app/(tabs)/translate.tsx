@@ -486,7 +486,7 @@ export default function TranslateScreen() {
         {renderPronPanel()}
 
         {/* ===== Lịch sử ===== */}
-        <Text style={S.sectionTitle}>🕘 Lịch sử gần đây</Text>
+        <Text style={S.sectionTitle}> Lịch sử gần đây</Text>
         <FlatList
           data={history}
           keyExtractor={(item) => item.id}
