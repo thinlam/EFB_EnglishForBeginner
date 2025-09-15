@@ -81,4 +81,4 @@ export const TranslateStyles = StyleSheet.create({
   sectionTitle: { marginTop: 18, marginBottom: 8, fontWeight: '700' },
   histItem: { padding: 10, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 8 },
   histSmall: { fontSize: 12, color: '#6b7280' },
-});
+
