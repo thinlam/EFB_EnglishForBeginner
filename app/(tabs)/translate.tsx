@@ -1,4 +1,5 @@
-
+// app/(tabs)/translate.tsx
+// Dịch trực tiếp khi gõ (debounce), không có nút Translate.
 // - Swap EN/VI
 // - Copy & TTS
 // - Chips từng từ (EN→VI) -> IPA
@@ -29,7 +30,15 @@ import { TranslateStyles as S } from '@/components/style/TranslateStyle';
 
 /* Firebase */
 import { auth, db } from '@/scripts/firebase';
-import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+} from 'firebase/firestore';
 
 /* ================= Translate API (MyMemory) ================= */
 const TRANSLATE_ENDPOINT = 'https://api.mymemory.translated.net/get';
@@ -41,9 +50,15 @@ function decodeMaybe(s: string) {
   return s;
 }
 
-async function translateBidirectional(text: string, src: 'en' | 'vi', tgt: 'en' | 'vi'): Promise<string> {
+async function translateBidirectional(
+  text: string,
+  src: 'en' | 'vi',
+  tgt: 'en' | 'vi'
+): Promise<string> {
   if (!text.trim()) return '';
-  const url = `${TRANSLATE_ENDPOINT}?q=${encodeURIComponent(text)}&langpair=${src}|${tgt}&mt=1`;
+  const url = `${TRANSLATE_ENDPOINT}?q=${encodeURIComponent(
+    text
+  )}&langpair=${src}|${tgt}&mt=1`;
   const res = await fetch(url, { method: 'GET' });
   const json = await res.json();
   let out: string = json?.responseData?.translatedText || '';
@@ -61,7 +76,8 @@ async function translateBidirectional(text: string, src: 'en' | 'vi', tgt: 'en' 
 
 /* ============ Dictionary (IPA + audio) ============ */
 type Pron = { ipa?: string; audio?: string };
-const DICT_ENDPOINT = (w: string) => `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w)}`;
+const DICT_ENDPOINT = (w: string) =>
+  `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w)}`;
 
 async function fetchPronunciationEn(word: string): Promise<Pron | null> {
   try {
@@ -71,7 +87,8 @@ async function fetchPronunciationEn(word: string): Promise<Pron | null> {
     const first = Array.isArray(data) ? data[0] : null;
     const phonetics: any[] = first?.phonetics || [];
     const withAudio = phonetics.find((p) => p?.audio) || phonetics[0];
-    const ipa: string | undefined = withAudio?.text || phonetics.find((p) => p?.text)?.text || undefined;
+    const ipa: string | undefined =
+      withAudio?.text || phonetics.find((p) => p?.text)?.text || undefined;
     const audio: string | undefined = withAudio?.audio || undefined;
     if (!ipa && !audio) return null;
     return { ipa, audio };
@@ -93,22 +110,7 @@ export default function TranslateScreen() {
 
   const MAX = 500;
   const prevLenRef = useRef(0);
-
-
-  /* ======== Refs để đọc state mới nhất trong listener ======== */
-  const srcTextRef = useRef(srcText);
-  const srcLangRef = useRef(srcLang);
-  const tgtLangRef = useRef(tgtLang);
-  const lastHashRef = useRef<string>(''); // nhớ lần dịch gần nhất để khỏi gọi lại khi không đổi
-
-  useEffect(() => { srcTextRef.current = srcText; }, [srcText]);
-  useEffect(() => { srcLangRef.current = srcLang; }, [srcLang]);
-  useEffect(() => { tgtLangRef.current = tgtLang; }, [tgtLang]);
-
-  const makeHash = (txt: string, s: Lang, t: Lang) => `${s}|${t}|${txt.trim()}`;
-=======
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
 
   /* ======== History ======== */
   const [history, setHistory] = useState<any[]>([]);
@@ -116,13 +118,21 @@ export default function TranslateScreen() {
     try {
       const user = auth.currentUser;
       if (!user) return;
-      const qRef = query(collection(db, 'translations'), orderBy('createdAt', 'desc'), limit(20));
+      const qRef = query(
+        collection(db, 'translations'),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
       const snap = await getDocs(qRef);
-      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((it: any) => it.uid === user.uid);
+      const rows = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((it: any) => it.uid === user.uid);
       setHistory(rows);
     } catch {}
   }
-  useEffect(() => { loadHistory(); }, []);
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   async function saveHistory(src: string, result: string, s: Lang, t: Lang) {
     try {
@@ -146,41 +156,17 @@ export default function TranslateScreen() {
       setTgtText('');
       setSelectedWord('');
       setPron(null);
-      lastHashRef.current = ''; // cho phép dịch lại sau khi ẩn bàn phím
     }
     prevLenRef.current = clipped.length;
     setSrcText(clipped);
   };
 
-
-  /* ======== DỊCH KHI ẨN BÀN PHÍM ======== */
-  const translateOnKeyboardHide = async () => {
-    const txt = srcTextRef.current.trim();
-    const s = srcLangRef.current;
-    const t = tgtLangRef.current;
-
-    if (!txt) { setTgtText(''); lastHashRef.current = ''; return; }
-
-    const hash = makeHash(txt, s, t);
-    if (hash === lastHashRef.current) return; // không thay đổi => khỏi gọi API
-
-    try {
-      const r = await translateBidirectional(txt, s, t);
-      setTgtText(r || '');
-      if (r) saveHistory(srcTextRef.current, r, s, t);
-      lastHashRef.current = hash;
-    } catch {}
-  };
-
-  // Lắng nghe keyboardDidHide một lần
-  useEffect(() => {
-    const sub = Keyboard.addListener('keyboardDidHide', translateOnKeyboardHide);
-    return () => sub.remove();
-  }, []); // không deps để listener không bị re-register
-=======
   /* ======== Dịch trực tiếp (debounce) ======== */
   useEffect(() => {
-    if (!srcText.trim()) { setTgtText(''); return; }
+    if (!srcText.trim()) {
+      setTgtText('');
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
@@ -189,13 +175,20 @@ export default function TranslateScreen() {
         if (r) saveHistory(srcText, r, srcLang, tgtLang);
       } catch {}
     }, 450);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [srcText, srcLang, tgtLang]);
 
-
   /* ======== Tools ======== */
-  const copySource = async () => { await setStringAsync(srcText || ''); if (srcText) Alert.alert('Đã sao chép', 'Đã copy văn bản nguồn.'); };
-  const copyResult = async () => { await setStringAsync(tgtText || ''); if (tgtText) Alert.alert('Đã sao chép', 'Đã copy bản dịch.'); };
+  const copySource = async () => {
+    await setStringAsync(srcText || '');
+    if (srcText) Alert.alert('Đã sao chép', 'Đã copy văn bản nguồn.');
+  };
+  const copyResult = async () => {
+    await setStringAsync(tgtText || '');
+    if (tgtText) Alert.alert('Đã sao chép', 'Đã copy bản dịch.');
+  };
   const speak = (text: string, lang: Lang) => {
     const voice = lang === 'vi' ? 'vi-VN' : 'en-US';
     if (!text.trim()) return;
@@ -213,10 +206,9 @@ export default function TranslateScreen() {
       setSrcText(tgtText.slice(0, MAX));
       setTgtText('');
       prevLenRef.current = Math.min(tgtText.length, MAX);
-      setSelectedWord(''); setPron(null);
+      setSelectedWord('');
+      setPron(null);
     }
-    // buộc dịch lại ở lần ẩn bàn phím tới
-    lastHashRef.current = '';
   };
 
   const langFull = (l: Lang) => (l === 'en' ? 'English' : 'Vietnamese');
@@ -231,14 +223,25 @@ export default function TranslateScreen() {
   const [loadingPron, setLoadingPron] = useState(false);
   const pronCacheRef = useRef<Record<string, Pron>>({});
 
-  const normalizeWord = (w: string) => w.toLowerCase().replace(/^[^a-zA-Z']+|[^a-zA-Z']+$/g, '');
+  const normalizeWord = (w: string) =>
+    w.toLowerCase().replace(/^[^a-zA-Z']+|[^a-zA-Z']+$/g, '');
   const onPressWord = async (raw: string) => {
-    const w = normalizeWord(raw); if (!w) return;
-    setSelectedWord(w); setPron(null);
-    if (pronCacheRef.current[w]) { setPron(pronCacheRef.current[w]); return; }
+    const w = normalizeWord(raw);
+    if (!w) return;
+    setSelectedWord(w);
+    setPron(null);
+    if (pronCacheRef.current[w]) {
+      setPron(pronCacheRef.current[w]);
+      return;
+    }
     setLoadingPron(true);
     const p = await fetchPronunciationEn(w);
-    if (p) { pronCacheRef.current[w] = p; setPron(p); } else setPron(null);
+    if (p) {
+      pronCacheRef.current[w] = p;
+      setPron(p);
+    } else {
+      setPron(null);
+    }
     setLoadingPron(false);
   };
 
@@ -248,7 +251,11 @@ export default function TranslateScreen() {
     return (
       <View style={S.wordChipsRow}>
         {parts.map((w, idx) => (
-          <TouchableOpacity key={`${w}-${idx}`} onPress={() => onPressWord(w)} style={[S.chip, { paddingVertical: 6 }]}>
+          <TouchableOpacity
+            key={`${w}-${idx}`}
+            onPress={() => onPressWord(w)}
+            style={[S.chip, { paddingVertical: 6 }]}
+          >
             <Text style={[S.chipText, { fontWeight: '600' }]}>{w}</Text>
           </TouchableOpacity>
         ))}
@@ -267,11 +274,15 @@ export default function TranslateScreen() {
           </TouchableOpacity>
         </View>
         {loadingPron ? (
-          <View style={{ marginTop: 8 }}><ActivityIndicator /></View>
+          <View style={{ marginTop: 8 }}>
+            <ActivityIndicator />
+          </View>
         ) : pron ? (
           <View style={{ marginTop: 6 }}>
             {pron.ipa ? (
-              <Text style={S.pronIPA}>IPA: <Text style={{ fontWeight: '600' }}>{pron.ipa}</Text></Text>
+              <Text style={S.pronIPA}>
+                IPA: <Text style={{ fontWeight: '600' }}>{pron.ipa}</Text>
+              </Text>
             ) : (
               <Text style={S.pronHint}>Không tìm thấy phiên âm. Đã bật TTS.</Text>
             )}
@@ -285,12 +296,14 @@ export default function TranslateScreen() {
 
   return (
     <SafeAreaView style={S.wrap}>
-      {/* Bọc toàn bộ trong TouchableWithoutFeedback để ẩn bàn phím */}
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={S.container}>
           {/* Header chọn ngôn ngữ */}
           <View style={S.langRow}>
-            <TouchableOpacity style={S.langBtn} onPress={() => setSrcLang(srcLang === 'en' ? 'vi' : 'en')}>
+            <TouchableOpacity
+              style={S.langBtn}
+              onPress={() => setSrcLang(srcLang === 'en' ? 'vi' : 'en')}
+            >
               <View style={S.langBtnCol}>
                 <Image source={flagOf(srcLang)} style={S.flag} />
                 <Text style={S.langText}>{langFull(srcLang)}</Text>
@@ -301,18 +314,10 @@ export default function TranslateScreen() {
               <Text style={S.swapMidIcon}>⇆</Text>
             </TouchableOpacity>
 
-
-            <TouchableOpacity style={S.langBtn} onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}>
-              <View style={S.langBtnCol}>
-                <Image source={flagOf(tgtLang)} style={S.flag} />
-                <Text style={S.langText}>{langFull(tgtLang)}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-
-
-            <TouchableOpacity style={S.langBtn} onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}>
+            <TouchableOpacity
+              style={S.langBtn}
+              onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}
+            >
               <View style={S.langBtnCol}>
                 <Image source={flagOf(tgtLang)} style={S.flag} />
                 <Text style={S.langText}>{langFull(tgtLang)}</Text>
@@ -322,10 +327,14 @@ export default function TranslateScreen() {
 
           {/* CARD 1 */}
           <View style={S.card}>
-            <Text style={S.cardTitle}>Translate from ({langFull(srcLang)})</Text>
+            <Text style={S.cardTitle}>
+              Translate from ({langFull(srcLang)})
+            </Text>
             <View style={S.srcBoxWrap}>
               <TextInput
-                placeholder={`Nhập ${srcLang === 'en' ? 'English' : 'Vietnamese'}... (≤ 500 ký tự)`}
+                placeholder={`Nhập ${
+                  srcLang === 'en' ? 'English' : 'Vietnamese'
+                }... (≤ 500 ký tự)`}
                 value={srcText}
                 onChangeText={onChangeSrc}
                 multiline
@@ -335,11 +344,13 @@ export default function TranslateScreen() {
               />
               {!!srcText && (
                 <TouchableOpacity
-
-                  onPress={() => { setSrcText(''); setTgtText(''); setSelectedWord(''); setPron(null); prevLenRef.current = 0; lastHashRef.current = ''; }}
-
-                  onPress={() => { setSrcText(''); setTgtText(''); setSelectedWord(''); setPron(null); prevLenRef.current = 0; }}
-
+                  onPress={() => {
+                    setSrcText('');
+                    setTgtText('');
+                    setSelectedWord('');
+                    setPron(null);
+                    prevLenRef.current = 0;
+                  }}
                   style={S.clearBtn}
                 >
                   <Text style={S.clearBtnText}>✕</Text>
@@ -347,20 +358,29 @@ export default function TranslateScreen() {
               )}
             </View>
             <View style={S.counterRow}>
-
-              <Text style={S.hint}>Gõ {srcLang === 'en' ? 'tiếng Anh' : 'tiếng Việt'} ở đây. Ẩn bàn phím để dịch.</Text>
-
-              <Text style={S.hint}>Gõ {srcLang === 'en' ? 'tiếng Anh' : 'tiếng Việt'} ở đây.</Text>
-
-              <Text style={srcText.length >= MAX ? S.counterWarn : S.counter}>{srcText.length}/{MAX}</Text>
+              <Text style={S.hint}>
+                Gõ {srcLang === 'en' ? 'tiếng Anh' : 'tiếng Việt'} ở đây.
+              </Text>
+              <Text
+                style={srcText.length >= MAX ? S.counterWarn : S.counter}
+              >
+                {srcText.length}/{MAX}
+              </Text>
             </View>
             <View style={S.actionRow}>
               <View style={{ flex: 1 }} />
               <View style={S.iconRowRight}>
                 <TouchableOpacity style={S.iconBtn} onPress={copySource}>
-                  <MaterialIcons name="content-copy" size={18} color="#1f2937" />
+                  <MaterialIcons
+                    name="content-copy"
+                    size={18}
+                    color="#1f2937"
+                  />
                 </TouchableOpacity>
-                <TouchableOpacity style={S.iconBtn} onPress={() => speak(srcText, srcLang)}>
+                <TouchableOpacity
+                  style={S.iconBtn}
+                  onPress={() => speak(srcText, srcLang)}
+                >
                   <Ionicons name="volume-medium" size={18} color="#1f2937" />
                 </TouchableOpacity>
               </View>
@@ -372,9 +392,13 @@ export default function TranslateScreen() {
 
           {/* CARD 2 */}
           <View style={S.card}>
-            <Text style={S.cardTitle}>Translate to ({langFull(tgtLang)})</Text>
+            <Text style={S.cardTitle}>
+              Translate to ({langFull(tgtLang)})
+            </Text>
             <TextInput
-              placeholder={`Nghĩa ${tgtLang === 'vi' ? 'tiếng Việt' : 'tiếng Anh'}`}
+              placeholder={`Nghĩa ${
+                tgtLang === 'vi' ? 'tiếng Việt' : 'tiếng Anh'
+              }`}
               value={tgtText}
               onChangeText={setTgtText}
               multiline
@@ -385,9 +409,16 @@ export default function TranslateScreen() {
               <View style={{ flex: 1 }} />
               <View style={S.iconRowRight}>
                 <TouchableOpacity style={S.iconBtn} onPress={copyResult}>
-                  <MaterialIcons name="content-copy" size={18} color="#1f2937" />
+                  <MaterialIcons
+                    name="content-copy"
+                    size={18}
+                    color="#1f2937"
+                  />
                 </TouchableOpacity>
-                <TouchableOpacity style={S.iconBtn} onPress={() => speak(tgtText, tgtLang)}>
+                <TouchableOpacity
+                  style={S.iconBtn}
+                  onPress={() => speak(tgtText, tgtLang)}
+                >
                   <Ionicons name="volume-medium" size={18} color="#1f2937" />
                 </TouchableOpacity>
               </View>
@@ -410,18 +441,27 @@ export default function TranslateScreen() {
                   setTgtLang((item.tgtLang as Lang) || 'vi');
                   setSrcText(item.srcText?.slice(0, MAX) || '');
                   setTgtText(item.result || '');
-                  setSelectedWord(''); setPron(null);
-                  prevLenRef.current = Math.min((item.srcText || '').length, MAX);
-
-                  lastHashRef.current = ''; // ấn bàn phím xuống để dịch lại nếu cần
-
+                  setSelectedWord('');
+                  setPron(null);
+                  prevLenRef.current = Math.min(
+                    (item.srcText || '').length,
+                    MAX
+                  );
                 }}
               >
                 <Text style={S.histSmall}>
-                  {String(item.srcLang).toUpperCase()} → {String(item.tgtLang).toUpperCase()}
+                  {String(item.srcLang).toUpperCase()} →{' '}
+                  {String(item.tgtLang).toUpperCase()}
                 </Text>
-                <Text numberOfLines={2} style={{ marginTop: 2 }}>{item.srcText}</Text>
-                <Text numberOfLines={2} style={{ marginTop: 4, color: '#111827', fontWeight: '600' }}>{item.result}</Text>
+                <Text numberOfLines={2} style={{ marginTop: 2 }}>
+                  {item.srcText}
+                </Text>
+                <Text
+                  numberOfLines={2}
+                  style={{ marginTop: 4, color: '#111827', fontWeight: '600' }}
+                >
+                  {item.result}
+                </Text>
               </TouchableOpacity>
             )}
             ListEmptyComponent={<Text style={S.hint}>Chưa có lịch sử.</Text>}
@@ -431,4 +471,3 @@ export default function TranslateScreen() {
     </SafeAreaView>
   );
 }
-

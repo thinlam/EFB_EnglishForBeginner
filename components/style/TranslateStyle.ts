@@ -6,11 +6,24 @@ export const TranslateStyles = StyleSheet.create({
   container: { padding: 16 },
 
   /* Header chọn ngôn ngữ */
-  langRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  langBtn: { flex: 1, padding: 8, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, alignItems: 'center' },
+  langRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  langBtn: {
+    flex: 1,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
   langBtnCol: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   flag: { width: 24, height: 24, resizeMode: 'contain' },
   langText: { fontWeight: '600', fontSize: 14 },
+  langSub: { fontSize: 12, color: '#6b7280' },
   swapMid: { marginHorizontal: 8, padding: 8, borderRadius: 50, backgroundColor: '#f3f4f6' },
   swapMidIcon: { fontSize: 18, fontWeight: '700', color: '#111827' },
 
@@ -53,10 +66,19 @@ export const TranslateStyles = StyleSheet.create({
   counterWarn: { fontSize: 12, color: '#b91c1c', fontWeight: '700' },
   hint: { fontSize: 12, color: '#6b7280' },
 
-  /* Action row trong card */
+  /* Nút hành động trong card */
   actionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   iconRowRight: { flexDirection: 'row', gap: 10 },
   iconBtn: { padding: 8, borderRadius: 8, backgroundColor: '#f3f4f6' },
+
+  /* Nếu bạn có nút Translate */
+  translateBtn: {
+    backgroundColor: '#2563eb',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  translateBtnText: { color: '#fff', fontWeight: '700' },
 
   /* Chips từng từ */
   wordChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
@@ -77,8 +99,8 @@ export const TranslateStyles = StyleSheet.create({
   pronIPA: { fontSize: 16, color: '#374151' },
   pronHint: { color: '#6b7280', marginTop: 6 },
 
-  /* Tools & History */
+  /* History */
   sectionTitle: { marginTop: 18, marginBottom: 8, fontWeight: '700' },
   histItem: { padding: 10, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, marginBottom: 8 },
   histSmall: { fontSize: 12, color: '#6b7280' },
-
+});
