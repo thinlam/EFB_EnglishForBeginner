@@ -5,25 +5,25 @@ import { db } from '@/scripts/firebase';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  updateDoc,
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    updateDoc,
 } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  Keyboard,
-  Modal,
-  Platform,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
+    Alert,
+    FlatList,
+    Keyboard,
+    Modal,
+    Platform,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -112,7 +112,7 @@ export default function GrammarScreen() {
           value={searchText}
           onChangeText={setSearchText}
         />
-        <View style={styles.filterPicker}>
+       <View style={styles.filterPicker}>
           <Picker
             selectedValue={filterLevel}
             onValueChange={(value) => setFilterLevel(value)}
@@ -132,7 +132,7 @@ export default function GrammarScreen() {
         <Text style={styles.addButtonText}>+ Thêm mới</Text>
       </TouchableOpacity>
 
-      <FlatList
+      <FlatList 
         data={filteredList}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 40 }}
