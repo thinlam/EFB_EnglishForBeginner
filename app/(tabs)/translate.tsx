@@ -1,3 +1,4 @@
+
 // app/(tabs)/translate.tsx
 // DỊCH KHI ẨN BÀN PHÍM — KHÔNG MIC
 // - Không auto 450ms nữa
@@ -393,3 +394,4 @@ export default function TranslateScreen() {
     </SafeAreaView>
   );
 }
+

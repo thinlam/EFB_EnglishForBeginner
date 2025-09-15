@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+
 
 export const COLORS = {
   bg: '#0b1220',
@@ -192,3 +192,4 @@ export const ListenStyles = StyleSheet.create({
     borderColor: COLORS.border,
   },
 });
+

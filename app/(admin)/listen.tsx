@@ -1,3 +1,4 @@
+
 import { COLORS, ListenStyles as S } from '@/components/style/ListenStyles';
 import { db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
