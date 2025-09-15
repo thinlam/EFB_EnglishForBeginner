@@ -1,4 +1,5 @@
-
+// components/style/ListenStyles.ts
+import { StyleSheet } from 'react-native'; // ✅ BẮT BUỘC: thêm dòng này
 
 export const COLORS = {
   bg: '#0b1220',
@@ -16,7 +17,7 @@ export const COLORS = {
   link: '#93c5fd',
   badgeAudio: '#22d3ee',
   badgeVideo: '#fbbf24',
-};
+} as const;
 
 export const ListenStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
@@ -31,10 +32,7 @@ export const ListenStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  backBtn: {
-    padding: 6,
-    marginRight: 8,
-  },
+  backBtn: { padding: 6, marginRight: 8 },
   headerTitle: {
     flex: 1,
     fontSize: 18,
@@ -142,18 +140,9 @@ export const ListenStyles = StyleSheet.create({
   cardDate: { color: COLORS.subText, fontSize: 12 },
 
   // Hàng icon – text
-  rowLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
+  rowLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   rowText: { color: COLORS.subText, fontSize: 12 },
-  rowTextLink: {
-    color: COLORS.link,
-    fontSize: 13,
-    textDecorationLine: 'underline',
-  },
+  rowTextLink: { color: COLORS.link, fontSize: 13, textDecorationLine: 'underline' },
 
   cardLink: { color: COLORS.link, textDecorationLine: 'underline', fontSize: 13, marginTop: 10 },
   cardTranscript: { color: COLORS.muted, fontSize: 13, flex: 1 },
@@ -192,4 +181,3 @@ export const ListenStyles = StyleSheet.create({
     borderColor: COLORS.border,
   },
 });
-
