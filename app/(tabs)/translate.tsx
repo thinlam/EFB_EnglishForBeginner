@@ -1,8 +1,4 @@
 
-// app/(tabs)/translate.tsx
-// DỊCH KHI ẨN BÀN PHÍM — KHÔNG MIC
-// - Không auto 450ms nữa
-// - Dịch khi nhận sự kiện keyboardDidHide
 // - Swap EN/VI
 // - Copy & TTS
 // - Chips từng từ (EN→VI) -> IPA
@@ -98,6 +94,7 @@ export default function TranslateScreen() {
   const MAX = 500;
   const prevLenRef = useRef(0);
 
+
   /* ======== Refs để đọc state mới nhất trong listener ======== */
   const srcTextRef = useRef(srcText);
   const srcLangRef = useRef(srcLang);
@@ -109,6 +106,9 @@ export default function TranslateScreen() {
   useEffect(() => { tgtLangRef.current = tgtLang; }, [tgtLang]);
 
   const makeHash = (txt: string, s: Lang, t: Lang) => `${s}|${t}|${txt.trim()}`;
+=======
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   /* ======== History ======== */
   const [history, setHistory] = useState<any[]>([]);
@@ -152,6 +152,7 @@ export default function TranslateScreen() {
     setSrcText(clipped);
   };
 
+
   /* ======== DỊCH KHI ẨN BÀN PHÍM ======== */
   const translateOnKeyboardHide = async () => {
     const txt = srcTextRef.current.trim();
@@ -176,6 +177,21 @@ export default function TranslateScreen() {
     const sub = Keyboard.addListener('keyboardDidHide', translateOnKeyboardHide);
     return () => sub.remove();
   }, []); // không deps để listener không bị re-register
+=======
+  /* ======== Dịch trực tiếp (debounce) ======== */
+  useEffect(() => {
+    if (!srcText.trim()) { setTgtText(''); return; }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const r = await translateBidirectional(srcText.trim(), srcLang, tgtLang);
+        setTgtText(r || '');
+        if (r) saveHistory(srcText, r, srcLang, tgtLang);
+      } catch {}
+    }, 450);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [srcText, srcLang, tgtLang]);
+
 
   /* ======== Tools ======== */
   const copySource = async () => { await setStringAsync(srcText || ''); if (srcText) Alert.alert('Đã sao chép', 'Đã copy văn bản nguồn.'); };
@@ -285,6 +301,17 @@ export default function TranslateScreen() {
               <Text style={S.swapMidIcon}>⇆</Text>
             </TouchableOpacity>
 
+
+            <TouchableOpacity style={S.langBtn} onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}>
+              <View style={S.langBtnCol}>
+                <Image source={flagOf(tgtLang)} style={S.flag} />
+                <Text style={S.langText}>{langFull(tgtLang)}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+
+
             <TouchableOpacity style={S.langBtn} onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}>
               <View style={S.langBtnCol}>
                 <Image source={flagOf(tgtLang)} style={S.flag} />
@@ -308,7 +335,11 @@ export default function TranslateScreen() {
               />
               {!!srcText && (
                 <TouchableOpacity
+
                   onPress={() => { setSrcText(''); setTgtText(''); setSelectedWord(''); setPron(null); prevLenRef.current = 0; lastHashRef.current = ''; }}
+
+                  onPress={() => { setSrcText(''); setTgtText(''); setSelectedWord(''); setPron(null); prevLenRef.current = 0; }}
+
                   style={S.clearBtn}
                 >
                   <Text style={S.clearBtnText}>✕</Text>
@@ -316,7 +347,11 @@ export default function TranslateScreen() {
               )}
             </View>
             <View style={S.counterRow}>
+
               <Text style={S.hint}>Gõ {srcLang === 'en' ? 'tiếng Anh' : 'tiếng Việt'} ở đây. Ẩn bàn phím để dịch.</Text>
+
+              <Text style={S.hint}>Gõ {srcLang === 'en' ? 'tiếng Anh' : 'tiếng Việt'} ở đây.</Text>
+
               <Text style={srcText.length >= MAX ? S.counterWarn : S.counter}>{srcText.length}/{MAX}</Text>
             </View>
             <View style={S.actionRow}>
@@ -377,7 +412,9 @@ export default function TranslateScreen() {
                   setTgtText(item.result || '');
                   setSelectedWord(''); setPron(null);
                   prevLenRef.current = Math.min((item.srcText || '').length, MAX);
+
                   lastHashRef.current = ''; // ấn bàn phím xuống để dịch lại nếu cần
+
                 }}
               >
                 <Text style={S.histSmall}>
