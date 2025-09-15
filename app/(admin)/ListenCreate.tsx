@@ -1,11 +1,14 @@
-// app/(admin)/listencreate.tsx
+// app/(admin)/ListenCreate.tsx
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   Platform,
   StatusBar,
   Text,
@@ -15,10 +18,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+/* Styles dùng chung với màn list */
+import { COLORS, ListenStyles as S } from '@/components/style/ListenStyles';
+
 /* Firebase */
 import { db, storage } from '@/scripts/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+
+/* Types */
+type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
 
 /* helpers */
 function slugify(s: string) {
@@ -59,18 +68,22 @@ async function getUploadData(p: { uri: string; file?: File | null }): Promise<Bl
   if (!info.exists || (info.size ?? 0) === 0) {
     throw new Error('File không tồn tại hoặc kích thước = 0. Vui lòng chọn lại file.');
   }
+  // @ts-ignore atob trên native
   const base64 = await FileSystem.readAsStringAsync(p.uri, { encoding: FileSystem.EncodingType.Base64 });
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   return bytes;
 }
 
-export default function ListenCreateSingleRoute() {
+export default function ListenCreateScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const [title, setTitle] = useState('');
   const [transcript, setTranscript] = useState('');
   const [urlInput, setUrlInput] = useState('');
+
+  const [level, setLevel] = useState<CEFR>('A1');
+
   const [picked, setPicked] = useState<{
     name: string;
     uri: string;
@@ -82,6 +95,12 @@ export default function ListenCreateSingleRoute() {
   const [progress, setProgress] = useState<number>(0);
   const [speedText, setSpeedText] = useState('');
   const [etaText, setEtaText] = useState('');
+
+  const isVideo = useMemo(() => {
+    if (picked?.name) return (guessContentType(picked.name).mime || '').startsWith('video/');
+    const u = urlInput.trim().toLowerCase();
+    return u.endsWith('.mp4') || u.endsWith('.m4v') || u.endsWith('.mov');
+  }, [picked, urlInput]);
 
   const pickMedia = async () => {
     const r = await DocumentPicker.getDocumentAsync({
@@ -103,7 +122,7 @@ export default function ListenCreateSingleRoute() {
       setPicked({
         name: f.name ?? 'media',
         uri: f.uri,
-        // @ts-ignore (expo types có thể chưa expose .file/.mimeType trên web)
+        // @ts-ignore expo web exposes .file/.mimeType
         file: (f as any)?.file ?? null,
         mimeType: (f as any)?.mimeType ?? null,
       });
@@ -111,8 +130,14 @@ export default function ListenCreateSingleRoute() {
   };
 
   const onSave = async () => {
+    Keyboard.dismiss();
+
     if (!title.trim()) {
       Alert.alert('Thiếu tiêu đề', 'Vui lòng nhập tiêu đề.');
+      return;
+    }
+    if (!picked?.uri && !urlInput.trim()) {
+      Alert.alert('Thiếu nội dung', 'Chọn file hoặc nhập URL (mp3/mp4).');
       return;
     }
 
@@ -215,7 +240,15 @@ export default function ListenCreateSingleRoute() {
       }
 
       if (!mediaType && finalUrl) {
-        mediaType = finalUrl.toLowerCase().endsWith('.mp4') ? 'video/mp4' : 'audio/mpeg';
+        const lower = finalUrl.toLowerCase();
+        mediaType =
+          lower.endsWith('.mp4') || lower.endsWith('.m4v') || lower.endsWith('.mov')
+            ? 'video/mp4'
+            : lower.endsWith('.wav')
+            ? 'audio/wav'
+            : lower.endsWith('.m4a')
+            ? 'audio/x-m4a'
+            : 'audio/mpeg';
       }
 
       await addDoc(collection(db, 'listens'), {
@@ -223,11 +256,12 @@ export default function ListenCreateSingleRoute() {
         transcript: transcript.trim(),
         audioUrl: finalUrl,
         mediaType: mediaType ?? null,
+        level, // 🔹 lưu CEFR
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
-      router.replace('/listen');
+      router.replace('/(admin)/listen');
     } catch (e: any) {
       console.error(e);
       Alert.alert('Lỗi', e?.message ?? 'Không thể lưu');
@@ -240,107 +274,160 @@ export default function ListenCreateSingleRoute() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0b1220', paddingTop: insets.top, padding: 16 }}>
+    <View style={[S.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
-      <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 16 }}>
-        Tạo bài nghe (mp3/mp4)
-      </Text>
 
-      <Text style={{ color: '#9ca3af', marginBottom: 6 }}>Tiêu đề</Text>
-      <TextInput
-        value={title}
-        onChangeText={setTitle}
-        placeholder="Unit 1 - Greetings"
-        placeholderTextColor="#64748b"
-        style={{
-          color: '#fff',
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderRadius: 10,
-          padding: 12,
-          marginBottom: 12,
-        }}
-      />
+      {/* Header với back + tiêu đề giữa để đồng bộ màn list */}
+      <View style={S.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={S.backBtn}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+        </TouchableOpacity>
 
-      <Text style={{ color: '#9ca3af', marginBottom: 6 }}>Transcript</Text>
-      <TextInput
-        value={transcript}
-        onChangeText={setTranscript}
-        placeholder="A: Hello! How are you? ..."
-        placeholderTextColor="#64748b"
-        multiline
-        style={{
-          color: '#fff',
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderRadius: 10,
-          padding: 12,
-          marginBottom: 12,
-          minHeight: 90,
-        }}
-      />
+        <Text style={S.headerTitle}>Tạo bài nghe</Text>
 
-      <Text style={{ color: '#9ca3af', marginBottom: 6 }}>URL (mp3/mp4) nếu đã có</Text>
-      <TextInput
-        value={urlInput}
-        onChangeText={setUrlInput}
-        autoCapitalize="none"
-        placeholder="https://…(.mp3 | .mp4)"
-        placeholderTextColor="#64748b"
-        style={{
-          color: '#fff',
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.1)',
-          borderRadius: 10,
-          padding: 12,
-          marginBottom: 12,
-        }}
-      />
+        {/* spacer giữ tiêu đề ở giữa */}
+        <View style={{ width: 22 }} />
+      </View>
 
-      <TouchableOpacity
-        disabled={busy}
-        onPress={pickMedia}
-        style={{
-          backgroundColor: '#3b82f6',
-          padding: 12,
-          borderRadius: 10,
-          alignItems: 'center',
-          marginBottom: 10,
-        }}
-      >
-        <Text style={{ color: '#fff', fontWeight: '700' }}>
-          {picked ? 'Chọn lại file (mp3/mp4)' : 'Chọn file từ máy (mp3/mp4)'}
+      {/* Form */}
+      <View style={{ padding: 16 }}>
+        {/* Title */}
+        <Text style={{ color: COLORS.muted, marginBottom: 6 }}>Tiêu đề</Text>
+        <TextInput
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Unit 1 - Greetings"
+          placeholderTextColor={COLORS.muted}
+          style={{
+            color: COLORS.text,
+            borderWidth: 1,
+            borderColor: COLORS.borderSoft,
+            backgroundColor: COLORS.card2,
+            borderRadius: 10,
+            padding: 12,
+            marginBottom: 12,
+          }}
+          returnKeyType="next"
+        />
+
+        {/* Transcript */}
+        <Text style={{ color: COLORS.muted, marginBottom: 6 }}>Transcript</Text>
+        <TextInput
+          value={transcript}
+          onChangeText={setTranscript}
+          placeholder="A: Hello! How are you? ..."
+          placeholderTextColor={COLORS.muted}
+          multiline
+          style={{
+            color: COLORS.text,
+            borderWidth: 1,
+            borderColor: COLORS.borderSoft,
+            backgroundColor: COLORS.card2,
+            borderRadius: 10,
+            padding: 12,
+            marginBottom: 12,
+            minHeight: 90,
+          }}
+        />
+
+        {/* Level picker (đồng bộ style với list) */}
+        <Text style={{ color: COLORS.muted, marginBottom: 6 }}>Level</Text>
+        <View style={[S.filterPicker, { marginBottom: 12 }]}>
+          <Text style={S.filterValueText}>{level}</Text>
+          <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
+          <Picker
+            selectedValue={level}
+            onValueChange={(v) => setLevel(v as CEFR)}
+            mode={Platform.OS === 'ios' ? 'dialog' : 'dropdown'}
+            style={S.hiddenPicker}
+            dropdownIconColor={COLORS.muted}
+          >
+            <Picker.Item label="A1" value="A1" />
+            <Picker.Item label="A2" value="A2" />
+            <Picker.Item label="B1" value="B1" />
+            <Picker.Item label="B2" value="B2" />
+            <Picker.Item label="C1" value="C1" />
+          </Picker>
+        </View>
+
+        {/* URL */}
+        <Text style={{ color: COLORS.muted, marginBottom: 6 }}>
+          URL (mp3/mp4) nếu đã có
         </Text>
-      </TouchableOpacity>
+        <TextInput
+          value={urlInput}
+          onChangeText={setUrlInput}
+          autoCapitalize="none"
+          placeholder="https://…(.mp3 | .mp4)"
+          placeholderTextColor={COLORS.muted}
+          style={{
+            color: COLORS.text,
+            borderWidth: 1,
+            borderColor: COLORS.borderSoft,
+            backgroundColor: COLORS.card2,
+            borderRadius: 10,
+            padding: 12,
+            marginBottom: 12,
+          }}
+        />
 
-      {!!picked && (
-        <Text style={{ color: '#9ca3af', marginBottom: 6 }} numberOfLines={1}>
-          📄 {picked.name}
-        </Text>
-      )}
+        {/* Pick file */}
+        <TouchableOpacity
+          disabled={busy}
+          onPress={pickMedia}
+          style={{
+            backgroundColor: COLORS.edit,
+            padding: 12,
+            borderRadius: 10,
+            alignItems: 'center',
+            marginBottom: 10,
+            borderWidth: 1,
+            borderColor: COLORS.border,
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={{ color: COLORS.text, fontWeight: '700' }}>
+            {picked ? 'Chọn lại file (mp3/mp4)' : 'Chọn file từ máy (mp3/mp4)'}
+          </Text>
+        </TouchableOpacity>
 
-      {busy && (
-        <Text style={{ color: '#9ca3af', marginBottom: 10 }}>
-          Đang upload… {progress}% {speedText ? `• ${speedText}` : ''} {etaText ? `• ${etaText}` : ''}
-        </Text>
-      )}
-
-      <TouchableOpacity
-        disabled={busy}
-        onPress={onSave}
-        style={{
-          backgroundColor: '#4ade80',
-          padding: 14,
-          borderRadius: 12,
-          alignItems: 'center',
-        }}
-      >
-        {busy ? (
-          <ActivityIndicator color="#0b1220" />
-        ) : (
-          <Text style={{ color: '#0b1220', fontWeight: '800' }}>Lưu</Text>
+        {!!picked && (
+          <Text style={{ color: COLORS.muted, marginBottom: 6 }} numberOfLines={1}>
+            📄 {picked.name} {isVideo ? '• 🎞️ video' : '• 🔊 audio'}
+          </Text>
         )}
-      </TouchableOpacity>
+
+        {busy && (
+          <Text style={{ color: COLORS.muted, marginBottom: 10 }}>
+            Đang upload… {progress}% {speedText ? `• ${speedText}` : ''} {etaText ? `• ${etaText}` : ''}
+          </Text>
+        )}
+
+        {/* Save */}
+        <TouchableOpacity
+          disabled={busy}
+          onPress={onSave}
+          style={{
+            backgroundColor: COLORS.create,
+            padding: 14,
+            borderRadius: 12,
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: COLORS.border,
+          }}
+          activeOpacity={0.9}
+        >
+          {busy ? (
+            <ActivityIndicator color={COLORS.bg} />
+          ) : (
+            <Text style={{ color: COLORS.bg, fontWeight: '800' }}>Lưu</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
