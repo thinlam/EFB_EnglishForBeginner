@@ -274,7 +274,7 @@ export default function ListenCreateScreen() {
     }
   };
 
-  return (
+  return (  
     <View style={[S.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
 
