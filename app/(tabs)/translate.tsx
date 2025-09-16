@@ -4,7 +4,7 @@
 // - Copy & TTS
 // - Chips từng từ (EN→VI) -> IPA
 // - Lưu lịch sử Firestore (20 mục gần nhất)
-// - Bấm ra ngoài để ẩn bàn phím
+// - Cuộn trang (web & mobile), web bấm gõ OK
 
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { setStringAsync } from 'expo-clipboard';
@@ -17,6 +17,8 @@ import {
   FlatList,
   Image,
   Keyboard,
+  Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -101,6 +103,7 @@ type Lang = 'en' | 'vi';
 
 export default function TranslateScreen() {
   const router = useRouter();
+  const isWeb = Platform.OS === 'web';
 
   /* ======== State ======== */
   const [srcLang, setSrcLang] = useState<Lang>('en');
@@ -294,180 +297,154 @@ export default function TranslateScreen() {
     );
   };
 
-  return (
-    <SafeAreaView style={S.wrap}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={S.container}>
-          {/* Header chọn ngôn ngữ */}
-          <View style={S.langRow}>
-            <TouchableOpacity
-              style={S.langBtn}
-              onPress={() => setSrcLang(srcLang === 'en' ? 'vi' : 'en')}
-            >
-              <View style={S.langBtnCol}>
-                <Image source={flagOf(srcLang)} style={S.flag} />
-                <Text style={S.langText}>{langFull(srcLang)}</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={S.swapMid} onPress={swapLangs}>
-              <Text style={S.swapMidIcon}>⇆</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={S.langBtn}
-              onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}
-            >
-              <View style={S.langBtnCol}>
-                <Image source={flagOf(tgtLang)} style={S.flag} />
-                <Text style={S.langText}>{langFull(tgtLang)}</Text>
-              </View>
-            </TouchableOpacity>
+  /* ======== UI wrapper theo nền tảng ======== */
+  const Content = (
+    <ScrollView
+      contentContainerStyle={S.container}
+      keyboardShouldPersistTaps="always"
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header chọn ngôn ngữ */}
+      <View style={S.langRow}>
+        <TouchableOpacity
+          style={S.langBtn}
+          onPress={() => setSrcLang(srcLang === 'en' ? 'vi' : 'en')}
+        >
+          <View style={S.langBtnCol}>
+            <Image source={flagOf(srcLang)} style={S.flag} />
+            <Text style={S.langText}>{langFull(srcLang)}</Text>
           </View>
+        </TouchableOpacity>
 
-          {/* CARD 1 */}
-          <View style={S.card}>
-            <Text style={S.cardTitle}>
-              Translate from ({langFull(srcLang)})
-            </Text>
-            <View style={S.srcBoxWrap}>
-              <TextInput
-                placeholder={`Nhập ${
-                  srcLang === 'en' ? 'English' : 'Vietnamese'
-                }... (≤ 500 ký tự)`}
-                value={srcText}
-                onChangeText={onChangeSrc}
-                multiline
-                style={S.textArea}
-                placeholderTextColor="#9ca3af"
-                autoCapitalize="none"
-              />
-              {!!srcText && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setSrcText('');
-                    setTgtText('');
-                    setSelectedWord('');
-                    setPron(null);
-                    prevLenRef.current = 0;
-                  }}
-                  style={S.clearBtn}
-                >
-                  <Text style={S.clearBtnText}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            <View style={S.counterRow}>
-              <Text style={S.hint}>
-                Gõ {srcLang === 'en' ? 'tiếng Anh' : 'tiếng Việt'} ở đây.
-              </Text>
-              <Text
-                style={srcText.length >= MAX ? S.counterWarn : S.counter}
-              >
-                {srcText.length}/{MAX}
-              </Text>
-            </View>
-            <View style={S.actionRow}>
-              <View style={{ flex: 1 }} />
-              <View style={S.iconRowRight}>
-                <TouchableOpacity style={S.iconBtn} onPress={copySource}>
-                  <MaterialIcons
-                    name="content-copy"
-                    size={18}
-                    color="#1f2937"
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={S.iconBtn}
-                  onPress={() => speak(srcText, srcLang)}
-                >
-                  <Ionicons name="volume-medium" size={18} color="#1f2937" />
-                </TouchableOpacity>
-              </View>
-            </View>
+        <TouchableOpacity style={S.swapMid} onPress={swapLangs}>
+          <Text style={S.swapMidIcon}>⇆</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={S.langBtn}
+          onPress={() => setTgtLang(tgtLang === 'en' ? 'vi' : 'en')}
+        >
+          <View style={S.langBtnCol}>
+            <Image source={flagOf(tgtLang)} style={S.flag} />
+            <Text style={S.langText}>{langFull(tgtLang)}</Text>
           </View>
+        </TouchableOpacity>
+      </View>
 
-          {/* Chips EN→VI */}
-          {renderWordChips()}
-
-          {/* CARD 2 */}
-          <View style={S.card}>
-            <Text style={S.cardTitle}>
-              Translate to ({langFull(tgtLang)})
-            </Text>
-            <TextInput
-              placeholder={`Nghĩa ${
-                tgtLang === 'vi' ? 'tiếng Việt' : 'tiếng Anh'
-              }`}
-              value={tgtText}
-              onChangeText={setTgtText}
-              multiline
-              style={S.textArea}
-              placeholderTextColor="#9ca3af"
-            />
-            <View style={S.actionRow}>
-              <View style={{ flex: 1 }} />
-              <View style={S.iconRowRight}>
-                <TouchableOpacity style={S.iconBtn} onPress={copyResult}>
-                  <MaterialIcons
-                    name="content-copy"
-                    size={18}
-                    color="#1f2937"
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={S.iconBtn}
-                  onPress={() => speak(tgtText, tgtLang)}
-                >
-                  <Ionicons name="volume-medium" size={18} color="#1f2937" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* IPA Panel */}
-          {renderPronPanel()}
-
-          {/* History */}
-          <Text style={S.sectionTitle}>Lịch sử gần đây</Text>
-          <FlatList
-            data={history}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }: any) => (
-              <TouchableOpacity
-                style={S.histItem}
-                onPress={() => {
-                  setSrcLang((item.srcLang as Lang) || 'en');
-                  setTgtLang((item.tgtLang as Lang) || 'vi');
-                  setSrcText(item.srcText?.slice(0, MAX) || '');
-                  setTgtText(item.result || '');
-                  setSelectedWord('');
-                  setPron(null);
-                  prevLenRef.current = Math.min(
-                    (item.srcText || '').length,
-                    MAX
-                  );
-                }}
-              >
-                <Text style={S.histSmall}>
-                  {String(item.srcLang).toUpperCase()} →{' '}
-                  {String(item.tgtLang).toUpperCase()}
-                </Text>
-                <Text numberOfLines={2} style={{ marginTop: 2 }}>
-                  {item.srcText}
-                </Text>
-                <Text
-                  numberOfLines={2}
-                  style={{ marginTop: 4, color: '#111827', fontWeight: '600' }}
-                >
-                  {item.result}
-                </Text>
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={<Text style={S.hint}>Chưa có lịch sử.</Text>}
+      {/* CARD 1 */}
+      <View style={S.card}>
+        <Text style={S.cardTitle}>Translate from ({langFull(srcLang)})</Text>
+        <View style={S.srcBoxWrap}>
+          <TextInput
+            placeholder={`Nhập ${srcLang === 'en' ? 'English' : 'Vietnamese'}... (≤ 500 ký tự)`}
+            value={srcText}
+            onChangeText={onChangeSrc}
+            multiline
+            style={[S.textArea, isWeb ? ({ outlineStyle: 'none', cursor: 'text' } as any) : null]}
+            placeholderTextColor="#9ca3af"
+            autoCapitalize="none"
+            // @ts-ignore đảm bảo không bị readonly trên web
+            readOnly={false}
           />
         </View>
-      </TouchableWithoutFeedback>
+        <View style={S.counterRow}>
+          <Text style={S.hint}>Gõ {srcLang === 'en' ? 'tiếng Anh' : 'tiếng Việt'} ở đây.</Text>
+          <Text style={srcText.length >= MAX ? S.counterWarn : S.counter}>
+            {srcText.length}/{MAX}
+          </Text>
+        </View>
+        <View style={S.actionRow}>
+          <View style={{ flex: 1 }} />
+          <View style={S.iconRowRight}>
+            <TouchableOpacity style={S.iconBtn} onPress={copySource}>
+              <MaterialIcons name="content-copy" size={18} color="#1f2937" />
+            </TouchableOpacity>
+            <TouchableOpacity style={S.iconBtn} onPress={() => speak(srcText, srcLang)}>
+              <Ionicons name="volume-medium" size={18} color="#1f2937" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Chips EN→VI */}
+      {renderWordChips()}
+
+      {/* CARD 2 */}
+      <View style={S.card}>
+        <Text style={S.cardTitle}>Translate to ({langFull(tgtLang)})</Text>
+        <TextInput
+          placeholder={`Nghĩa ${tgtLang === 'vi' ? 'tiếng Việt' : 'tiếng Anh'}`}
+          value={tgtText}
+          onChangeText={setTgtText}
+          multiline
+          style={[S.textArea, isWeb ? ({ outlineStyle: 'none', cursor: 'text' } as any) : null]}
+          placeholderTextColor="#9ca3af"
+          // @ts-ignore
+          readOnly={false}
+        />
+        <View style={S.actionRow}>
+          <View style={{ flex: 1 }} />
+          <View style={S.iconRowRight}>
+            <TouchableOpacity style={S.iconBtn} onPress={copyResult}>
+              <MaterialIcons name="content-copy" size={18} color="#1f2937" />
+            </TouchableOpacity>
+            <TouchableOpacity style={S.iconBtn} onPress={() => speak(tgtText, tgtLang)}>
+              <Ionicons name="volume-medium" size={18} color="#1f2937" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* IPA Panel */}
+      {renderPronPanel()}
+
+      {/* History */}
+      <Text style={S.sectionTitle}>Lịch sử gần đây</Text>
+      <FlatList
+        data={history}
+        keyExtractor={(item) => item.id}
+        scrollEnabled={false}
+        ListFooterComponent={<View style={{ height: 16 }} />}
+        renderItem={({ item }: any) => (
+          <TouchableOpacity
+            style={S.histItem}
+            onPress={() => {
+              setSrcLang((item.srcLang as Lang) || 'en');
+              setTgtLang((item.tgtLang as Lang) || 'vi');
+              setSrcText(item.srcText?.slice(0, MAX) || '');
+              setTgtText(item.result || '');
+              setSelectedWord('');
+              setPron(null);
+              prevLenRef.current = Math.min((item.srcText || '').length, MAX);
+            }}
+          >
+            <Text style={S.histSmall}>
+              {String(item.srcLang).toUpperCase()} → {String(item.tgtLang).toUpperCase()}
+            </Text>
+            <Text numberOfLines={2} style={{ marginTop: 2 }}>
+              {item.srcText}
+            </Text>
+            <Text numberOfLines={2} style={{ marginTop: 4, color: '#111827', fontWeight: '600' }}>
+              {item.result}
+            </Text>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={<Text style={S.hint}>Chưa có lịch sử.</Text>}
+      />
+    </ScrollView>
+  );
+
+  return (
+    <SafeAreaView style={S.wrap}>
+      {isWeb ? (
+        // WEB: không bọc TouchableWithoutFeedback để không chặn focus/gõ
+        Content
+      ) : (
+        // MOBILE: vẫn cho phép tap ra ngoài để ẩn bàn phím
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          {Content}
+        </TouchableWithoutFeedback>
+      )}
     </SafeAreaView>
   );
 }
