@@ -6,17 +6,17 @@ import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Keyboard,
-  Modal,
-  Platform,
-  Pressable,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Keyboard,
+    Modal,
+    Platform,
+    Pressable,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -27,6 +27,7 @@ import { COLORS, ListenStyles as S } from '@/components/style/ListenStyles';
 import { db, storage } from '@/scripts/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
+
 
 /* ================= Types ================= */
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
@@ -416,7 +417,7 @@ export default function ListenCreateScreen() {
     }
   };
 
-  return (
+  return (  
     <View style={[S.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
 

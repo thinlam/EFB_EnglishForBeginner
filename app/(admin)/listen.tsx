@@ -1,6 +1,6 @@
-
+// app/(admin)/listen/index.tsx
 import { COLORS, ListenStyles as S } from '@/components/style/ListenStyles';
-import { db } from '@/scripts/firebase';
+import { db, storage } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -13,6 +13,10 @@ import {
   query,
   Timestamp,
 } from 'firebase/firestore';
+import {
+  deleteObject,
+  ref as storageRef,
+} from 'firebase/storage';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -36,8 +40,9 @@ type Listen = {
   title: string;
   audioUrl?: string;
   transcript?: string;
-  mediaType?: string | null; // "audio/*" | "video/*" | null
+  mediaType?: string | null;
   level?: CEFR;
+  storagePath?: string | null;   // thêm để xoá file
   createdAt?: Date | null;
 };
 
@@ -56,9 +61,23 @@ function colorForLevel(l?: string) {
     case 'B1': return '#06b6d4';
     case 'B2': return '#60a5fa';
     case 'C1': return '#a78bfa';
-    default:   return '#9ca3af';
+    default: return '#9ca3af';
   }
 }
+
+// confirm xoá đa nền tảng
+const confirmDelete = async (title: string) => {
+  if (Platform.OS === 'web') {
+     
+    return confirm(`Xoá bài nghe: "${title}"?`);
+  }
+  return new Promise<boolean>((resolve) => {
+    Alert.alert('Xoá bài nghe', `Bạn có chắc muốn xoá "${title}"?`, [
+      { text: 'Huỷ', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'Xoá', style: 'destructive', onPress: () => resolve(true) },
+    ]);
+  });
+};
 
 export default function ListenScreen() {
   const insets = useSafeAreaInsets();
@@ -85,6 +104,7 @@ export default function ListenScreen() {
           transcript: raw.transcript ?? '',
           mediaType: raw.mediaType ?? null,
           level: (raw.level as CEFR) ?? 'A1',
+          storagePath: raw.storagePath ?? null,
           createdAt: raw.createdAt instanceof Timestamp ? raw.createdAt.toDate() : null,
         };
       });
@@ -132,23 +152,24 @@ export default function ListenScreen() {
     }
   };
 
-  const onDelete = (id: string) => {
-    Alert.alert('Xoá bài nghe', 'Bạn có chắc muốn xoá?', [
-      { text: 'Huỷ', style: 'cancel' },
-      {
-        text: 'Xoá',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteDoc(doc(db, 'listens', id));
-            setItems((prev) => prev.filter((i) => i.id !== id));
-          } catch (e: any) {
-            console.error(e);
-            Alert.alert('Lỗi', e?.message ?? 'Không xoá được');
-          }
-        },
-      },
-    ]);
+  const onDelete = async (item: Listen) => {
+    const ok = await confirmDelete(item.title);
+    if (!ok) return;
+
+    try {
+      await deleteDoc(doc(db, 'listens', item.id));
+      if (item.storagePath) {
+        try {
+          await deleteObject(storageRef(storage, item.storagePath));
+        } catch (err) {
+          console.warn('Không xoá được file trong Storage:', err);
+        }
+      }
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Lỗi', e?.message ?? 'Không xoá được');
+    }
   };
 
   const renderItem = ({ item }: { item: Listen }) => {
@@ -157,17 +178,13 @@ export default function ListenScreen() {
 
     return (
       <View style={S.card}>
-        {/* Header: Title + CEFR badge */}
         <View style={S.cardHeader}>
-          <Text style={S.cardTitle} numberOfLines={2}>
-            {item.title}
-          </Text>
+          <Text style={S.cardTitle} numberOfLines={2}>{item.title}</Text>
           <View style={[S.badge, { backgroundColor: colorForLevel(item.level) }]}>
             <Text style={S.badgeText}>{item.level ?? '—'}</Text>
           </View>
         </View>
 
-        {/* Date (icon tách khỏi text) */}
         {item.createdAt && (
           <View style={[S.rowLine, { marginTop: 6 }]}>
             <Ionicons name="calendar-clear-outline" size={16} color={COLORS.subText} />
@@ -175,7 +192,6 @@ export default function ListenScreen() {
           </View>
         )}
 
-        {/* Source link (icon tách riêng, chỉ text là link) */}
         {!!item.audioUrl && (
           <View style={S.rowLine}>
             {isVideo ? (
@@ -185,30 +201,19 @@ export default function ListenScreen() {
             ) : (
               <Ionicons name="link-outline" size={16} color={COLORS.link} />
             )}
-
-            <TouchableOpacity
-              onPress={() => openLink(item.audioUrl)}
-              activeOpacity={0.7}
-              style={{ flex: 1 }} // link chiếm phần còn lại, không lệch
-            >
-              <Text style={S.rowTextLink} numberOfLines={1}>
-                {item.audioUrl}
-              </Text>
+            <TouchableOpacity onPress={() => openLink(item.audioUrl)} activeOpacity={0.7} style={{ flex: 1 }}>
+              <Text style={S.rowTextLink} numberOfLines={1}>{item.audioUrl}</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Transcript / note (icon tách rời) */}
         {!!item.transcript && (
           <View style={S.rowLine}>
             <Ionicons name="document-text-outline" size={16} color={COLORS.subText} />
-            <Text style={S.cardTranscript} numberOfLines={2}>
-              {item.transcript}
-            </Text>
+            <Text style={S.cardTranscript} numberOfLines={2}>{item.transcript}</Text>
           </View>
         )}
-
-        {/* Actions */}
+  
         <View style={S.cardActions}>
           <TouchableOpacity style={S.iconBtn} onPress={() => openLink(item.audioUrl)}>
             <Ionicons
@@ -221,7 +226,7 @@ export default function ListenScreen() {
 
           <View style={{ flex: 1 }} />
 
-          <TouchableOpacity style={S.iconBtn} onPress={() => onDelete(item.id)}>
+          <TouchableOpacity style={S.iconBtn} onPress={() => onDelete(item)}>
             <Ionicons name="trash-outline" size={20} color={COLORS.del} />
             <Text style={[S.iconBtnText, { color: COLORS.del }]}>Xoá</Text>
           </TouchableOpacity>
@@ -233,23 +238,14 @@ export default function ListenScreen() {
   return (
     <View style={[S.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
-
-      {/* Header */}
       <View style={S.header}>
-        <TouchableOpacity
-          onPress={() => router.push('/(admin)/home')}
-          style={S.backBtn}
-          activeOpacity={0.7}
-        >
-          {/* Mũi tên “dài” như ảnh mẫu */}
+        <TouchableOpacity onPress={() => router.push('/(admin)/home')} style={S.backBtn} activeOpacity={0.7}>
           <Ionicons name="arrow-back-outline" size={22} color={COLORS.text} />
         </TouchableOpacity>
-
         <Text style={S.headerTitle}>Quản lý Listen</Text>
         <View style={{ width: 22 }} />
       </View>
 
-      {/* Search + Filter */}
       <View style={S.filterRow}>
         <View style={S.searchBox}>
           <Ionicons name="search-outline" size={18} color={COLORS.muted} style={{ marginRight: 6 }} />
@@ -265,13 +261,12 @@ export default function ListenScreen() {
           />
         </View>
 
-        {/* Picker custom */}
         <View style={S.filterPicker}>
           <Text style={S.filterValueText}>{filterLevel === 'ALL' ? 'All' : filterLevel}</Text>
           <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
           <Picker
             selectedValue={filterLevel}
-            onValueChange={(value) => setFilterLevel(value as 'ALL' | CEFR)}
+            onValueChange={(v) => setFilterLevel(v as 'ALL' | CEFR)}
             mode={Platform.OS === 'ios' ? 'dialog' : 'dropdown'}
             style={S.hiddenPicker}
             dropdownIconColor={COLORS.muted}
@@ -286,7 +281,6 @@ export default function ListenScreen() {
         </View>
       </View>
 
-      {/* List */}
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.create} />
       ) : (
@@ -309,12 +303,7 @@ export default function ListenScreen() {
         />
       )}
 
-      {/* FAB */}
-      <TouchableOpacity
-        style={S.fab}
-        onPress={() => router.push('/(admin)/ListenCreate')}
-        activeOpacity={0.85}
-      >
+      <TouchableOpacity style={S.fab} onPress={() => router.push('/(admin)/ListenCreate')} activeOpacity={0.85}>
         <Ionicons name="add-outline" size={28} color={COLORS.bg} />
       </TouchableOpacity>
     </View>
