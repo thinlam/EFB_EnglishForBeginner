@@ -1,5 +1,4 @@
-// components/style/ListenStyles.ts
-import { StyleSheet } from 'react-native'; // ✅ BẮT BUỘC: thêm dòng này
+import { StyleSheet } from 'react-native';
 
 export const COLORS = {
   bg: '#0b1220',
@@ -20,9 +19,10 @@ export const COLORS = {
 } as const;
 
 export const ListenStyles = StyleSheet.create({
+  /* Screen */
   container: { flex: 1, backgroundColor: COLORS.bg },
 
-  /* Header với nút Back + tiêu đề căn giữa */
+  /* Header (Back + Title) */
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -41,7 +41,7 @@ export const ListenStyles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  /* Search + Filter row */
+  /* Search + Filter */
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -60,22 +60,22 @@ export const ListenStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
     borderRadius: 12,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
   },
   searchInput: { flex: 1, color: COLORS.text, fontSize: 14, paddingVertical: 0 },
 
-  // Picker container (custom overlay)
+  /* Level picker button */
   filterPicker: {
     position: 'relative',
-    width: 120,
-    height: 40,
+    width: 92,
+    height: 36,
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
     backgroundColor: COLORS.card2,
     borderRadius: 10,
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     overflow: 'visible',
     zIndex: 30,
     elevation: 8,
@@ -87,19 +87,11 @@ export const ListenStyles = StyleSheet.create({
   filterValueText: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
   filterChevron: {
     position: 'absolute',
-    right: 8,
+    right: 6,
     top: 0,
     bottom: 0,
     textAlignVertical: 'center',
     includeFontPadding: false,
-  },
-  hiddenPicker: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    width: '100%',
-    height: '100%',
-    opacity: 0.01,
-    backgroundColor: 'transparent',
   },
 
   /* Empty state */
@@ -126,6 +118,7 @@ export const ListenStyles = StyleSheet.create({
   },
   cardTitle: { flex: 1, color: COLORS.text, fontSize: 16, fontWeight: '700' },
 
+  /* CEFR badge */
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -136,28 +129,34 @@ export const ListenStyles = StyleSheet.create({
   badgeAudio: { backgroundColor: COLORS.badgeAudio },
   badgeVideo: { backgroundColor: COLORS.badgeVideo },
 
-  cardMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  cardDate: { color: COLORS.subText, fontSize: 12 },
-
-  // Hàng icon – text
+  /* Meta / rows */
   rowLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   rowText: { color: COLORS.subText, fontSize: 12 },
+  rowLabel: { color: COLORS.muted, fontSize: 12, minWidth: 92 },
   rowTextLink: { color: COLORS.link, fontSize: 13, textDecorationLine: 'underline' },
 
-  cardLink: { color: COLORS.link, textDecorationLine: 'underline', fontSize: 13, marginTop: 10 },
+  /* Content */
   cardTranscript: { color: COLORS.muted, fontSize: 13, flex: 1 },
 
-  cardActions: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 12 },
+  /* Actions */
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 12,
+    flexWrap: 'nowrap',
+  },
   iconBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#0b1220',
+    backgroundColor: COLORS.bg,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
+    minHeight: 36,
   },
   iconBtnText: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
 
