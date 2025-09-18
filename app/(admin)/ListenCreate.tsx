@@ -396,96 +396,102 @@ export default function ListenCreateScreen() {
     }
   };
 
-  return (
-    // ⤵️ Chạm ra ngoài để tắt bàn phím
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <View style={[S.container, { paddingTop: insets.top }]}>
-        <StatusBar barStyle="light-content" />
+  // 👉👉 CHỈ SỬA ĐIỂM NÀY: bọc dismiss bàn phím chỉ trên native, web dùng View thuần
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
+    Platform.OS === 'web' ? (
+      <View style={[S.container, { paddingTop: insets.top }]}>{children}</View>
+    ) : (
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={[S.container, { paddingTop: insets.top }]}>{children}</View>
+      </TouchableWithoutFeedback>
+    );
 
-        {/* Header */}
-        <View style={S.header}>
-          <TouchableOpacity onPress={() => router.back()} style={S.backBtn} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+  return (
+    <Wrapper>
+      <StatusBar barStyle="light-content" />
+
+      {/* Header */}
+      <View style={S.header}>
+        <TouchableOpacity onPress={() => router.back()} style={S.backBtn} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+        </TouchableOpacity>
+
+        <Text style={S.headerTitle}>{editId ? 'Sửa bài nghe' : 'Tạo bài nghe'}</Text>
+        <View style={{ width: 22 }} />
+      </View>
+
+      {loadingDoc ? (
+        <View style={{ padding: 24 }}>
+          <ActivityIndicator color={COLORS.create} />
+        </View>
+      ) : (
+        /* Form */
+        <View style={CS.screen}>
+          {/* Title */}
+          <Text style={CS.label}>Tiêu đề</Text>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Unit 1 - Greetings"
+            placeholderTextColor={COLORS.muted}
+            style={CS.input}
+            returnKeyType="next"
+          />
+
+          {/* Transcript */}
+          <Text style={CS.label}>Transcript</Text>
+          <TextInput
+            value={transcript}
+            onChangeText={setTranscript}
+            placeholder="A: Hello! How are you? ..."
+            placeholderTextColor={COLORS.muted}
+            multiline
+            style={[CS.input, CS.inputMultiline]}
+          />
+
+          {/* Level */}
+          <Text style={CS.label}>Level</Text>
+          <LevelPickerRow value={level} onChange={(v) => setLevel(v)} />
+
+          {/* URL (nếu có sẵn) */}
+          <Text style={CS.label}>URL (mp3/mp4) nếu đã có</Text>
+          <TextInput
+            value={urlInput}
+            onChangeText={setUrlInput}
+            autoCapitalize="none"
+            placeholder="https://…(.mp3 | .mp4)"
+            placeholderTextColor={COLORS.muted}
+            style={CS.input}
+          />
+          {!!original.audioUrl && !urlInput && !picked && (
+            <Text style={CS.fileName}>Giữ nguyên URL cũ: {original.audioUrl}</Text>
+          )}
+
+          {/* Pick file */}
+          <TouchableOpacity disabled={busy} onPress={pickMedia} style={CS.pickBtn} activeOpacity={0.85}>
+            <Text style={CS.pickBtnText}>
+              {picked ? 'Chọn lại file (mp3/mp4)' : 'Chọn file từ máy (mp3/mp4)'}
+            </Text>
           </TouchableOpacity>
 
-          <Text style={S.headerTitle}>{editId ? 'Sửa bài nghe' : 'Tạo bài nghe'}</Text>
+          {!!picked && (
+            <Text style={CS.fileName} numberOfLines={1}>
+              📄 {picked.name} {isVideo ? '• 🎞️ video' : '• 🔊 audio'}
+            </Text>
+          )}
 
-          <View style={{ width: 22 }} />
+          {busy && (
+            <Text style={CS.progressText}>
+              Đang upload… {progress}% {speedText ? `• ${speedText}` : ''} {etaText ? `• ${etaText}` : ''}
+            </Text>
+          )}
+
+          {/* Save */}
+          <TouchableOpacity disabled={busy} onPress={onSave} style={CS.saveBtn} activeOpacity={0.9}>
+            {busy ? <ActivityIndicator color={COLORS.bg} /> : <Text style={CS.saveBtnText}>{editId ? 'Cập nhật' : 'Lưu'}</Text>}
+          </TouchableOpacity>
         </View>
-
-        {loadingDoc ? (
-          <View style={{ padding: 24 }}>
-            <ActivityIndicator color={COLORS.create} />
-          </View>
-        ) : (
-          /* Form */
-          <View style={CS.screen}>
-            {/* Title */}
-            <Text style={CS.label}>Tiêu đề</Text>
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Unit 1 - Greetings"
-              placeholderTextColor={COLORS.muted}
-              style={CS.input}
-              returnKeyType="next"
-            />
-
-            {/* Transcript */}
-            <Text style={CS.label}>Transcript</Text>
-            <TextInput
-              value={transcript}
-              onChangeText={setTranscript}
-              placeholder="A: Hello! How are you? ..."
-              placeholderTextColor={COLORS.muted}
-              multiline
-              style={[CS.input, CS.inputMultiline]}
-            />
-
-            {/* Level */}
-            <Text style={CS.label}>Level</Text>
-            <LevelPickerRow value={level} onChange={(v) => setLevel(v)} />
-
-            {/* URL (nếu có sẵn) */}
-            <Text style={CS.label}>URL (mp3/mp4) nếu đã có</Text>
-            <TextInput
-              value={urlInput}
-              onChangeText={setUrlInput}
-              autoCapitalize="none"
-              placeholder="https://…(.mp3 | .mp4)"
-              placeholderTextColor={COLORS.muted}
-              style={CS.input}
-            />
-            {!!original.audioUrl && !urlInput && !picked && (
-              <Text style={CS.fileName}>Giữ nguyên URL cũ: {original.audioUrl}</Text>
-            )}
-
-            {/* Pick file */}
-            <TouchableOpacity disabled={busy} onPress={pickMedia} style={CS.pickBtn} activeOpacity={0.85}>
-              <Text style={CS.pickBtnText}>
-                {picked ? 'Chọn lại file (mp3/mp4)' : 'Chọn file từ máy (mp3/mp4)'}
-              </Text>
-            </TouchableOpacity>
-
-            {!!picked && (
-              <Text style={CS.fileName} numberOfLines={1}>
-                📄 {picked.name} {isVideo ? '• 🎞️ video' : '• 🔊 audio'}
-              </Text>
-            )}
-
-            {busy && (
-              <Text style={CS.progressText}>
-                Đang upload… {progress}% {speedText ? `• ${speedText}` : ''} {etaText ? `• ${etaText}` : ''}
-              </Text>
-            )}
-
-            {/* Save */}
-            <TouchableOpacity disabled={busy} onPress={onSave} style={CS.saveBtn} activeOpacity={0.9}>
-              {busy ? <ActivityIndicator color={COLORS.bg} /> : <Text style={CS.saveBtnText}>{editId ? 'Cập nhật' : 'Lưu'}</Text>}
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </TouchableWithoutFeedback>
+      )}
+    </Wrapper>
   );
 }
