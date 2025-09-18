@@ -5,6 +5,7 @@
 // - Chips từng từ (EN→VI) -> IPA
 // - Lưu lịch sử Firestore (20 mục gần nhất)
 // - Cuộn trang (web & mobile), web bấm gõ OK
+// - Xoá toàn bộ lịch sử dịch (có xác nhận)
 
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { setStringAsync } from 'expo-clipboard';
@@ -40,6 +41,8 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  where,
+  writeBatch,
 } from 'firebase/firestore';
 
 /* ================= Translate API (MyMemory) ================= */
@@ -151,6 +154,60 @@ export default function TranslateScreen() {
       loadHistory();
     } catch {}
   }
+
+  /* ======== XOÁ TOÀN BỘ LỊCH SỬ (có xác nhận cho Web & Mobile) ======== */
+  const confirmAndClearHistory = () => {
+    const doDelete = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          if (isWeb) window.alert('Bạn chưa đăng nhập.');
+          else Alert.alert('Không thể xoá', 'Bạn chưa đăng nhập.');
+          return;
+        }
+
+        const PAGE = 400;
+        // lặp cho đến khi hết tài liệu
+        for (;;) {
+          const qRef = query(
+            collection(db, 'translations'),
+            where('uid', '==', user.uid),
+            limit(PAGE)
+          );
+          const snap = await getDocs(qRef);
+          if (snap.empty) break;
+
+          const batch = writeBatch(db);
+          snap.docs.forEach((docSnap) => batch.delete(docSnap.ref));
+          await batch.commit();
+        }
+
+        setHistory([]);
+        if (isWeb) window.alert('Đã xoá lịch sử.');
+        else Alert.alert('Đã xoá', 'Lịch sử dịch của bạn đã được xoá.');
+      } catch (e) {
+        if (isWeb) window.alert('Không thể xoá lịch sử. Vui lòng thử lại.');
+        else Alert.alert('Lỗi', 'Không thể xoá lịch sử. Vui lòng thử lại.');
+      }
+    };
+
+    if (isWeb) {
+      const ok = window.confirm(
+        'Bạn có chắc muốn xoá toàn bộ lịch sử dịch của mình? Hành động này không thể hoàn tác.'
+      );
+      if (ok) void doDelete();
+      return;
+    }
+
+    Alert.alert(
+      'Xoá lịch sử?',
+      'Bạn có chắc muốn xoá toàn bộ lịch sử dịch của mình? Hành động này không thể hoàn tác.',
+      [
+        { text: 'Huỷ', style: 'cancel' },
+        { text: 'Xoá', style: 'destructive', onPress: doDelete },
+      ]
+    );
+  };
 
   /* ======== Gõ nguồn ======== */
   const onChangeSrc = (val: string) => {
@@ -343,7 +400,7 @@ export default function TranslateScreen() {
             style={[S.textArea, isWeb ? ({ outlineStyle: 'none', cursor: 'text' } as any) : null]}
             placeholderTextColor="#9ca3af"
             autoCapitalize="none"
-            // @ts-ignore đảm bảo không bị readonly trên web
+            // @ts-ignore
             readOnly={false}
           />
         </View>
@@ -398,8 +455,18 @@ export default function TranslateScreen() {
       {/* IPA Panel */}
       {renderPronPanel()}
 
-      {/* History */}
-      <Text style={S.sectionTitle}>Lịch sử gần đây</Text>
+      {/* ===== Lịch sử + nút xoá toàn bộ ===== */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={S.sectionTitle}>Lịch sử gần đây</Text>
+        <TouchableOpacity
+          onPress={confirmAndClearHistory}
+          style={[S.iconBtn, { backgroundColor: '#fee2e2' }]}
+          accessibilityLabel="Xoá toàn bộ lịch sử dịch"
+        >
+          <MaterialIcons name="delete" size={18} color="#991b1b" />
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         data={history}
         keyExtractor={(item) => item.id}
@@ -437,10 +504,8 @@ export default function TranslateScreen() {
   return (
     <SafeAreaView style={S.wrap}>
       {isWeb ? (
-        // WEB: không bọc TouchableWithoutFeedback để không chặn focus/gõ
         Content
       ) : (
-        // MOBILE: vẫn cho phép tap ra ngoài để ẩn bàn phím
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           {Content}
         </TouchableWithoutFeedback>
