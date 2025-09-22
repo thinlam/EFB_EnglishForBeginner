@@ -69,7 +69,6 @@ function guessContentType(filename: string) {
       return { ext: 'mp4', mime: 'video/mp4' };
   }
 }
-/** Base64 → Uint8Array (fallback) */
 function base64ToBytes(b64: string) {
   // @ts-ignore
   const atobFn: ((s: string) => string) | undefined = globalThis?.atob;
@@ -79,7 +78,6 @@ function base64ToBytes(b64: string) {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return bytes;
 }
-/** Web: File; Native: fetch(uri)->blob; fail → base64→Uint8Array */
 async function getUploadData(p: { uri: string; file?: File | null }): Promise<Blob | File | Uint8Array> {
   if (Platform.OS === 'web' && p.file) return p.file;
   try {
@@ -107,7 +105,6 @@ function LevelPickerRow({
 
   return (
     <>
-      {/* Nút mở dialog */}
       <TouchableOpacity
         style={[S.filterPicker, { marginBottom: 12 }]}
         onPress={() => setOpen(true)}
@@ -117,20 +114,17 @@ function LevelPickerRow({
         <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
       </TouchableOpacity>
 
-      {/* Dialog giữa màn hình */}
       <Modal
         visible={open}
         transparent
         animationType="fade"
         onRequestClose={() => setOpen(false)}
       >
-        {/* overlay: chạm ra ngoài để đóng */}
         <TouchableOpacity
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' }}
           activeOpacity={1}
           onPress={() => setOpen(false)}
         >
-          {/* chặn propagate để bấm trong hộp không tắt */}
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => {}}
@@ -198,10 +192,8 @@ export default function ListenCreateScreen() {
   const [speedText, setSpeedText] = useState('');
   const [etaText, setEtaText] = useState('');
 
-  // Giữ giá trị cũ để nếu không thay đổi thì preserve
   const [original, setOriginal] = useState<{ audioUrl?: string; mediaType?: string | null }>({});
 
-  // Load dữ liệu cũ nếu edit
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -276,7 +268,6 @@ export default function ListenCreateScreen() {
       let finalUrl = urlInput.trim() || original.audioUrl || '';
       let mediaType: string | undefined | null = original.mediaType ?? null;
 
-      // Nếu người dùng chọn file mới → upload
       if (picked?.uri) {
         const guessed = guessContentType(picked.name || '');
         const mime = picked.mimeType || (picked.file && (picked.file as File).type) || guessed.mime;
@@ -284,7 +275,7 @@ export default function ListenCreateScreen() {
 
         const slug = slugify(title) || `listen-${Date.now()}`;
         const path = `listens/${slug}.${ext}`;
-        const storageRef = ref(storage, path);
+        const sRef = ref(storage, path);
 
         const data = await getUploadData(picked);
         let dataSize = 0;
@@ -307,7 +298,7 @@ export default function ListenCreateScreen() {
 
         await new Promise<void>((resolve, reject) => {
           const start = Date.now();
-          const task = uploadBytesResumable(storageRef, data as any, {
+          const task = uploadBytesResumable(sRef, data as any, {
             contentType: mime || 'application/octet-stream',
           });
 
@@ -325,7 +316,7 @@ export default function ListenCreateScreen() {
 
               if (s.bytesTransferred > 0) {
                 const elapsed = (Date.now() - start) / 1000;
-                const speed = s.bytesTransferred / Math.max(elapsed, 0.001); // bytes/s
+                const speed = s.bytesTransferred / Math.max(elapsed, 0.001);
                 const remain = (s.totalBytes - s.bytesTransferred) / Math.max(speed, 1);
                 setSpeedText(`${(speed / 1e6).toFixed(2)} MB/s`);
                 setEtaText(`ETA ${remain.toFixed(1)}s`);
@@ -344,11 +335,10 @@ export default function ListenCreateScreen() {
           );
         });
 
-        finalUrl = await getDownloadURL(storageRef);
+        finalUrl = await getDownloadURL(sRef);
         mediaType = mime;
       }
 
-      // Nếu có URL text nhưng chưa đoán mediaType
       if (!mediaType && finalUrl) {
         const lower = finalUrl.toLowerCase();
         mediaType =
@@ -362,7 +352,6 @@ export default function ListenCreateScreen() {
       }
 
       if (editId) {
-        // UPDATE
         await updateDoc(doc(db, 'listens', editId), {
           title: title.trim(),
           transcript: transcript.trim(),
@@ -372,7 +361,6 @@ export default function ListenCreateScreen() {
           updatedAt: serverTimestamp(),
         });
       } else {
-        // CREATE
         await addDoc(collection(db, 'listens'), {
           title: title.trim(),
           transcript: transcript.trim(),
@@ -396,26 +384,14 @@ export default function ListenCreateScreen() {
     }
   };
 
-  // 👉👉 CHỈ SỬA ĐIỂM NÀY: bọc dismiss bàn phím chỉ trên native, web dùng View thuần
-  const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    Platform.OS === 'web' ? (
-      <View style={[S.container, { paddingTop: insets.top }]}>{children}</View>
-    ) : (
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={[S.container, { paddingTop: insets.top }]}>{children}</View>
-      </TouchableWithoutFeedback>
-    );
-
-  return (
-    <Wrapper>
-      <StatusBar barStyle="light-content" />
-
+  // ---------- ⤵️ CHỈ THAY return để tránh remount trên web ----------
+  const Form = (
+    <>
       {/* Header */}
       <View style={S.header}>
         <TouchableOpacity onPress={() => router.back()} style={S.backBtn} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
-
         <Text style={S.headerTitle}>{editId ? 'Sửa bài nghe' : 'Tạo bài nghe'}</Text>
         <View style={{ width: 22 }} />
       </View>
@@ -425,7 +401,6 @@ export default function ListenCreateScreen() {
           <ActivityIndicator color={COLORS.create} />
         </View>
       ) : (
-        /* Form */
         <View style={CS.screen}>
           {/* Title */}
           <Text style={CS.label}>Tiêu đề</Text>
@@ -453,7 +428,7 @@ export default function ListenCreateScreen() {
           <Text style={CS.label}>Level</Text>
           <LevelPickerRow value={level} onChange={(v) => setLevel(v)} />
 
-          {/* URL (nếu có sẵn) */}
+          {/* URL */}
           <Text style={CS.label}>URL (mp3/mp4) nếu đã có</Text>
           <TextInput
             value={urlInput}
@@ -488,10 +463,32 @@ export default function ListenCreateScreen() {
 
           {/* Save */}
           <TouchableOpacity disabled={busy} onPress={onSave} style={CS.saveBtn} activeOpacity={0.9}>
-            {busy ? <ActivityIndicator color={COLORS.bg} /> : <Text style={CS.saveBtnText}>{editId ? 'Cập nhật' : 'Lưu'}</Text>}
+            {busy ? <ActivityIndicator color={COLORS.bg} /> : (
+              <Text style={CS.saveBtnText}>{editId ? 'Cập nhật' : 'Lưu'}</Text>
+            )}
           </TouchableOpacity>
         </View>
       )}
-    </Wrapper>
+    </>
+  );
+
+  if (Platform.OS === 'web') {
+    // WEB: không bọc TouchableWithoutFeedback để không chặn input
+    return (
+      <View style={[S.container, { paddingTop: insets.top }]}>
+        <StatusBar barStyle="light-content" />
+        {Form}
+      </View>
+    );
+  }
+
+  // NATIVE: bọc để tap ra ngoài ẩn bàn phím
+  return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={[S.container, { paddingTop: insets.top }]}>
+        <StatusBar barStyle="light-content" />
+        {Form}
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
