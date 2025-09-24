@@ -1,113 +1,38 @@
-import { db } from '@/scripts/firebase';
-import { useRouter } from 'expo-router';
-import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
-
 import { styles } from '@/components/style/UserListStyles';
-import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  SafeAreaView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import useUserList from '@/hooks/admin/useUserList'; //Import đúng kiểu bạn đã export
+
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { ActivityIndicator, FlatList, Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 export default function UserListScreen() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [newRole, setNewRole] = useState('');
-  const [showModal, setShowModal] = useState(false);
-
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-
   const router = useRouter();
-
-  const fetchUsers = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'users'));
-      const userList = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setUsers(userList);
-    } catch (error) {
-      console.error('Lỗi khi lấy danh sách người dùng:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const filteredUsers = users.filter(user =>
-    (user.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-    (user.email?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-  );
-
-  const roleFilteredUsers =
-    roleFilter === 'all'
-      ? filteredUsers
-      : filteredUsers.filter(user => user.role === roleFilter);
-
-  const paginatedUsers = roleFilteredUsers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const handleViewDetail = (user) => {
-    router.push({
-      pathname: '/(admin)/user-detail',
-      params: { id: user.id },
-    });
-  };
-
-  const handleChangeRole = (user) => {
-    setSelectedUser(user);
-    setNewRole(user.role || '');
-    setShowModal(true);
-  };
-
-  const handleSubmitNewRole = async () => {
-    if (!newRole.trim()) return;
-    try {
-      await setDoc(doc(db, 'users', selectedUser.id), {
-        ...selectedUser,
-        role: newRole.trim(),
-      });
-      setShowModal(false);
-      fetchUsers();
-    } catch (error) {
-      alert('Lỗi khi cập nhật role');
-      console.error(error);
-    }
-  };
-
-  const handleDelete = async (userId) => {
-    try {
-      await deleteDoc(doc(db, 'users', userId));
-      fetchUsers();
-    } catch (e) {
-      alert('Lỗi khi xoá người dùng.');
-      console.error(e);
-    }
-  };
+  const {
+    loading,
+    // data (đã phân trang)
+    paginatedUsers,
+    // filter & search
+    searchQuery, setSearchQuery,
+    roleFilter, setRoleFilter,
+    // pagination
+    currentPage, itemsPerPage, totalAfterFilter, toPrevPage, toNextPage,
+    // actions
+    handleViewDetail, openRoleModal, handleDelete,
+    // modal
+    showModal, closeModal, selectedUser, newRole, setNewRole, submitNewRole,
+  } = useUserList({ onViewDetail: (u) => router.push({ pathname: '/(admin)/user-detail', params: { id: u.id } }) });
 
   if (loading) return <ActivityIndicator size="large" style={{ flex: 1 }} />;
+
+  const disableNext = currentPage * itemsPerPage >= totalAfterFilter;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Text style={styles.header}>Danh sách người dùng</Text>
 
+        {/* Search */}
         <TextInput
           placeholder="Tìm kiếm theo tên hoặc email..."
           value={searchQuery}
@@ -115,32 +40,28 @@ export default function UserListScreen() {
           style={styles.searchInput}
         />
 
+        {/* Role filter */}
         <View style={styles.roleFilterContainer}>
-          {['all', 'user', 'premium','Maxpremium'].map(role => (
+          {['all', 'user', 'premium', 'Maxpremium'].map((role) => (
             <TouchableOpacity
               key={role}
-              style={[
-                styles.roleButton,
-                roleFilter === role && { backgroundColor: '#6366F1' }
-              ]}
-              onPress={() => {
-                setRoleFilter(role);
-                setCurrentPage(1);
-              }}
+              style={[styles.roleButton, roleFilter === role && { backgroundColor: '#6366F1' }]}
+              onPress={() => setRoleFilter(role as any)}
             >
               <Text style={{ color: 'white', fontWeight: 'bold' }}>{role.toUpperCase()}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
+        {/* List */}
         <FlatList
           data={paginatedUsers}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Text style={styles.name}>{item.name || 'Chưa đặt tên'}</Text>
-              <Text>Email: {item.email}</Text>
-              <Text>Role: {item.role}</Text>
+              <Text>Email: {item.email || '—'}</Text>
+              <Text>Role: {item.role || 'user'}</Text>
 
               <View style={styles.actions}>
                 <TouchableOpacity
@@ -152,7 +73,7 @@ export default function UserListScreen() {
 
                 <TouchableOpacity
                   style={[styles.button, { backgroundColor: 'orange' }]}
-                  onPress={() => handleChangeRole(item)}
+                  onPress={() => openRoleModal(item)}
                 >
                   <Text style={styles.buttonText}>Sửa Role</Text>
                 </TouchableOpacity>
@@ -168,11 +89,11 @@ export default function UserListScreen() {
           )}
         />
 
-        {/* Phân trang */}
+        {/* Pagination */}
         <View style={styles.pagination}>
           <TouchableOpacity
             disabled={currentPage === 1}
-            onPress={() => setCurrentPage(prev => prev - 1)}
+            onPress={toPrevPage}
             style={[styles.pageButton, currentPage === 1 && { backgroundColor: '#ccc' }]}
           >
             <Text style={styles.buttonText}>⬅ Trước</Text>
@@ -183,18 +104,15 @@ export default function UserListScreen() {
           </Text>
 
           <TouchableOpacity
-            disabled={currentPage * itemsPerPage >= roleFilteredUsers.length}
-            onPress={() => setCurrentPage(prev => prev + 1)}
-            style={[
-              styles.pageButton,
-              currentPage * itemsPerPage >= roleFilteredUsers.length && { backgroundColor: '#ccc' },
-            ]}
+            disabled={disableNext}
+            onPress={toNextPage}
+            style={[styles.pageButton, disableNext && { backgroundColor: '#ccc' }]}
           >
             <Text style={styles.buttonText}>Tiếp ➡</Text>
           </TouchableOpacity>
         </View>
 
-        {/* 🔙 Nút quay về trang admin */}
+        {/* Back to admin home */}
         <TouchableOpacity
           style={[styles.button, { backgroundColor: '#999', marginTop: 20, alignSelf: 'center' }]}
           onPress={() => router.push('/(admin)/home')}
@@ -202,7 +120,7 @@ export default function UserListScreen() {
           <Text style={styles.buttonText}>⬅ Quay về Trang Admin</Text>
         </TouchableOpacity>
 
-        {/* Modal sửa role */}
+        {/* Modal: đổi role */}
         <Modal visible={showModal} transparent animationType="fade">
           <View style={styles.modalContainer}>
             <View style={styles.modal}>
@@ -218,13 +136,13 @@ export default function UserListScreen() {
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
                 <TouchableOpacity
                   style={[styles.button, { backgroundColor: 'green' }]}
-                  onPress={handleSubmitNewRole}
+                  onPress={submitNewRole}
                 >
                   <Text style={styles.buttonText}>Lưu</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, { backgroundColor: 'gray' }]}
-                  onPress={() => setShowModal(false)}
+                  onPress={closeModal}
                 >
                   <Text style={styles.buttonText}>Huỷ</Text>
                 </TouchableOpacity>
@@ -236,4 +154,3 @@ export default function UserListScreen() {
     </SafeAreaView>
   );
 }
-
