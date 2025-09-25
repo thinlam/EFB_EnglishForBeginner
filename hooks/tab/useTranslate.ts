@@ -4,6 +4,8 @@ import * as Speech from 'expo-speech';
 import React from 'react';
 import { useTranslateHistory } from './useTranslateHistory';
 
+
+
 export type Lang = 'en' | 'vi';
 
 export function useTranslate() {
