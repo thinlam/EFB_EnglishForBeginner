@@ -1,52 +1,26 @@
-import { C, S } from '@/components/style/MoreStyles';
-import { auth } from '@/scripts/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { signOut } from 'firebase/auth';
 import React, { useMemo } from 'react';
 import { Alert, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-type Item = { icon: string; title: string; sub?: string; path?: string; danger?: boolean };
+/* Styles */
+import { C, S } from '@/components/style/tab/MoreStyles';
+
+/* Data */
+import { sections as sectionsConst } from '@/constants/tab/moreSections';
+
+/* Hooks */
+import { useLogout } from '@/hooks/tab/useLogout';
 
 export default function MoreScreen() {
   const router = useRouter();
+  const { handleLogout } = useLogout({
+    onError: () => Alert.alert('Lỗi', 'Không thể đăng xuất.'),
+    onDone: () => router.replace('/login'),
+  });
 
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.multiRemove(['user','efb.level','efb.hearts','efb.premium']);
-      await signOut(auth);
-      router.replace('/login');
-    } catch (e) {
-      Alert.alert('Lỗi', 'Không thể đăng xuất.');
-      console.log(e);
-    }
-  };
-
-  const sections = useMemo(() => ([
-    {
-      heading: 'Học tập',
-      items: [
-        { icon: 'calendar-alt', title: 'Lịch học & Kế hoạch', sub: 'Mục tiêu ngày/tuần, nhắc lịch', path: '/studyPlan' },
-        { icon: 'medal', title: 'Thành tích & Huy hiệu', sub: 'Điểm, badges, bảng xếp hạng', path: '/achievements' },
-      ] as Item[],
-    },
-    {
-      heading: 'Gói dịch vụ',
-      items: [
-        { icon: 'crown', title: 'Nâng cấp Premium', sub: 'Bài nâng cao, không quảng cáo', path: '/premium' },
-        { icon: 'receipt', title: 'Quản lý gói', sub: 'Gia hạn, lịch sử thanh toán', path: '/subscription' },
-      ],
-    },
-    {
-      heading: 'Ứng dụng',
-      items: [
-        { icon: 'cog', title: 'Cài đặt ứng dụng', sub: 'Ngôn ngữ, giao diện, tải xuống', path: '/settings' },
-        { icon: 'envelope', title: 'Góp ý / Liên hệ', sub: 'Hỗ trợ kỹ thuật & phản hồi', path: '/support' },
-      ],
-    },
-  ]), []);
+  const sections = useMemo(() => sectionsConst, []);
 
   return (
     <SafeAreaView style={S.safe}>

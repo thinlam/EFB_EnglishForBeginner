@@ -3,7 +3,9 @@ import { StyleSheet } from 'react-native';
 
 export const TranslateStyles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: '#fff' },
-  container: { padding: 16 },
+
+  // 👇 thêm flexGrow để ScrollView + contentContainerStyle hoạt động mượt trên web
+  container: { padding: 16, flexGrow: 1 },
 
   /* Header chọn ngôn ngữ */
   langRow: {
