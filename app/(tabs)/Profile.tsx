@@ -14,10 +14,11 @@ import { useUserProfile } from '@/hooks/tab/useUserProfile';
 
 /* Constants */
 import { DEFAULT_BADGES } from '@/constants/tab/badges';
+import { router } from 'expo-router';
 
 export default function ProfileScreen() {
   const {
-    uid, userData, loading, refreshing, onRefresh, progressPercent, defaultAvatar,
+  userData, loading, refreshing, onRefresh, progressPercent, defaultAvatar,
   } = useUserProfile({
     onError: () => Alert.alert('Lỗi', 'Không tải được dữ liệu hồ sơ.'),
   });
@@ -31,15 +32,15 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!uid || !userData) {
-    return (
-      <View style={[S.wrap, S.center]}>
-        <Ionicons name="person-circle" size={80} color={BRAND.sub} />
-        <Text style={S.emptyTitle}>Chưa đăng nhập</Text>
-        <Text style={S.emptySub}>Hãy đăng nhập để xem hồ sơ học tập của bạn.</Text>
-      </View>
-    );
-  }
+  // if (!uid || !userData) {
+  //   return (
+  //     <View style={[S.wrap, S.center]}>
+  //       <Ionicons name="person-circle" size={80} color={BRAND.sub} />
+  //       <Text style={S.emptyTitle}>Chưa đăng nhập</Text>
+  //       <Text style={S.emptySub}>Hãy đăng nhập để xem hồ sơ học tập của bạn.</Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <ScrollView
@@ -54,12 +55,12 @@ export default function ProfileScreen() {
         style={S.header}
       >
         <View style={S.headerRow}>
-          <Image source={{ uri: userData.photoURL || defaultAvatar }} style={S.avatar} />
+          <Image source={{ uri: userData?.photoURL || defaultAvatar }} style={S.avatar} />
           <View style={{ flex: 1 }}>
             <Text style={S.name} numberOfLines={1}>
-              {userData.displayName || 'Learner'}
+              {userData?.displayName || 'Learner'}
             </Text>
-            <LevelBadge level={userData.level || 'A1'} />
+            <LevelBadge level={userData?.level || 'A1'} />
           </View>
           <TouchableOpacity onPress={onRefresh} style={S.iconBtn}>
             <Ionicons name="refresh" size={20} color="#fff" />
@@ -69,14 +70,14 @@ export default function ProfileScreen() {
         {/* Progress bar */}
         <View style={S.progressWrap}>
           <View style={S.progressTop}>
-            <Text style={S.progressTitle}>Tiến độ Level {userData.level || 'A1'}</Text>
+            <Text style={S.progressTitle}>Tiến độ Level {userData?.level || 'A1'}</Text>
             <Text style={S.progressPct}>{progressPercent}%</Text>
           </View>
           <View style={S.progressBar}>
             <View style={[S.progressFill, { width: `${progressPercent}%` }]} />
           </View>
           <Text style={S.progressSub}>
-            {userData.progress?.lessonsDone ?? 0}/{userData.progress?.lessonsTotal ?? '—'} bài
+            {userData?.progress?.lessonsDone ?? 0}/{userData?.progress?.lessonsTotal ?? '—'} bài
           </Text>
         </View>
       </LinearGradient>
@@ -84,17 +85,17 @@ export default function ProfileScreen() {
       {/* Stats */}
       <View style={S.section}>
         <View style={S.statsRow}>
-          <StatChip icon="star"   color={BRAND.success} label="Stars"  value={userData.stars  ?? 0} />
-          <StatChip icon="flame"  color="#FF8A00"       label="Streak" value={userData.streak ?? 0} />
-          <StatChip icon="heart"  color={BRAND.heart}   label="Hearts" value={userData.hearts ?? 10} />
-          <StatChip icon="trophy" color="#F5B800"       label="Badges" value={userData.badges?.length ?? 0} />
+          <StatChip icon="star"   color={BRAND.success} label="Stars"  value={userData?.stars  ?? 0} />
+          <StatChip icon="flame"  color="#FF8A00"       label="Streak" value={userData?.streak ?? 0} />
+          {/* <StatChip icon="heart"  color={BRAND.heart}   label="Hearts" value={userData.hearts ?? 10} /> */}
+          <StatChip icon="trophy" color="#F5B800"       label="Badges" value={userData?.badges?.length ?? 0} />
         </View>
       </View>
 
       {/* Premium banner */}
       <View style={S.section}>
         <View style={S.card}>
-          {userData.premium ? (
+          {userData?.premium ? (
             <View style={S.premiumRow}>
               <MaterialCommunityIcons name="crown" size={24} color={BRAND.primary} />
               <View style={{ flex: 1, marginLeft: 12 }}>
@@ -128,8 +129,8 @@ export default function ProfileScreen() {
         </View>
 
         <View style={S.badgeGrid}>
-          {(userData.badges?.length ? userData.badges : DEFAULT_BADGES).slice(0, 8).map((b, i) => {
-            const unlocked = !!userData.badges?.find((x) => x.id === b.id);
+          {(userData?.badges?.length ? userData.badges : DEFAULT_BADGES).slice(0, 8).map((b, i) => {
+            const unlocked = !!userData?.badges?.find((x) => x.id === b.id);
             return (
               <View key={b.id + i} style={S.badgeItem}>
                 <View style={[S.badgeIconWrap, !unlocked && { opacity: 0.35 }]}>
@@ -150,7 +151,7 @@ export default function ProfileScreen() {
       {/* Account & Settings (không có Đăng xuất vì ở tab More) */}
       <View style={[S.section, { marginBottom: 28 }]}>
         <View style={S.cardList}>
-          <ListItem icon="pencil"          title="Chỉnh sửa hồ sơ"           onPress={() => Alert.alert('Info', 'TODO: Edit profile')} />
+          <ListItem icon="pencil"          title="Chỉnh sửa hồ sơ"           onPress={() => router.push('/(tabs)/Profile/EditProfile')} />
           <ListItem icon="notifications"   title="Thông báo"                  onPress={() => Alert.alert('Info', 'TODO: Notifications')} />
           <ListItem icon="lock-closed"     title="Bảo mật & Mật khẩu"         onPress={() => Alert.alert('Info', 'TODO: Security')} />
           <ListItem icon="document-text"   title="Điều khoản & Chính sách"    onPress={() => Alert.alert('Info', 'TODO: Terms')} />

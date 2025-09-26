@@ -2,13 +2,12 @@ import { styles } from '@/components/style/HomeStyles';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 export default function AdminHomeScreen() {
   const router = useRouter();
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
@@ -99,7 +98,7 @@ export default function AdminHomeScreen() {
                 <TouchableOpacity
                   key={i}
                   style={styles.cardSubItem}
-                  onPress={() => child.path && router.push(child.path)}
+                  onPress={() => child.path && router.push(child.path as any)}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.cardSubText}>• {child.title}</Text>
