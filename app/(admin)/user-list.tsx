@@ -1,4 +1,5 @@
 import { styles } from '@/components/style/UserListStyles';
+// eslint-disable-next-line import/no-named-as-default
 import useUserList from '@/hooks/admin/useUserList'; //Import đúng kiểu bạn đã export
 
 import { useRouter } from 'expo-router';

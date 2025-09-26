@@ -1,4 +1,4 @@
-import { translateEnToVi } from '@/services/admin/translateService';
+import { translateBidirectional } from '@/services/admin/translateService'; // dịch sang vi 
 import { addVocab, deleteVocab, fetchVocab, updateVocab } from '@/services/admin/vocabService';
 import type { Vocab } from '@/types/admin/vocab';
 import React from 'react';
@@ -84,7 +84,7 @@ export function useVocabulary() {
   }, []);
   const closeModal = React.useCallback(() => setModalVisible(false), []);
 
-  // debounce suggest
+  //debounce suggest
   React.useEffect(() => {
     if (!autoTranslate) return;
     if (!word.trim()) { setSuggestedMeaning(''); return; }
@@ -93,7 +93,7 @@ export function useVocabulary() {
     debounceRef.current = setTimeout(async () => {
       try {
         setSuggesting(true);
-        const r = await translateEnToVi(word.trim());
+        const r = await translateBidirectional(word.trim(), "vi", "en");
         setSuggestedMeaning(r || '');
       } finally {
         setSuggesting(false);

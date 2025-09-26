@@ -4,34 +4,23 @@ import { styles } from '@/components/style/GrammarStyles';
 import { db } from '@/scripts/firebase';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
-import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    updateDoc,
-} from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import {
-    Alert,
-    FlatList,
-    Keyboard,
-    Modal,
-    Platform,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
-} from 'react-native';
+import { Alert, FlatList, Keyboard, Modal, Platform, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function GrammarScreen() {
-  const [grammarList, setGrammarList] = useState([]);
-  const [filteredList, setFilteredList] = useState([]);
+  type GrammarItem = {
+    id: string;
+    title: string;
+    description: string;
+    level: string;
+  };
+
+  const [grammarList, setGrammarList] = useState<GrammarItem[]>([]);
+  const [filteredList, setFilteredList] = useState<GrammarItem[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
+  const [editingItem, setEditingItem] = useState<GrammarItem | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState('A1');
@@ -43,10 +32,15 @@ export default function GrammarScreen() {
 
   const fetchGrammar = async () => {
     const snapshot = await getDocs(grammarRef);
-    const data = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const data = snapshot.docs.map((doc) => {
+      const docData = doc.data();
+      return {
+        id: doc.id,
+        title: docData.title ?? '',
+        description: docData.description ?? '',
+        level: docData.level ?? '',
+      };
+    });
     setGrammarList(data);
   };
 
@@ -88,16 +82,16 @@ export default function GrammarScreen() {
     fetchGrammar();
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     await deleteDoc(doc(db, 'grammar_rules', id));
     fetchGrammar();
   };
 
-  const handleEdit = (item) => {
+  const handleEdit = (item: React.SetStateAction<{ id: string; title: string; description: string; level: string; } | null>) => {
     setEditingItem(item);
-    setTitle(item.title);
-    setDescription(item.description);
-    setLevel(item.level);
+    setTitle(title);
+    setDescription(description);
+    setLevel(level);
     setModalVisible(true);
   };
 

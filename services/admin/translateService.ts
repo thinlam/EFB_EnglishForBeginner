@@ -1,8 +1,7 @@
 // services/translateService.ts
 
 // URL GAS của bạn (Google Apps Script)
-const GAS_URL =
-  "https://script.google.com/macros/s/AKfycbxGwJwqge0Vw_TMbxF_t4SMOIP8JANc9RW8iorMyOtZpR_TLjWQWd3yAjRM5tNfWcBG/exec";
+const GAS_URL ="https://script.google.com/macros/s/AKfycbxGwJwqge0Vw_TMbxF_t4SMOIP8JANc9RW8iorMyOtZpR_TLjWQWd3yAjRM5tNfWcBG/exec";
 
 // MyMemory endpoint (fallback)
 const MYMEMORY_URL = "https://api.mymemory.translated.net/get";
@@ -27,12 +26,12 @@ function decodeEntities(s: string) {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">");
 }
-
+// Giải mã nếu có encodeURIComponent
 function decodeMaybe(s: string) {
   try { if (/%[0-9A-Fa-f]{2}/.test(s)) return decodeURIComponent(s); } catch {}
   return s;
 }
-
+// translateWithMyMemory: dịch với MyMemory (fallback)
 async function translateWithMyMemory(text: string, source: string, target: string): Promise<string> {
   const url = `${MYMEMORY_URL}?q=${encodeURIComponent(text)}&langpair=${source}|${target}`;
   const res = await fetch(url);
@@ -46,10 +45,10 @@ async function translateWithMyMemory(text: string, source: string, target: strin
   return cleaned || "";
 }
 
-// Hàm chung cho app
-export async function translateBidirectional(
+// Hàm chung cho app thay thế cho translateEnToVi và translateViToEn
+export async function translateBidirectional( //translateBidirectional dịch song ngữ 
   text: string,
-  source: "en" | "vi",
+  source: "en" | "vi", 
   target: "en" | "vi"
 ): Promise<string> {
   if (!text?.trim()) return "";
