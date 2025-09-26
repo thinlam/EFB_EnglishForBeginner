@@ -1,84 +1,250 @@
-import { useAuth } from "@/contexts/AuthContext";
-import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const CLOUD_NAME = 'djf9vnngm';
-const UPLOAD_PRESET = 'upload_avatars_unsigned';
-const CLOUD_FOLDER = 'avatars';
-const USE_FIXED_PUBLIC_ID = false; // Sử dụng thư mục trong Cloudinary
+/** Firebase */
+import { auth, db, storage } from "@/scripts/firebase";
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+
+/** Styles */
+import { EditProfileStyles as S } from "@/components/style/EditProfile/Styles";
+
+type UserDoc = {
+  name?: string;
+  bio?: string;
+  photoURL?: string;
+  email?: string | null;
+  updatedAt?: any;
+  createdAt?: any;
+};
+
 export default function EditProfileScreen() {
-    const router = useRouter();
-    const {user} = useAuth();
-    const [displayName , setDisplayName] = useState(user?.displayName || '');
-    const [bio , setBio] = useState(user?.bio || '');
-    const [photoURL , setPhotoURL] = useState(user?.photoURL || '');
-    const [loading , setLoading] = useState(false);
-    
-    //pick image from device
-    const pickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.5,
-        });
+  const router = useRouter();
+  const user = auth.currentUser;
 
-        if(!result.canceled){
-            setPhotoURL(result.assets [0]. uri);
-        }
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [originalAvatar, setOriginalAvatar] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  /** Tải hồ sơ ban đầu */
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      if (!user) {
+        Alert.alert("Thông báo", "Bạn cần đăng nhập để chỉnh sửa hồ sơ.");
+        router.back();
+        return;
+      }
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const data = (snap.exists() ? snap.data() : {}) as UserDoc;
+        if (!mounted) return;
+
+        const profileName = data.name ?? user.displayName ?? "";
+        const profileBio = data.bio ?? "";
+        const profilePhoto = data.photoURL ?? user.photoURL ?? null;
+
+        setName(profileName);
+        setBio(profileBio);
+        setAvatar(profilePhoto);
+        setOriginalAvatar(profilePhoto);
+      } catch (e: any) {
+        Alert.alert("Lỗi", e?.message ?? "Không thể tải hồ sơ.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
-    // upload avatar to cloudinary
-   const uploadAvatarToCloudinary = async (uri: string, publicId?: string): Promise<string> => {
-    const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
-    const rnFile: any = { uri, name: `avatar.${ext}`, type: 'image/jpeg' };
 
-    const form = new FormData();
-    form.append('file', rnFile as any);
-    form.append('upload_preset', UPLOAD_PRESET);
-    form.append('folder', CLOUD_FOLDER);
-    if (publicId) form.append('public_id', publicId);
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [user, router]);
 
-    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
-    const resp = await fetch(endpoint, { method: 'POST', body: form });
+  /** Xin quyền & chọn ảnh (API mới: mediaTypes là mảng MediaType) */
+  const onPickAvatar = async () => {
+    try {
+      // iOS & Android cần xin quyền; web tự mở file picker
+      if (Platform.OS !== "web") {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Quyền bị từ chối", "Cần quyền truy cập thư viện ảnh để chọn avatar.");
+          return;
+        }
+      }
 
-    if (!resp.ok) {
-      const text = await resp.text();
-      console.log('Cloudinary status:', resp.status);
-      console.log('Cloudinary response:', text);
-      throw new Error(`Cloudinary upload failed: ${resp.status}`);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: [ImagePicker.MediaType.image],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.9,
+      });
+
+      if (!result.canceled) {
+        setAvatar(result.assets[0].uri);
+      }
+    } catch (e: any) {
+      Alert.alert("Lỗi", e?.message ?? "Không thể mở thư viện ảnh.");
     }
-
-    const json = await resp.json();
-    return json.secure_url as string;
   };
 
-  //save profile changes
+  /** Upload avatar lên Firebase Storage (nếu là file cục bộ) */
+  const uploadAvatarIfNeeded = async (uri: string | null): Promise<string | null> => {
+    if (!uri || !user) return uri;
+
+    // Nếu đã là URL http(s) (đã up), khỏi up lại
+    if (uri.startsWith("http://") || uri.startsWith("https://")) return uri;
+
+    // Nếu là file local → upload
+    const res = await fetch(uri);
+    const blob = await res.blob();
+    const storageRef = ref(storage, `avatars/${user.uid}.jpg`);
+    await uploadBytes(storageRef, blob);
+    return await getDownloadURL(storageRef);
+  };
+
   const handleSave = async () => {
     if (!user) return;
-    if (!displayName.trim()) {
-      alert('Tên hiển thị không được để trống');
+
+    // Validate đơn giản
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      Alert.alert("Thiếu thông tin", "Vui lòng nhập Tên hiển thị.");
       return;
     }
-    setLoading(true);
+
+    setSaving(true);
     try {
-      let finalPhotoURL = photoURL;
-      if (photoURL && photoURL !== user.photoURL) {
-        const publicId = USE_FIXED_PUBLIC_ID ? `user_${user.id}` : undefined;
-        finalPhotoURL = await uploadAvatarToCloudinary(photoURL, publicId);
+      const photoURL = await uploadAvatarIfNeeded(avatar);
+
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+
+      const payload: UserDoc = {
+        name: trimmedName,
+        bio: bio.trim(),
+        photoURL: photoURL ?? null,
+        updatedAt: serverTimestamp(),
+        email: user.email ?? null,
+      };
+
+      if (snap.exists()) {
+        await updateDoc(userRef, payload);
+      } else {
+        await setDoc(userRef, { ...payload, createdAt: serverTimestamp() });
       }
-      await user.updateProfile({ displayName: displayName.trim(), photoURL: finalPhotoURL, bio: bio.trim() });
+
+      Alert.alert("✅ Thành công", "Hồ sơ đã được cập nhật.");
       router.back();
-    } catch (e) {
-      console.error('Lỗi khi cập nhật hồ sơ:', e);
-      alert('Lỗi khi cập nhật hồ sơ. Vui lòng thử lại.');
+    } catch (e: any) {
+      Alert.alert("❌ Lỗi", e?.message ?? "Cập nhật hồ sơ thất bại.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
-  
 
+  const changed =
+    name.trim() !== "" &&
+    (name.trim() !== "" &&
+      (name.trim() !== "" || bio.trim() !== "")) &&
+    (name.trim() !== "" || bio.trim() !== "" || avatar !== originalAvatar);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={S.container}>
+        <View style={[S.body, { alignItems: "center", justifyContent: "center" }]}>
+          <ActivityIndicator />
+          <Text style={S.mutedText}>Đang tải hồ sơ…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={S.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={S.body}
+      >
+        {/* Header */}
+        <View style={S.header}>
+          <TouchableOpacity onPress={() => router.back()} style={S.iconBtn}>
+            <Ionicons name="chevron-back" size={22} />
+          </TouchableOpacity>
+          <Text style={S.headerTitle}>Chỉnh sửa hồ sơ</Text>
+          <View style={S.iconBtn} />
+        </View>
+
+        {/* Avatar */}
+        <TouchableOpacity onPress={onPickAvatar} style={S.avatarWrap} activeOpacity={0.8}>
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={S.avatar} />
+          ) : (
+            <View style={[S.avatar, S.avatarPlaceholder]}>
+              <Ionicons name="person" size={48} />
+            </View>
+          )}
+          <View style={S.camBadge}>
+            <Ionicons name="pencil" size={14} />
+          </View>
+        </TouchableOpacity>
+
+        {/* Form */}
+        <View style={S.formGroup}>
+          <Text style={S.label}>Tên hiển thị</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Ví dụ: Jenny Tran"
+            placeholderTextColor="#9aa0a6"
+            style={S.input}
+            returnKeyType="next"
+          />
+        </View>
+
+        <View style={S.formGroup}>
+          <Text style={S.label}>Giới thiệu</Text>
+          <TextInput
+            value={bio}
+            onChangeText={setBio}
+            placeholder="Giới thiệu ngắn gọn về bạn…"
+            placeholderTextColor="#9aa0a6"
+            style={[S.input, S.textarea]}
+            multiline
+          />
+        </View>
+
+        {/* Save */}
+        <TouchableOpacity
+          onPress={handleSave}
+          disabled={saving || !name.trim()}
+          style={[S.primaryBtn, (saving || !name.trim()) && S.btnDisabled]}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={S.primaryBtnText}>Lưu thay đổi</Text>
+          )}
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }
-
-
-

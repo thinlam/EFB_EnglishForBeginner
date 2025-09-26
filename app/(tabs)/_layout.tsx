@@ -90,6 +90,13 @@ export default function TabLayout() {
       href: null,
     }}
   />
+  <Tabs.Screen
+    name= "Profile/EditProfile"
+    options={{
+      headerShown: false,
+      href: null,
+    }}
+  />
     </Tabs>
   );
 }
