@@ -42,10 +42,17 @@ export default function HomeScreen() {
     );
   };
 
+  // ✅ Nhấn card → mở màn phụ (Stack) /listen hoặc /translate
   const handlePress = (item: Item) => {
     if (item.id === '6' || item.title === 'Dịch') {
-      router.push('/(tabs)/translate');
+      router.push('/translate');
+      return;
     }
+    if (item.id === '1' || item.title === 'Listening') {
+      router.push('/listen');
+      return;
+    }
+    // các card khác: tuỳ bạn push route riêng
   };
 
   const renderItem = ({ item }: { item: Item }) => (
