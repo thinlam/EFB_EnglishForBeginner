@@ -22,33 +22,32 @@ export default function PlayGameScreen() {
   const data = useMemo(() => GAME_ITEMS, []);
 
   const renderItem = ({ item }: { item: GameItem }) => (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      style={styles.card}
-      onPress={() => {
-        // router.push(`/game/${item.id}`);
-      }}
-    >
-      <LinearGradient
-        colors={item.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1}}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.cardHeader}>
-        <Ionicons name={item.icon as any} size={24} color="#fff" />
-        <Text style={styles.cardTitle}>{item.title}</Text>
-      </View>
-      <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
-      <View style={styles.pillRow}>
-        {item.levels?.map((lv) => (
-          <View key={lv} style={styles.pill}>
-            <Text style={styles.pillText}>{lv}</Text>
-          </View>
-        ))}
-      </View>
-    </TouchableOpacity>
-  );
+  <TouchableOpacity
+    activeOpacity={0.9}
+    style={styles.card}
+    onPress={() => router.push(item.route)} // <- điều hướng theo route riêng
+  >
+    <LinearGradient
+      colors={item.gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={StyleSheet.absoluteFill}
+    />
+    <View style={styles.cardHeader}>
+      <Ionicons name={item.icon as any} size={24} color="#fff" />
+      <Text style={styles.cardTitle}>{item.title}</Text>
+    </View>
+    <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+    <View style={styles.pillRow}>
+      {item.levels?.map((lv) => (
+        <View key={lv} style={styles.pill}>
+          <Text style={styles.pillText}>{lv}</Text>
+        </View>
+      ))}
+    </View>
+  </TouchableOpacity>
+);
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -66,7 +65,8 @@ export default function PlayGameScreen() {
       </View>
 
       <FlatList
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 24 }]}
+        contentInsetAdjustmentBehavior="automatic"
         data={data}
         keyExtractor={(it) => it.id}
         renderItem={renderItem}

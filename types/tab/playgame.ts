@@ -1,13 +1,9 @@
 export type GameItem = {
   id: string;
   title: string;
-  icon:
-    | 'game-controller'
-    | 'flash'
-    | 'ear'
-    | 'extension-puzzle'
-    | string; // mở để bạn thêm icon khác
+  icon: string;
   gradient: readonly [string, string];
-  subtitle?: string;
+  subtitle: string;
   levels?: string[];
+  route: string; // <- thêm
 };
