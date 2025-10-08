@@ -7,7 +7,8 @@ import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 
 export default function CaroLevelMap() {
   const router = useRouter();
-  const { unlockedMax, starsByLevel }: { unlockedMax: number; starsByLevel: { [key: number]: number } } = useUserProgress('caro'); // ví dụ: lấy từ Firestore/Async
+  const { unlockedMax, starsByLevel }: { unlockedMax: number; starsByLevel: { [key: number]: number } } =
+    useUserProgress('caro');
 
   interface LevelItem {
     index: number;
@@ -33,7 +34,7 @@ export default function CaroLevelMap() {
           </View>
         ) : (
           <View style={s.starRow}>
-            {[1,2,3].map(i => (
+            {[1, 2, 3].map((i) => (
               <Ionicons
                 key={i}
                 name={i <= stars ? 'star' : 'star-outline'}
@@ -49,20 +50,56 @@ export default function CaroLevelMap() {
   };
 
   return (
-    <FlatList
-      data={CARO_LEVELS}
-      keyExtractor={(it) => String(it.index)}
-      renderItem={renderLevel}
-      numColumns={2}
-      columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
-      contentInsetAdjustmentBehavior="automatic"
+    <View style={{ flex: 1, backgroundColor: '#fdfcfcff' }}>
+      {/* 🔙 Nút Trở về */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.push('/playgame')} style={s.backBtn}> 
+          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Text style={s.backText}>Trở về</Text>
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Bản đồ Level</Text>
+      </View>
+
+      {/* Danh sách Level */}
+      <FlatList
+        data={CARO_LEVELS}
+        keyExtractor={(it) => String(it.index)}
+        renderItem={renderLevel}
+        numColumns={2}
+        columnWrapperStyle={{ gap: 12, paddingHorizontal: 16 }}
         contentContainerStyle={{ paddingVertical: 16, gap: 12, paddingBottom: 24 }}
-    />
+        contentInsetAdjustmentBehavior="automatic"
+      />
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  level: { flex: 1, minHeight: 120, borderRadius: 16, backgroundColor: '#111827', padding: 12 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 12,
+    backgroundColor: '#898989ff',
+    justifyContent: 'space-between',
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  backText: {
+    color: '#fefefeff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  headerTitle: {
+    color: '#f9f9f9ff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  level: { flex: 1, minHeight: 120, borderRadius: 16, backgroundColor: '#0a0a0aff', padding: 12 }, //
   locked: { opacity: 0.6 },
   levelTitle: { color: '#fff', fontWeight: '700' },
   starRow: { flexDirection: 'row', gap: 4, marginTop: 6 },

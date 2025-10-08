@@ -25,7 +25,7 @@ export default function PlayGameScreen() {
   <TouchableOpacity
     activeOpacity={0.9}
     style={styles.card}
-    onPress={() => router.push(item.route)} // <- điều hướng theo route riêng
+    onPress={() => router.push(item.route as any)} // <- điều hướng theo route riêng
   >
     <LinearGradient
       colors={item.gradient}

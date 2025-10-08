@@ -128,7 +128,7 @@ export default function CaroPlay() {
   return (
     <Screen>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.replace('/(tabs)/playgame')} style={s.backBtn}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/game/Caro/levels')} style={s.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={s.h1}>Caro – Level {level}</Text>
