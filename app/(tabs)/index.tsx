@@ -52,6 +52,10 @@ export default function HomeScreen() {
       router.push('/listen');
       return;
     }
+    if (item.id === '8' || item.title === 'Play Game'){
+      router.push('/(tabs)/playgame');
+      return;
+    }
     // các card khác: tuỳ bạn push route riêng
   };
 

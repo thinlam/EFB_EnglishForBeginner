@@ -85,6 +85,31 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name = "playgame"
+        options={{
+          href: null,
+        }}
+        />
+        <Tabs.Screen
+          name = "game/index"
+          options={{
+            href : null,
+          }}
+          />
+          <Tabs.Screen
+          name = "game/Caro/levels"
+          options={{
+            href : null,
+          }}
+          />
+          <Tabs.Screen
+          name = "game/Caro/[level]"
+          options={{
+            href : null,
+          }}
+          />
     </Tabs>
+    
   )
 }
