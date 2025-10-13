@@ -1,6 +1,11 @@
-const TRANSLATE_ENDPOINT = 'https://api.mymemory.translated.net/get';
+// services/translateService.ts
+type Lang = 'en' | 'vi';
 
-// Giữ lại decode entity, bỏ “xóa khi trùng”
+// ---- CONFIG ----
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxGwJwqge0Vw_TMbxF_t4SMOIP8JANc9RW8iorMyOtZpR_TLjWQWd3yAjRM5tNfWcBG/exec" // <-- thay bằng URL /exec của bạn
+const MYMEMORY_URL = 'https://api.mymemory.translated.net/get';
+
+// ---- Utils ----
 function decodeEntities(s: string) {
   return s
     .replace(/&quot;/g, '"')
@@ -9,68 +14,80 @@ function decodeEntities(s: string) {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>');
 }
+function withTimeout<T>(p: Promise<T>, ms = 7000) {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms);
+    p.then(v => { clearTimeout(t); resolve(v); },
+           e => { clearTimeout(t); reject(e); });
+  });
+}
 
+// ---- Providers ----
+async function translateWithGAS(text: string, src: Lang, tgt: Lang) {
+  const url = `${GAS_URL}?q=${encodeURIComponent(text)}&source=${src}&target=${tgt}`;
+  const r = await withTimeout(fetch(url), 7000);
+  if (!r.ok) throw new Error(`GAS HTTP ${r.status}`);
+  const j = await r.json();
+  const out = (j?.translatedText || j?.text || '').toString().trim();
+  if (!out) throw new Error('GAS empty');
+  return out;
+}
+
+async function translateWithMyMemory(
+  text: string,
+  src: Lang,
+  tgt: Lang,
+  opts?: { email?: string; useMT?: boolean; timeoutMs?: number }
+) {
+  const qs = new URLSearchParams({ q: text, langpair: `${src}|${tgt}` });
+  if (opts?.useMT) qs.set('mt', '1');
+  if (opts?.email) qs.set('de', opts.email);
+
+  const r = await withTimeout(fetch(`${MYMEMORY_URL}?${qs}`), opts?.timeoutMs ?? 7000).catch(() => null);
+  if (!r || !r.ok) return text;
+
+  const j = await r.json();
+  const matches: { translation?: string; match?: number; quality?: string }[] =
+    Array.isArray(j?.matches) ? j.matches : [];
+
+  let best = '', bestScore = -1;
+  for (const m of matches) {
+    const tr = (m.translation || '').trim();
+    if (!tr) continue;
+    const score = typeof m.match === 'number' ? m.match : (parseFloat(m.quality || '0') / 100);
+    if (score > bestScore) { bestScore = score; best = tr; }
+  }
+
+  let out = (bestScore >= 0.8 ? best : (j?.responseData?.translatedText || '')).trim();
+  out = decodeEntities(out);
+  return out || text;
+}
+
+// ---- Public API ----
 export async function translateBidirectional(
   text: string,
-  src: 'en' | 'vi',
-  tgt: 'en' | 'vi',
-  opts?: { useMT?: boolean; email?: string } // email để tăng rate limit MyMemory (&de=)
+  src: Lang,
+  tgt: Lang,
+  opts?: {
+    provider?: 'auto' | 'gas' | 'mymemory';
+    email?: string;     // MyMemory rate-limit
+    useMT?: boolean;    // MyMemory ép MT
+    timeoutMs?: number;
+  }
 ): Promise<string> {
   const raw = text?.trim();
   if (!raw) return '';
 
-  // Để MyMemory tự chọn tốt nhất (TM trước), KHÔNG ép mt=1 mặc định
-  const params = new URLSearchParams({
-    q: raw,
-    langpair: `${src}|${tgt}`,
-  });
-  if (opts?.useMT) params.set('mt', '1');
-  if (opts?.email) params.set('de', opts.email);
+  const mode = opts?.provider ?? 'auto';
 
-  const url = `${TRANSLATE_ENDPOINT}?${params.toString()}`;
-
-  let res: Response;
   try {
-    res = await fetch(url, { method: 'GET' });
+    if (mode === 'mymemory') return await translateWithMyMemory(raw, src, tgt, opts);
+    // GAS first (gas | auto)
+    return await translateWithGAS(raw, src, tgt);
   } catch {
-    // mạng lỗi → trả luôn nguyên văn (đừng xóa)
-    return raw;
+    if (mode === 'gas') return raw; // ép GAS mà lỗi → trả nguyên văn
+    // auto → fallback MyMemory
+    try { return await translateWithMyMemory(raw, src, tgt, opts); }
+    catch { return raw; }
   }
-  if (!res.ok) {
-    // 429/5xx → trả nguyên văn (hoặc bạn có thể ném lỗi để fallback provider)
-    return raw;
-  }
-
-  const json = await res.json();
-
-  // Ưu tiên best match trong `matches[]` (cao hơn TM/quality)
-  const matches: {
-    translation?: string;
-    match?: number;
-    quality?: string;
-    segment?: string;
-  }[] = Array.isArray(json?.matches) ? json.matches : [];
-
-  // chọn bản có match cao nhất (>=0.80), nếu không có thì lấy responseData
-  let best = '';
-  let bestScore = -1;
-  for (const m of matches) {
-    const tr = (m.translation || '').trim();
-    if (!tr) continue;
-    const score = typeof m.match === 'number' ? m.match : parseFloat(m.quality || '0') / 100;
-    if (score > bestScore) {
-      bestScore = score;
-      best = tr;
-    }
-  }
-
-  let out = (bestScore >= 0.8 ? best : (json?.responseData?.translatedText || '')).trim();
-
-  // Giải entity HTML, KHÔNG xoá nếu trùng
-  out = decodeEntities(out);
-
-  // Nếu MyMemory “cứng đầu” trả rỗng, đừng trả '' → trả nguyên văn để UI không mất chữ
-  if (!out) out = raw;
-
-  return out;
 }
