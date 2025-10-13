@@ -8,8 +8,21 @@
  * Ngày tạo: 01/06/2025
  */
 
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 
 export default function RootLayout() {
-  return <Slot />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* Tabs group */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+      {/* Màn phụ: Ẩn khỏi tab bar nhưng vẫn push/link được */}
+      <Stack.Screen name="listen" options={{ headerShown: false }} />
+      <Stack.Screen name="translate" options={{ headerShown: false }} />
+
+      {/* Nếu có màn chỉnh sửa profile dạng nested path */}
+      <Stack.Screen name="Profile/EditProfile" options={{ headerShown: false }} />
+    </Stack>
+  );
 }
+

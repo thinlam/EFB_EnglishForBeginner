@@ -68,9 +68,9 @@ export default function TestFormScreen() {
 
           <Text style={styles.success}>✅ Đã thêm {addedCount} câu hỏi trong phiên này</Text>
 
-          <TouchableOpacity onPress={() => router.replace('/(admin)/test-list')}>
+          {/* <TouchableOpacity onPress={() => router.replace('/(admin)/test-list')}>
             <Text style={styles.link}>🏁 Kết thúc thêm câu hỏi</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
