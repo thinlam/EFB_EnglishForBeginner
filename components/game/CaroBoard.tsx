@@ -4,7 +4,7 @@ import type { Board, Cell } from '@/types/game/caro';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-type Props = { board: Board; turn: Player; lastPick?: Cell | null; onCellPress: (cell: Cell)=>void; };
+type Props = { board: Board; turn: Player; lastPick?: Cell | null; onCellPress: (cell: Cell)=>void; }; // onCellPress gọi khi người chơi nhấn vào ô
 
 export const CaroBoard: React.FC<Props> = ({ board, onCellPress, lastPick }) => (
   <View style={S.grid}>
