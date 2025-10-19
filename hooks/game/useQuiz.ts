@@ -1,43 +1,102 @@
-import { QUIZ_TIME_SEC } from '@/constants/game/caro';
-import { getRandomQuestion } from '@/services/game/caroQuiz';
-import type { Cell, QuizQuestion } from '@/types/game/caro';
-import React from 'react';
+// hooks/game/useQuiz.ts
+import type { Difficulty } from '@/game/caro/difficulty';
+import { getRandomQuestion } from '@/services/game/caroQuiz'; // bản có hỗ trợ getRandomQuestion(difficulty)
+import type { Cell } from '@/types/game/caro';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-export function useQuiz(opts: { onCorrect: (c: Cell)=>void; onTimeoutOrWrong: (c: Cell)=>void; }) {
-  const [visible, setVisible] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
-  const [question, setQuestion] = React.useState<QuizQuestion | null>(null);
-  const [secondsLeft, setSecondsLeft] = React.useState<number>(QUIZ_TIME_SEC);
-  const pendingCell = React.useRef<Cell | null>(null);
+type UseQuizOpts = {
+  onCorrect: (cell: Cell) => void;
+  onTimeoutOrWrong: (cell: Cell) => void;
 
-  React.useEffect(() => {
-    if (!visible) return;
-    setSecondsLeft(QUIZ_TIME_SEC);
-    const t = setInterval(() => {
-      setSecondsLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(t);
-          const cell = pendingCell.current!;
+  /** NEW: truyền độ khó từ màn chơi (easy/medium/hard/boss) */
+  difficulty?: Difficulty;
+
+  /** NEW: thời gian đếm ngược (giây) — rút ngắn khi khó/boss */
+  timeLimitSeconds?: number;
+};
+
+export function useQuiz({
+  onCorrect,
+  onTimeoutOrWrong,
+  difficulty = 'easy',
+  timeLimitSeconds = 15,
+}: UseQuizOpts) {
+  const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [question, setQuestion] = useState<any | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(timeLimitSeconds);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingCellRef = useRef<Cell | null>(null);
+
+  // HẾT GIỜ
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => clearTimer();
+  }, [clearTimer]);
+
+  // NEW: mỗi khi difficulty/timeLimitSeconds thay đổi => reset countdown mặc định
+  useEffect(() => {
+    if (!visible) setSecondsLeft(timeLimitSeconds);
+  }, [timeLimitSeconds, difficulty, visible]);
+
+  // MỞ CÂU HỎI CHO Ô
+  const showQuestionForCell = useCallback(async (cell: Cell) => {
+    setLoading(true);
+    setVisible(true);
+    pendingCellRef.current = cell;
+
+    // 🔥 QUAN TRỌNG: truyền đúng độ khó xuống bank
+    const q = await getRandomQuestion(difficulty);
+    setQuestion(q);
+    setLoading(false);
+
+    // Bật timer
+    setSecondsLeft(timeLimitSeconds);
+    clearTimer();
+    timerRef.current = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          clearTimer();
+          // Hết giờ => coi như sai
+          const c = pendingCellRef.current!;
+          pendingCellRef.current = null;
           setVisible(false);
-          opts.onTimeoutOrWrong(cell);
-          return QUIZ_TIME_SEC;
+          onTimeoutOrWrong(c);
+          return 0;
         }
-        return prev - 1;
+        return s - 1;
       });
     }, 1000);
-    return () => clearInterval(t);
-  }, [visible]);
+  }, [difficulty, timeLimitSeconds, onTimeoutOrWrong, clearTimer]);
 
-  const showQuestionForCell = async (cell: Cell) => {
-    pendingCell.current = cell; setLoading(true); setVisible(true);
-    const q = await getRandomQuestion(); setQuestion(q); setLoading(false);
-  };
-  const submitAnswer = (correct: boolean) => {
-    const cell = pendingCell.current!;
+  // TRẢ LỜI
+  const submitAnswer = useCallback((isCorrect: boolean) => {
+    clearTimer();
+    const c = pendingCellRef.current!;
+    pendingCellRef.current = null;
     setVisible(false);
-    correct ? opts.onCorrect(cell) : opts.onTimeoutOrWrong(cell);
-  };
-  const dismissQuestion = () => setVisible(false);
+    if (isCorrect) onCorrect(c);
+    else onTimeoutOrWrong(c);
+  }, [onCorrect, onTimeoutOrWrong, clearTimer]);
 
-  return { visible, loading, question, secondsLeft, showQuestionForCell, submitAnswer, dismissQuestion };
+  // ĐÓNG MODAL
+  const dismissQuestion = useCallback(() => {
+    clearTimer();
+    pendingCellRef.current = null;
+    setVisible(false);
+  }, [clearTimer]);
+
+  return {
+    visible,
+    loading,
+    question,
+    secondsLeft,
+    showQuestionForCell,
+    submitAnswer,
+    dismissQuestion,
+  };
 }
