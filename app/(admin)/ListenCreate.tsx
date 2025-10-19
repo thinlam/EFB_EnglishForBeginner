@@ -5,17 +5,18 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Keyboard,
-    Modal,
-    Platform,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,18 +29,43 @@ import { db } from '@/scripts/firebase';
 import { addDoc, collection, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 
 /* ================== Cloudinary Config ================== */
-const CLOUD_NAME   = 'djf9vnngm';        // đổi theo của bạn
-const CLOUD_PRESET = 'unsigned_mobile';  // unsigned preset
-const CLOUD_FOLDER = 'lessons';          // folder gốc
+const CLOUD_NAME   = 'djf9vnngm';
+const CLOUD_PRESET = 'unsigned_mobile';
+const CLOUD_FOLDER = 'lessons';
 
 /* ================= Types ================= */
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
+type ExerciseType =
+  | 'fill_gaps'
+  | 'guess_object'
+  | 'phoneme_choice'
+  | 'phrase_gaps'
+  | 'reading_mcq';
+
+const EXERCISE_BY_LEVEL: Record<CEFR, ExerciseType> = {
+  A1: 'fill_gaps',
+  A2: 'guess_object',
+  B1: 'phoneme_choice',
+  B2: 'phrase_gaps',
+  C1: 'reading_mcq',
+};
+
+const TEMPLATE_BY_TYPE: Record<ExerciseType, any> = {
+  fill_gaps:     { sentence: "I __ a book.", answer: "have", choices: ["has","have","am"] },
+  guess_object:  { options: [{label:"pen"},{label:"book"},{label:"phone"}], correctIndex: 1 },
+  phoneme_choice:{ word: "thought", ipaOptions: ["θɔːt","tɔːt","ðɒt","sɔːt"], correctIndex: 0 },
+  phrase_gaps:   { paragraph: "I’m looking __ my keys.", gaps: [{ index: 13, answer: "for", choices:["at","for","into"] }] },
+  reading_mcq:   { passage: "Paragraph...", questions:[{ q:"Main idea?", options:["A","B","C","D"], correctIndex: 2 }] },
+};
+
 type ListenDoc = {
   title: string;
   transcript: string;
   audioUrl?: string;
   mediaType?: string | null;
   level: CEFR;
+  exerciseType?: ExerciseType;
+  payload?: any;
 };
 
 /* ================= Utils ================= */
@@ -240,14 +266,25 @@ export default function ListenCreateScreen() {
   const [urlInput, setUrlInput] = useState('');
   const [level, setLevel] = useState<CEFR>('A1');
 
+  const [exerciseType, setExerciseType] = useState<ExerciseType>(EXERCISE_BY_LEVEL['A1']);
+  const [payloadText, setPayloadText]   = useState('');
+  const [payloadTouched, setPayloadTouched] = useState(false);
+
   const [picked, setPicked] = useState<{ name: string; uri: string; file?: File | null; mimeType?: string | null } | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number>(0);
-  const [speedText] = useState(''); // để đồng nhất UI
+  const [speedText] = useState('');
   const [etaText] = useState('');
 
   const [original, setOriginal] = useState<{ audioUrl?: string; mediaType?: string | null }>({});
+
+  const onChangeLevel = (v: CEFR) => {
+    setLevel(v);
+    const t = EXERCISE_BY_LEVEL[v];
+    setExerciseType(t);
+    if (!payloadTouched) setPayloadText(JSON.stringify(TEMPLATE_BY_TYPE[t], null, 2));
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -261,6 +298,11 @@ export default function ListenCreateScreen() {
           setTitle(d.title || '');
           setTranscript(d.transcript || '');
           setLevel((d.level as CEFR) || 'A1');
+
+          const t = (d.exerciseType as ExerciseType) || EXERCISE_BY_LEVEL[((d.level as CEFR) || 'A1')];
+          setExerciseType(t);
+          setPayloadText(JSON.stringify(d.payload ?? TEMPLATE_BY_TYPE[t] ?? {}, null, 2));
+
           setUrlInput(d.audioUrl || '');
           setOriginal({ audioUrl: d.audioUrl, mediaType: d.mediaType ?? null });
         } else if (mounted) {
@@ -292,9 +334,7 @@ export default function ListenCreateScreen() {
       copyToCacheDirectory: true,
       multiple: false,
       type: [
-        // video
         'video/mp4', 'video/quicktime', 'video/x-m4v', 'video/webm',
-        // audio
         'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-m4a',
       ],
     });
@@ -304,7 +344,7 @@ export default function ListenCreateScreen() {
       setPicked({
         name: f.name ?? 'media',
         uri: f.uri,
-        // @ts-ignore (web có .file/.mimeType)
+        // @ts-ignore
         file: (f as any)?.file ?? null,
         mimeType: (f as any)?.mimeType ?? null,
       });
@@ -326,51 +366,71 @@ export default function ListenCreateScreen() {
     setBusy(true);
     setProgress(0);
 
+    // Parse + validate payload
+    let parsedPayload: any = {};
+    try {
+      parsedPayload = payloadText.trim() ? JSON.parse(payloadText) : {};
+    } catch {
+      Alert.alert('Payload không hợp lệ', 'Kiểm tra lại JSON (dùng dấu ngoặc kép).');
+      setBusy(false); return;
+    }
+
+    const fail = (c:boolean, msg:string) => { if (!c) throw new Error(msg); };
+    try {
+      switch (exerciseType) {
+        case 'fill_gaps':
+          fail(!!parsedPayload.sentence && !!parsedPayload.answer, 'A1 cần "sentence" & "answer".'); break;
+        case 'guess_object':
+          fail(Array.isArray(parsedPayload.options) && Number.isInteger(parsedPayload.correctIndex), 'A2 cần "options" & "correctIndex".'); break;
+        case 'phoneme_choice':
+          fail(!!parsedPayload.word && Array.isArray(parsedPayload.ipaOptions), 'B1 cần "word" & "ipaOptions".'); break;
+        case 'phrase_gaps':
+          fail(!!parsedPayload.paragraph && Array.isArray(parsedPayload.gaps), 'B2 cần "paragraph" & "gaps".'); break;
+        case 'reading_mcq':
+          fail(!!parsedPayload.passage && Array.isArray(parsedPayload.questions), 'C1 cần "passage" & "questions".'); break;
+      }
+    } catch (e:any) {
+      Alert.alert('Thiếu dữ liệu', e.message ?? 'Payload thiếu field bắt buộc.');
+      setBusy(false); return;
+    }
+
     try {
       let finalUrl = urlInput.trim() || original.audioUrl || '';
       let mediaType: string | undefined | null = original.mediaType ?? null;
 
-      // Nếu có file chọn → upload Cloudinary (áp dụng cho cả audio & video)
       if (picked?.uri) {
-        const ext = getExt(picked.name || 'media');
         const { deliveryUrl, mediaType: mt } = await uploadMediaToCloudinary(
           picked.uri,
-          'units',                 // thư mục con — tuỳ bạn
+          'units',
           slugify(title),
           (pct) => setProgress(pct),
-          {
-            forceAudioMp3: true,   // audio phát MP3 cho tương thích rộng
-            videoDelivery: 'mp4',  // đổi 'hls' nếu muốn adaptive
-          }
+          { forceAudioMp3: true, videoDelivery: 'mp4' }
         );
         finalUrl  = deliveryUrl;
         mediaType = mt;
       }
 
-      // Nếu không upload file (dùng URL có sẵn) → đoán MIME
       if (!mediaType && finalUrl) {
         mediaType = inferMediaTypeFromUrl(finalUrl);
       }
 
-      // Lưu Firestore
+      const payloadWrite = {
+        title: title.trim(),
+        transcript: transcript.trim(),
+        audioUrl: finalUrl || null,
+        mediaType: mediaType ?? null,
+        level,
+        exerciseType,
+        payload: parsedPayload,
+        updatedAt: serverTimestamp(),
+      };
+
       if (editId) {
-        await updateDoc(doc(db, 'listens', editId), {
-          title: title.trim(),
-          transcript: transcript.trim(),
-          audioUrl: finalUrl || null,
-          mediaType: mediaType ?? null,
-          level,
-          updatedAt: serverTimestamp(),
-        });
+        await updateDoc(doc(db, 'listens', editId), payloadWrite);
       } else {
         await addDoc(collection(db, 'listens'), {
-          title: title.trim(),
-          transcript: transcript.trim(),
-          audioUrl: finalUrl,
-          mediaType: mediaType ?? null,
-          level,
+          ...payloadWrite,
           createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
         });
       }
 
@@ -408,78 +468,116 @@ export default function ListenCreateScreen() {
           <ActivityIndicator color={COLORS.create} />
         </View>
       ) : (
-        <View style={CS.screen}>
-          {/* Title */}
-          <Text style={CS.label}>Tiêu đề</Text>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Unit 1 - Greetings"
-            placeholderTextColor={COLORS.muted}
-            style={CS.input}
-            returnKeyType="next"
-          />
+        // ✅ Bọc toàn bộ form trong ScrollView để web/mobile đều cuộn được
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 28 }}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={CS.screen}>
+            {/* Title */}
+            <Text style={CS.label}>Tiêu đề</Text>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Unit 1 - Greetings"
+              placeholderTextColor={COLORS.muted}
+              style={CS.input}
+              returnKeyType="next"
+            />
 
-          {/* Transcript */}
-          <Text style={CS.label}>Transcript</Text>
-          <TextInput
-            value={transcript}
-            onChangeText={setTranscript}
-            placeholder="A: Hello! How are you? ..."
-            placeholderTextColor={COLORS.muted}
-            multiline
-            style={[CS.input, CS.inputMultiline]}
-          />
+            {/* Transcript */}
+            <Text style={CS.label}>Transcript</Text>
+            <TextInput
+              value={transcript}
+              onChangeText={setTranscript}
+              placeholder="A: Hello! How are you? ..."
+              placeholderTextColor={COLORS.muted}
+              multiline
+              style={[CS.input, CS.inputMultiline]}
+            />
 
-          {/* Level */}
-          <Text style={CS.label}>Level</Text>
-          <LevelPickerRow value={level} onChange={(v) => setLevel(v)} />
+            {/* Level */}
+            <Text style={CS.label}>Level</Text>
+            <LevelPickerRow value={level} onChange={onChangeLevel} />
 
-          {/* URL */}
-          <Text style={CS.label}>URL (mp3/mp4/m3u8) nếu đã có (Cloudinary/Firebase/CDN)</Text>
-          <TextInput
-            value={urlInput}
-            onChangeText={setUrlInput}
-            autoCapitalize="none"
-            placeholder="https://…(.mp3 | .mp4 | .m3u8)"
-            placeholderTextColor={COLORS.muted}
-            style={CS.input}
-          />
-          {!!original.audioUrl && !urlInput && !picked && (
-            <Text style={CS.fileName}>Giữ nguyên URL cũ: {original.audioUrl}</Text>
-          )}
+            {/* Exercise Type */}
+            <Text style={CS.label}>Exercise Type</Text>
+            <TextInput
+              value={exerciseType}
+              editable={false}
+              style={[CS.input, { opacity: 0.85 }]}
+            />
 
-          {/* Pick file */}
-          <TouchableOpacity disabled={busy} onPress={pickMedia} style={CS.pickBtn} activeOpacity={0.85}>
-            <Text style={CS.pickBtnText}>
-              {picked ? 'Chọn lại file (mp3/mp4)' : 'Chọn file từ máy (mp3/mp4)'}
-            </Text>
-          </TouchableOpacity>
+            {/* Payload JSON */}
+            <Text style={CS.label}>Payload (JSON theo dạng bài)</Text>
+            <View style={{ flexDirection:'row', gap:8, marginBottom:8 }}>
+              <TouchableOpacity
+                disabled={busy}
+                onPress={() => { setPayloadText(JSON.stringify(TEMPLATE_BY_TYPE[exerciseType], null, 2)); setPayloadTouched(true); }}
+                style={[CS.pickBtn, { flex:0 }]}
+                activeOpacity={0.85}
+              >
+                <Text style={CS.pickBtnText}>Dán template</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              value={payloadText}
+              onChangeText={(t)=>{ setPayloadText(t); setPayloadTouched(true); }}
+              placeholder={JSON.stringify(TEMPLATE_BY_TYPE[exerciseType], null, 2)}
+              placeholderTextColor={COLORS.muted}
+              multiline
+              style={[CS.input, CS.inputMultiline, { minHeight: 140 }]}
+              autoCapitalize="none"
+            />
 
-          {!!picked && (
-            <Text style={CS.fileName} numberOfLines={1}>
-              📄 {picked.name} {isVideoPickedOrUrl ? '• 🎞️ video' : '• 🔊 audio'}
-            </Text>
-          )}
-
-          {/* Preview (ưu tiên URL nhập để xem đúng link deploy) */}
-          {!!effectiveUrl && (
-            <MediaPreview uri={effectiveUrl} mediaType={effectiveMediaType} />
-          )}
-
-          {busy && (
-            <Text style={CS.progressText}>
-              Đang upload… {progress}% {speedText ? `• ${speedText}` : ''} {etaText ? `• ${etaText}` : ''}
-            </Text>
-          )}
-
-          {/* Save */}
-          <TouchableOpacity disabled={busy} onPress={onSave} style={CS.saveBtn} activeOpacity={0.9}>
-            {busy ? <ActivityIndicator color={COLORS.bg} /> : (
-              <Text style={CS.saveBtnText}>{editId ? 'Cập nhật' : 'Lưu'}</Text>
+            {/* URL */}
+            <Text style={CS.label}>URL (mp3/mp4/m3u8) nếu đã có (Cloudinary/Firebase/CDN)</Text>
+            <TextInput
+              value={urlInput}
+              onChangeText={setUrlInput}
+              autoCapitalize="none"
+              placeholder="https://…(.mp3 | .mp4 | .m3u8)"
+              placeholderTextColor={COLORS.muted}
+              style={CS.input}
+            />
+            {!!original.audioUrl && !urlInput && !picked && (
+              <Text style={CS.fileName}>Giữ nguyên URL cũ: {original.audioUrl}</Text>
             )}
-          </TouchableOpacity>
-        </View>
+
+            {/* Pick file */}
+            <TouchableOpacity disabled={busy} onPress={pickMedia} style={CS.pickBtn} activeOpacity={0.85}>
+              <Text style={CS.pickBtnText}>
+                {picked ? 'Chọn lại file (mp3/mp4)' : 'Chọn file từ máy (mp3/mp4)'}
+              </Text>
+            </TouchableOpacity>
+
+            {!!picked && (
+              <Text style={CS.fileName} numberOfLines={1}>
+                📄 {picked.name} {isVideoPickedOrUrl ? '• 🎞️ video' : '• 🔊 audio'}
+              </Text>
+            )}
+
+            {/* Preview */}
+            {!!effectiveUrl && (
+              <MediaPreview uri={effectiveUrl} mediaType={effectiveMediaType} />
+            )}
+
+            {busy && (
+              <Text style={CS.progressText}>
+                Đang upload… {progress}% {speedText ? `• ${speedText}` : ''} {etaText ? `• ${etaText}` : ''}
+              </Text>
+            )}
+
+            {/* Save */}
+            <TouchableOpacity disabled={busy} onPress={onSave} style={CS.saveBtn} activeOpacity={0.9}>
+              {busy ? <ActivityIndicator color={COLORS.bg} /> : (
+                <Text style={CS.saveBtnText}>{editId ? 'Cập nhật' : 'Lưu'}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       )}
     </>
   );
