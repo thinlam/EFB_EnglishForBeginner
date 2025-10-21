@@ -18,7 +18,7 @@ export const GAME_ITEMS: GameItem[] = [
     gradient: ['#34D399', '#059669'],
     subtitle: 'Tốc độ • Từ vựng',
     levels: ['Beginner', 'Intermediate'],
-    route: '/game/vocab-sprint',
+    route: '/game/vocab/VocabSprint',
   },
   {
     id: 'listen-tap',
