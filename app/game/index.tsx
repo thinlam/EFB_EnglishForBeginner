@@ -234,7 +234,7 @@ export default function CaroLevelMapPro() {
           <Path d={pathAllD} stroke="url(#glow)" strokeWidth={14} fill="none" opacity={0.18} />
           <Path d={pathAllD} stroke="#1f2a44" strokeWidth={8} fill="none" />
 
-          ----- ĐƯỜNG ĐÃ MỞ KHÓA (sáng) -----
+          {/*----- ĐƯỜNG ĐÃ MỞ KHÓA (sáng) -----*/}
           <Path d={pathUnlockedD} stroke="url(#glow)" strokeWidth={14} fill="none" />
           <Path
             d={pathUnlockedD}
