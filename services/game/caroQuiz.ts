@@ -141,7 +141,6 @@ const BANK: QuizQuestionPro[] = [
 /** Random theo độ khó */
 export async function getRandomQuestion(difficulty: Difficulty = 'easy'): Promise<QuizQuestionPro> {
   await new Promise(r => setTimeout(r, 150));
-
   const pool = BANK.filter(q => q.difficulty === difficulty);
   const list = pool.length > 0 ? pool : BANK; // fallback toàn bộ nếu không có
   return list[Math.floor(Math.random() * list.length)];

@@ -75,7 +75,7 @@ export default function CaroPlayScreen() {
               paddingHorizontal: 10, height: 28, borderRadius: 999,
               backgroundColor: '#facc15',
             }}>
-              <Ionicons name="crown" size={14} color="#0b1220" />
+              <Ionicons name="trophy" size={14} color="#0b1220" />
               <Text style={{ color: '#0b1220', fontWeight: '900' }}>BOSS</Text>
             </View>
           ) : (
