@@ -1,0 +1,66 @@
+
+import { StyleSheet } from 'react-native';
+
+export const vocabIndexStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0b1220' },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  title: { color: '#fff', fontWeight: '800', fontSize: 22 },
+  subtitle: { color: '#9fb3c8', fontSize: 13, marginTop: 2 },
+  list: { paddingHorizontal: 16, paddingBottom: 24, gap: 14 },
+  card: {
+    overflow: 'hidden',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: '#0f172a',
+  },
+  cardDisabled: { opacity: 0.6 },
+  cardBg: { ...StyleSheet.absoluteFillObject, opacity: 0.18, borderRadius: 18 },
+  cardContent: {
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: { color: '#e6f0ff', fontSize: 18, fontWeight: '800' },
+  cardSubtitle: { color: '#b6c5d6', marginTop: 2, fontSize: 13 },
+  rightWrap: { alignItems: 'flex-end', gap: 8 },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  badgeText: { color: '#fff', fontWeight: '700', fontSize: 10, letterSpacing: 0.4 },
+  playBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#93c5fd',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
