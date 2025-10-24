@@ -7,7 +7,7 @@ export const GAME_ITEMS: GameItem[] = [
     title: 'Game caro',
     subtitle: 'Đánh caro + ôn từ vựng',
     icon: 'grid',
-    route: '/game',            // <-- bấm là mở Level Map
+    route: '/game/caro/levels',            // <-- bấm là mở Level Map
     gradient: ['#0ea5e9', '#2563eb'],
     levels: ['Lv1', 'Lv2', 'Lv3','Lv4', '...'], // <- vào bản đồ level
   },
@@ -18,7 +18,7 @@ export const GAME_ITEMS: GameItem[] = [
     gradient: ['#34D399', '#059669'],
     subtitle: 'Tốc độ • Từ vựng',
     levels: ['Beginner', 'Intermediate'],
-    route: '/game/vocab/VocabSprint',
+    route: '/game/vocab',
   },
   {
     id: 'listen-tap',
