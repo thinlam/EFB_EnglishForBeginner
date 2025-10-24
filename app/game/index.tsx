@@ -62,7 +62,7 @@ export default function CaroLevelMapPro() {
   const { starsByLevel, isUnlocked } = useCaroProgress();
 
   // demo 100 level đầu
-  const levels = useMemo(() => CARO_LEVELS.slice(0, 100), []);
+  const levels = useMemo(() => CARO_LEVELS.slice(0, 30), []);
   const nodes = levels.map((lv, i) => ({
     lv: lv.index,
     x: i % 2 === 0 ? LEFT_X : RIGHT_X,
@@ -234,7 +234,7 @@ export default function CaroLevelMapPro() {
           <Path d={pathAllD} stroke="url(#glow)" strokeWidth={14} fill="none" opacity={0.18} />
           <Path d={pathAllD} stroke="#1f2a44" strokeWidth={8} fill="none" />
 
-          ----- ĐƯỜNG ĐÃ MỞ KHÓA (sáng) -----
+          
           <Path d={pathUnlockedD} stroke="url(#glow)" strokeWidth={14} fill="none" />
           <Path
             d={pathUnlockedD}
