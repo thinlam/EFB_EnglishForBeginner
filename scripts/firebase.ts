@@ -8,6 +8,7 @@ import {
   getAuth,
   indexedDBLocalPersistence,
   initializeAuth,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -65,5 +66,5 @@ if (Platform.OS === 'web') {
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-export { app, auth, db, storage };
+export { app, auth, db, onAuthStateChanged, storage };
 

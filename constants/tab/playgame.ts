@@ -1,23 +1,15 @@
 import type { GameItem } from '@/types/tab/playgame';
 
 export const GAME_ITEMS: GameItem[] = [
-   {
-    id: 'game-hub',
-    title: 'Game',
-    icon: 'game-controller',
-    gradient: ['#FBBF24', '#D97706'],
-    subtitle: 'Game Hub (tất cả mini games)',
-    levels: ['Tool'],
-    route: '/game', // <- mở Game Hub (list mini games)
-  },
+  
   {
     id: 'caro',
-    title: 'Caro',
+    title: 'Game caro',
+    subtitle: 'Đánh caro + ôn từ vựng',
     icon: 'grid',
-    gradient: ['#fb923c', '#ef4444'],
-    subtitle: '5-in-a-row + AV Quiz',
-    levels: ['Level Map'],
-    route: '/game/Caro/levels', // <- vào bản đồ level
+    route: '/game',            // <-- bấm là mở Level Map
+    gradient: ['#0ea5e9', '#2563eb'],
+    levels: ['Lv1', 'Lv2', 'Lv3','Lv4', '...'], // <- vào bản đồ level
   },
   {
     id: 'vocab-sprint',
@@ -26,7 +18,7 @@ export const GAME_ITEMS: GameItem[] = [
     gradient: ['#34D399', '#059669'],
     subtitle: 'Tốc độ • Từ vựng',
     levels: ['Beginner', 'Intermediate'],
-    route: '/game/vocab-sprint',
+    route: '/game/vocab/VocabSprint',
   },
   {
     id: 'listen-tap',
