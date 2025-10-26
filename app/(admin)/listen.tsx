@@ -7,14 +7,14 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDocs,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   Timestamp,
-  updateDoc,
+  updateDoc
 } from 'firebase/firestore';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -40,7 +40,9 @@ type Listen = {
   transcript?: string;
   mediaType?: string | null;
   level?: CEFR;
+  isPublished?: boolean;
   createdAt?: Date | null;
+  updatedAt?: Date | null;
 };
 
 const LEVELS: ('ALL' | CEFR)[] = ['ALL', 'A1', 'A2', 'B1', 'B2', 'C1'];
@@ -114,39 +116,47 @@ export default function ListenScreen() {
   // Modal chọn cấp độ (đặt giữa)
   const [levelCenter, setLevelCenter] = useState(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const q = query(collection(db, 'listens'), orderBy('createdAt', 'desc'));
-      const snap = await getDocs(q);
-      const data: Listen[] = snap.docs.map((d) => {
-        const raw = d.data() as any;
-        return {
-          id: d.id,
-          title: raw.title ?? '(Không tiêu đề)',
-          audioUrl: raw.audioUrl ?? '',
-          transcript: raw.transcript ?? '',
-          mediaType: raw.mediaType ?? null,
-          level: (raw.level as CEFR) ?? 'A1',
-          createdAt: raw.createdAt instanceof Timestamp ? raw.createdAt.toDate() : null,
-        };
-      });
-      setItems(data);
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert('Lỗi', e?.message ?? 'Không tải được danh sách');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { loadData(); }, [loadData]);
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  // 🔁 Subscribe realtime (lọc level ở client để tránh index phức tạp; nếu muốn lọc server thì dùng where('level','==',...))
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      const col = collection(db, 'listens');
+      const qy = query(col, orderBy('createdAt', 'desc'));
+      const unsub = onSnapshot(
+        qy,
+        snap => {
+          const next: Listen[] = [];
+          snap.forEach(d => {
+            const raw = d.data() as any;
+            next.push({
+              id: d.id,
+              title: raw.title ?? '(Không tiêu đề)',
+              audioUrl: raw.audioUrl ?? '',
+              transcript: raw.transcript ?? '',
+              mediaType: raw.mediaType ?? null,
+              level: (raw.level as CEFR) ?? 'A1',
+              isPublished: !!raw.isPublished,
+              createdAt: raw.createdAt instanceof Timestamp ? raw.createdAt.toDate() : null,
+              updatedAt: raw.updatedAt instanceof Timestamp ? raw.updatedAt.toDate() : null,
+            });
+          });
+          setItems(next);
+          setLoading(false);
+        },
+        err => {
+          console.error(err);
+          Alert.alert('Lỗi', err?.message ?? 'Không tải được danh sách');
+          setLoading(false);
+        }
+      );
+      return () => unsub();
+    }, [])
+  );
 
   const onRefresh = async () => {
+    // với onSnapshot thì refresh chủ yếu để hiện spinner UX
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    setTimeout(() => setRefreshing(false), 400);
   };
 
   const filteredItems = useMemo(() => {
@@ -157,7 +167,6 @@ export default function ListenScreen() {
         it.title.toLowerCase().includes(text) ||
         (it.transcript ?? '').toLowerCase().includes(text) ||
         (it.audioUrl ?? '').toLowerCase().includes(text);
-
       const matchLevel = filterLevel === 'ALL' ? true : it.level === filterLevel;
       return matchText && matchLevel;
     });
@@ -177,7 +186,7 @@ export default function ListenScreen() {
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'listens', id));
-            setItems((prev) => prev.filter((i) => i.id !== id));
+            // không cần setItems vì onSnapshot sẽ tự cập nhật
           } catch (e: any) {
             console.error(e);
             Alert.alert('Lỗi', e?.message ?? 'Không xoá được');
@@ -209,17 +218,36 @@ export default function ListenScreen() {
         transcript: docModal.content.trim(),
         updatedAt: serverTimestamp(),
       });
-      // Cập nhật local list nhanh
-      setItems((prev) =>
-        prev.map((it) =>
-          it.id === docModal.id ? { ...it, transcript: docModal.content } : it
-        )
-      );
       setDocModal((p) => ({ ...p, editing: false }));
       Alert.alert('Đã lưu', 'Cập nhật tài liệu thành công.');
     } catch (e: any) {
       console.error(e);
       Alert.alert('Lỗi', e?.message ?? 'Không thể lưu tài liệu');
+    }
+  };
+
+  const togglePublish = async (id: string, next: boolean) => {
+    try {
+      await updateDoc(doc(db, 'listens', id), {
+        isPublished: next,
+        updatedAt: serverTimestamp(),
+      });
+      // onSnapshot sẽ tự cập nhật UI
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Lỗi', e?.message ?? 'Không thể cập nhật publish');
+    }
+  };
+
+  const changeLevel = async (id: string, nextLevel: CEFR) => {
+    try {
+      await updateDoc(doc(db, 'listens', id), {
+        level: nextLevel,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Lỗi', e?.message ?? 'Không thể đổi level');
     }
   };
 
@@ -229,7 +257,7 @@ export default function ListenScreen() {
 
     return (
       <View style={S.card}>
-        {/* Chủ đề + CEFR */}
+        {/* Header: Chủ đề + CEFR + Publish chip */}
         <View style={S.cardHeader}>
           <View style={{ flex: 1 }}>
             <View style={S.rowLine}>
@@ -238,17 +266,35 @@ export default function ListenScreen() {
               <Text style={S.cardTitle} numberOfLines={2}>{item.title}</Text>
             </View>
           </View>
-          <View style={[S.badge, { backgroundColor: colorForLevel(item.level) }]}>
-            <Text style={S.badgeText}>{item.level ?? '—'}</Text>
+
+          <View style={{ alignItems: 'flex-end' }}>
+            <View style={[S.badge, { backgroundColor: colorForLevel(item.level) }]}>
+              <Text style={S.badgeText}>{item.level ?? '—'}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => togglePublish(item.id, !item.isPublished)}
+              style={[
+                S.badge,
+                {
+                  marginTop: 6,
+                  backgroundColor: item.isPublished ? '#16a34a' : '#e5e7eb',
+                },
+              ]}
+            >
+              <Text style={[S.badgeText, { color: item.isPublished ? '#fff' : '#111827' }]}>
+                {item.isPublished ? 'Published' : 'Unpublished'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Ngày cập nhật */}
-        {item.createdAt && (
+        {/* Ngày tạo / cập nhật */}
+        {(item.createdAt || item.updatedAt) && (
           <View style={[S.rowLine, { marginTop: 6 }]}>
             <Ionicons name="calendar-clear-outline" size={16} color={COLORS.subText} />
-            <Text style={S.rowLabel}>Ngày cập nhật:</Text>
-            <Text style={S.rowText}>{formatDate(item.createdAt)}</Text>
+            <Text style={S.rowLabel}>Ngày:</Text>
+            {!!item.createdAt && <Text style={S.rowText}>Tạo {formatDate(item.createdAt)}</Text>}
+            {!!item.updatedAt && <Text style={[S.rowText, { marginLeft: 8 }]}>• Sửa {formatDate(item.updatedAt)}</Text>}
           </View>
         )}
 
@@ -282,7 +328,7 @@ export default function ListenScreen() {
           </View>
         )}
 
-        {/* Actions: một hàng ngang */}
+        {/* Actions */}
         <View style={[S.cardActions, { flexWrap: 'nowrap', justifyContent: 'flex-start', gap: 12 }]}>
           <TouchableOpacity style={S.iconBtn} onPress={() => openTranscript(item)}>
             <Ionicons name="document-outline" size={20} color={COLORS.text} />
@@ -309,6 +355,29 @@ export default function ListenScreen() {
             <Ionicons name="trash-outline" size={20} color={COLORS.del} />
             <Text style={[S.iconBtnText, { color: COLORS.del }]}>Xoá</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Quick level picker ngay trên card */}
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+          {(['A1','A2','B1','B2','C1'] as CEFR[]).map(lv => {
+            const active = item.level === lv;
+            return (
+              <TouchableOpacity
+                key={lv}
+                onPress={() => changeLevel(item.id, lv)}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: active ? '#111827' : COLORS.border,
+                  backgroundColor: active ? '#111827' : 'transparent',
+                }}
+              >
+                <Text style={{ color: active ? '#fff' : COLORS.text, fontWeight: '600' }}>{lv}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     );
@@ -343,12 +412,8 @@ export default function ListenScreen() {
           />
         </View>
 
-        {/* Nút mở modal cấp độ – bấm ở bất kỳ chỗ nào trong ô cũng mở */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setLevelCenter(true)}
-          style={S.filterPicker}
-        >
+        {/* Nút mở modal cấp độ */}
+        <TouchableOpacity activeOpacity={0.9} onPress={() => setLevelCenter(true)} style={S.filterPicker}>
           <Text style={S.filterValueText}>{filterLevel === 'ALL' ? 'All' : filterLevel}</Text>
           <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
         </TouchableOpacity>
@@ -387,7 +452,7 @@ export default function ListenScreen() {
         <Ionicons name="add-outline" size={28} color={COLORS.bg} />
       </TouchableOpacity>
 
-      {/* Modal transcript — Ở GIỮA + nút X + Chỉnh sửa/Lưu */}
+      {/* Modal transcript */}
       <Modal
         visible={docModal.visible}
         transparent
@@ -475,7 +540,7 @@ export default function ListenScreen() {
         </View>
       </Modal>
 
-      {/* Modal chọn cấp độ — Ở GIỮA */}
+      {/* Modal chọn cấp độ */}
       <Modal
         visible={levelCenter}
         transparent
