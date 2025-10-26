@@ -56,13 +56,12 @@ export default function ListenScreen() {
 
   /* ✅ Chỉ được vào level hiện tại */
   const canEnter = (id: string) => id === CURRENT_LEVEL;
+ // Xử lý bấm vào Start button
+ const onPressStart = (id: string) => {
+  if (!canEnter(id)) return;
+  router.push({ pathname: '/listien/[level]', params: { level: id } });
+};
 
-  const onPressStart = (id: string) => {
-    if (!canEnter(id)) return; // chặn điều hướng nếu khóa
-    // Điều hướng sang màn chi tiết level (tùy cấu trúc route của bạn)
-    // router.push(`/listen/${id}`);
-    router.back();
-  };
 
   return (
     <SafeAreaView style={S.wrap}>
