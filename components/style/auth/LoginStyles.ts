@@ -1,4 +1,3 @@
-// components/LoginStyles.ts
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -8,13 +7,23 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 30,
     backgroundColor: '#fff',
   },
+
+  // NEW: row for back button + title
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 29,
+  },
+
   title: {
+    flex: 0.75,
     fontSize: 28,
     fontWeight: 'bold',
     color: '#4F46E5',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 0,
   },
+
   label: {
     marginBottom: 4,
     fontSize: 12,
@@ -22,6 +31,7 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 1,
   },
+
   input: {
     backgroundColor: '#F5F5F5',
     paddingHorizontal: 12,
@@ -30,6 +40,7 @@ export const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 14,
   },
+
   button: {
     marginTop: 20,
     backgroundColor: '#4F46E5',
@@ -37,17 +48,20 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
+
   buttonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
   },
+
   switch: {
     marginTop: 20,
     textAlign: 'center',
     color: '#4F46E5',
     fontWeight: '500',
   },
+
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -57,48 +71,54 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 12,
   },
+
   socialIcon: {
     marginRight: 10,
   },
+
   socialText: {
     color: '#fff',
     fontSize: 15,
     fontWeight: '600',
   },
+
   separator: {
     height: 1,
     width: '60%',
     backgroundColor: '#444',
     marginVertical: 20,
   },
+
   backButton: {
     alignSelf: 'flex-start',
-    marginBottom: 10,
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     backgroundColor: '#E5E7EB',
     borderRadius: 8,
   },
+
   backText: {
     fontSize: 14,
     color: '#4F46E5',
     fontWeight: 'bold',
   },
+
+  // optional: if you want a reusable white social button
   socialButtonWhite: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#fff',
-  paddingVertical: 12,
-  paddingHorizontal: 20,
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: '#ccc',
-  marginBottom: 12,
-},
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginBottom: 12,
+  },
 
-googleText: {
-  color: '#4285F4',
-  fontSize: 15,
-  fontWeight: '600',
-},
-
+  googleText: {
+    color: '#4285F4',
+    fontSize: 15,
+    fontWeight: '600',
+  },
 });
