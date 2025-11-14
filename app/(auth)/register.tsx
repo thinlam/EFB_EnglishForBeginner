@@ -97,7 +97,7 @@ export default function RegisterScreen() {
           <Text style={styles.buttonText}>Sign up</Text>
         </TouchableOpacity>
 
-        <Text style={styles.switch} onPress={() => router.push('/login')}>đã có tài khoản? Đăng nhập</Text>
+        <Text style={styles.switch} onPress={() => router.push('/login')}>Account already exists ? sign in</Text>
 
         <View style={{ marginTop: 30 }}>
           <TouchableOpacity

@@ -32,16 +32,7 @@ export default function ProfileScreen() {
     );
   }
 
-  // if (!uid || !userData) {
-  //   return (
-  //     <View style={[S.wrap, S.center]}>
-  //       <Ionicons name="person-circle" size={80} color={BRAND.sub} />
-  //       <Text style={S.emptyTitle}>Chưa đăng nhập</Text>
-  //       <Text style={S.emptySub}>Hãy đăng nhập để xem hồ sơ học tập của bạn.</Text>
-  //     </View>
-  //   );
-  // }
-
+  
   return (
     <ScrollView
       style={S.wrap}

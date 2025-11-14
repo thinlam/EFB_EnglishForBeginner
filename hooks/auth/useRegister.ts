@@ -24,11 +24,19 @@ export function useRegister({ onSuccess }: Opts = {}) {
     const cp = confirmPassword;
     const ph = number;
 
-    if (!e || !p || !n || !ph || !cp) return Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin.');
-    if (!isEmail(e)) return Alert.alert('Lỗi', 'Email không hợp lệ.');
-    if (!isVNPhone(ph)) return Alert.alert('Lỗi', 'Số điện thoại phải gồm đúng 10 chữ số.');
-    if (!strongEnough(p)) return Alert.alert('Lỗi', 'Mật khẩu phải từ 6 ký tự trở lên.');
-    if (p !== cp) return Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp.');
+    if (!e || !p || !n || !ph || !cp) {
+      return Alert.alert('Error', 'Please fill in all required information.');
+    }
+    if (!isEmail(e)) return Alert.alert('Error', 'Invalid email address.');
+    if (!isVNPhone(ph)) {
+      return Alert.alert('Error', 'Phone number must contain exactly 10 digits.');
+    }
+    if (!strongEnough(p)) {
+      return Alert.alert('Error', 'Password must be at least 6 characters long.');
+    }
+    if (p !== cp) {
+      return Alert.alert('Error', 'Password confirmation does not match.');
+    }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, e, p);
@@ -42,30 +50,48 @@ export function useRegister({ onSuccess }: Opts = {}) {
         level: null,
         startMode: null,
         createdAt: new Date(),
-        // usernameLower: n?.toLowerCase(), // 👉 bật nếu dùng name làm username & đảm bảo uniqueness
+        // usernameLower: n?.toLowerCase(), // 👉 enable if you use name as username & ensure uniqueness
       });
 
-      Alert.alert('Thành công', 'Đăng ký thành công!');
+      Alert.alert('Success', 'Registration successful!');
       onSuccess?.();
     } catch (error: any) {
-      let message = 'Đăng ký thất bại!';
+      let message = 'Registration failed!';
       switch (error?.code) {
-        case 'auth/email-already-in-use': message = 'Email đã được sử dụng.'; break;
-        case 'auth/invalid-email': message = 'Email không hợp lệ.'; break;
-        case 'auth/weak-password': message = 'Mật khẩu quá yếu (ít nhất 6 ký tự).'; break;
-        default: message = error?.message || message;
+        case 'auth/email-already-in-use':
+          message = 'This email is already in use.';
+          break;
+        case 'auth/invalid-email':
+          message = 'Invalid email address.';
+          break;
+        case 'auth/weak-password':
+          message = 'Weak password (at least 6 characters required).';
+          break;
+        default:
+          message = error?.message || message;
       }
-      Alert.alert('Lỗi', message);
+      Alert.alert('Error', message);
       console.error('[RegisterError]', error);
     }
   }, [name, email, number, password, confirmPassword, onSuccess]);
 
   return {
     // fields
-    name, setName, email, setEmail, number, setNumber,
-    password, setPassword, confirmPassword, setConfirmPassword,
+    name,
+    setName,
+    email,
+    setEmail,
+    number,
+    setNumber,
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
     // visibility
-    showPassword, setShowPassword, showConfirmPassword, setShowConfirmPassword,
+    showPassword,
+    setShowPassword,
+    showConfirmPassword,
+    setShowConfirmPassword,
     // action
     handleRegister,
   };

@@ -24,7 +24,7 @@ export function useForgotPassword(opts?: Opts) {
   const [cooldown, setCooldown] = React.useState(0);
   const cooldownRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const titleText = React.useMemo(() => '🔐 Nhập Gmail để nhận mã OTP', []);
+  const titleText = React.useMemo(() => 'Enter Gmail to receive OTP code', []);
 
   React.useEffect(() => {
     return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
@@ -42,7 +42,7 @@ export function useForgotPassword(opts?: Opts) {
   }, []);
 
   const sendOtp = React.useCallback(async () => {
-    if (!isEmail(email)) { Alert.alert('Lỗi', 'Vui lòng nhập email hợp lệ.'); return; }
+    if (!isEmail(email)) { Alert.alert('Error', 'Please enter a valid email.'); return; }
     if (loading || cooldown > 0) return;
     try {
       setLoading(true);
@@ -52,29 +52,29 @@ export function useForgotPassword(opts?: Opts) {
         setServerOtp(data.otp ?? ''); // DEMO ONLY
         // setTransactionId(data.transactionId) // PROD
         startCooldown();
-        Alert.alert('Thành công', 'OTP đã được gửi đến Gmail của bạn.');
+        Alert.alert('Success', 'OTP has been sent to your Gmail.');
       } else {
-        const msg = data?.message || 'Không gửi được OTP, vui lòng thử lại.';
+        const msg = data?.message || 'OTP failed to send, please try again.';
         Alert.alert('Lỗi', msg);
       }
     } catch (err: any) {
       const aborted = err?.name === 'AbortError';
-      Alert.alert('Lỗi', aborted ? 'Hết thời gian chờ, vui lòng thử lại.' : 'Không thể kết nối đến máy chủ.');
+      Alert.alert('Lỗi', aborted ? 'Timed out, please try again.' : 'Unable to connect to server.');
     } finally {
       setLoading(false);
     }
   }, [email, loading, cooldown, startCooldown]);
 
   const verifyOtp = React.useCallback(async () => {
-    if (!sentOtp) { Alert.alert('Lỗi', 'Vui lòng gửi mã OTP trước.'); return; }
-    if (!otp || otp.length < OTP_LENGTH) { Alert.alert('Lỗi', `Vui lòng nhập đủ ${OTP_LENGTH} ký tự OTP.`); return; }
+    if (!sentOtp) { Alert.alert('Error', 'Please send OTP code first.'); return; }
+    if (!otp || otp.length < OTP_LENGTH) { Alert.alert('Error', `Please enter enough ${OTP_LENGTH} OTP characters.`); return; }
 
     // DEMO ONLY — so sánh local
     if (otp === serverOtp) {
       opts?.onVerified?.(email);
       return;
     } else {
-      Alert.alert('Sai mã', 'Mã OTP không đúng.');
+      Alert.alert('False', 'OTP code is incorrect.');
       return;
     }
 

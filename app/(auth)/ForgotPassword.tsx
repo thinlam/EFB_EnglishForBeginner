@@ -40,12 +40,12 @@ export default function ForgotPasswordScreen() {
           editable={!loading}
           style={styles.input}
         />
-        <Text style={styles.helper}>Nhập email đã đăng ký để nhận mã OTP (mã có hiệu lực trong ít phút).</Text>
+        <Text style={styles.helper}>Enter your registered email to receive an OTP code (code valid for a few minutes).</Text>
 
         {/* OTP */}
         {sentOtp && (
           <>
-            <Text style={styles.otpLabel}>📩 Nhập mã OTP vừa nhận</Text>
+            <Text style={styles.otpLabel}>📩 Enter the OTP code </Text>
             <TextInput
               placeholder={`Nhập ${OTP_LENGTH} số OTP`}
               value={otp}
@@ -68,7 +68,7 @@ export default function ForgotPasswordScreen() {
           style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
         >
           <Text style={styles.primaryBtnText}>
-            {loading ? (sentOtp ? 'ĐANG XÁC NHẬN...' : 'ĐANG GỬI...') : (sentOtp ? 'XÁC NHẬN OTP' : 'GỬI MÃ VỀ GMAIL')}
+            {loading ? (sentOtp ? 'CONFIRMING...' : 'SENDING...') : (sentOtp ? 'XÁC NHẬN OTP CONFIRMATION' : 'SEND CODE TO GMAIL')}
           </Text>
         </TouchableOpacity>
 
@@ -76,14 +76,14 @@ export default function ForgotPasswordScreen() {
         {sentOtp && (
           <TouchableOpacity onPress={sendOtp} disabled={loading || cooldown > 0} style={{ marginBottom: 16 }}>
             <Text style={{ textAlign: 'center', color: (loading || cooldown > 0) ? '#aaa' : '#6C63FF', fontWeight: '600' }}>
-              {cooldown > 0 ? `Gửi lại OTP sau ${cooldown}s` : 'Gửi lại OTP'}
+              {cooldown > 0 ? `Resend OTP later ${cooldown}s` : 'Resend OTP'}
             </Text>
           </TouchableOpacity>
         )}
 
         {/* Back to login */}
         <TouchableOpacity onPress={() => router.replace('/login')}>
-          <Text style={styles.backLink}>⬅ Quay lại trang đăng nhập</Text>
+          <Text style={styles.backLink}>⬅ Back Sign in </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
