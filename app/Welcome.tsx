@@ -9,8 +9,9 @@
  */
 
 import { useRouter } from 'expo-router';
+import React from 'react'; // Import styles from the WelcomeStyles file
 import { Image, Text, TouchableOpacity, View } from 'react-native';
-import { styles } from '../components/style/WelcomStyles'; // Import styles from the WelcomeStyles file
+import { styles } from '../components/style/WelcomStyles';
 export default function WelcomeScreen() {
   const router = useRouter();
 

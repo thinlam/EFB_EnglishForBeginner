@@ -6,16 +6,16 @@ import { Alert } from 'react-native';
 import { auth } from '@/scripts/firebase';
 import { useGoogleLogin } from '@/scripts/googleAuth';
 import {
-    GoogleAuthProvider,
-    signInWithCredential,
-    signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithCredential,
+  signInWithEmailAndPassword,
 } from 'firebase/auth';
 
 import { saveSession } from '@/scripts/secureSession';
 import {
-    ensureUserProfile,
-    normalizeEmail,
-    resolveEmailFromUsername,
+  ensureUserProfile,
+  normalizeEmail,
+  resolveEmailFromUsername,
 } from '@/services/auth/userProfileService';
 import type { Role } from '@/types/auth/user';
 
@@ -27,7 +27,7 @@ export function useLogin({ router }: Opts) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Google OAuth (đã config bên ngoài)
+  // Google OAuth (already configured externally)
   const { promptAsync, response } = useGoogleLogin();
 
   // ==== Handle Google response ====
@@ -53,11 +53,11 @@ export function useLogin({ router }: Opts) {
 
         await saveSession({ uid: user.uid, email: user.email ?? null, role });
 
-        Alert.alert('Thành công', 'Đăng nhập bằng Google thành công!');
+        Alert.alert('Success', 'Signed in with Google successfully!');
         navigateByRole(role, startMode, level, router);
       } catch (err: any) {
         console.error('Google login error:', err?.code ?? err?.message ?? err);
-        Alert.alert('Lỗi', 'Không thể đăng nhập bằng Google.');
+        Alert.alert('Error', 'Cannot sign in with Google.');
       } finally {
         setLoading(false);
       }
@@ -70,7 +70,7 @@ export function useLogin({ router }: Opts) {
     const pw = password.trim();
 
     if (!idTrim || !pw) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email/username và mật khẩu.');
+      Alert.alert('Error', 'Please enter both email/username and password.');
       return;
     }
 
@@ -78,7 +78,7 @@ export function useLogin({ router }: Opts) {
     try {
       const loginEmail = idTrim.includes('@')
         ? normalizeEmail(idTrim)
-        : await resolveEmailFromUsername(idTrim); // sẽ ném lỗi có .code nếu fail
+        : await resolveEmailFromUsername(idTrim); // will throw an error with .code if it fails
 
       const cred = await signInWithEmailAndPassword(auth, loginEmail, pw);
       const user = cred.user;
@@ -90,7 +90,10 @@ export function useLogin({ router }: Opts) {
 
       await saveSession({ uid: user.uid, email: user.email ?? loginEmail, role });
 
-      Alert.alert('Thành công', `Chào mừng ${role === 'admin' ? 'quản trị viên' : 'bạn'}!`);
+      Alert.alert(
+        'Success',
+        `Congratulations ${role === 'admin' ? 'Administrator' : 'user'}!`
+      );
       navigateByRole(role, startMode, level, router);
     } catch (error: any) {
       const code = error?.code ?? null;
@@ -98,30 +101,46 @@ export function useLogin({ router }: Opts) {
 
       console.log('Firebase login error:', code, msg);
 
-      let message = 'Đăng nhập thất bại.';
+      let message = 'Login failed.';
       switch (code) {
         // Firebase codes
-        case 'auth/invalid-email': message = 'Email không hợp lệ.'; break;
-        case 'auth/user-not-found': message = 'Tài khoản không tồn tại.'; break;
+        case 'auth/invalid-email':
+          message = 'Invalid email.';
+          break;
+        case 'auth/user-not-found':
+          message = 'Account not found.';
+          break;
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
-          message = 'Sai mật khẩu.'; break;
-        case 'auth/too-many-requests': message = 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.'; break;
-        case 'auth/user-disabled': message = 'Tài khoản đã bị vô hiệu hoá.'; break;
-        case 'auth/network-request-failed': message = 'Lỗi mạng. Vui lòng kiểm tra kết nối.'; break;
+          message = 'Incorrect password.';
+          break;
+        case 'auth/too-many-requests':
+          message = 'Too many attempts. Please try again later.';
+          break;
+        case 'auth/user-disabled':
+          message = 'This account has been disabled.';
+          break;
+        case 'auth/network-request-failed':
+          message = 'Network error. Please check your connection.';
+          break;
 
-        // App-defined codes (từ resolveEmailFromUsername)
+        // App-defined codes (from resolveEmailFromUsername)
         case 'USERNAME_NOT_FOUND':
-          message = 'Username không tồn tại hoặc chưa thiết lập usernameLower.'; break;
+          message = 'Username does not exist or usernameLower is not set.';
+          break;
         case 'USERNAME_HAS_NO_EMAIL':
-          message = 'Tài khoản này chưa có email gắn với username.'; break;
+          message = 'This account has no email bound to the username.';
+          break;
 
         default:
-          // fallback theo message (phòng khi code không có)
-          if (msg === 'USERNAME_NOT_FOUND') message = 'Username không tồn tại hoặc chưa thiết lập usernameLower.';
-          else if (msg === 'USERNAME_HAS_NO_EMAIL') message = 'Tài khoản này chưa có email gắn với username.';
+          // fallback using message (in case code is missing)
+          if (msg === 'USERNAME_NOT_FOUND') {
+            message = 'Username does not exist or usernameLower is not set.';
+          } else if (msg === 'USERNAME_HAS_NO_EMAIL') {
+            message = 'This account has no email bound to the username.';
+          }
       }
-      Alert.alert('Lỗi', message);
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }
@@ -132,14 +151,21 @@ export function useLogin({ router }: Opts) {
   };
 
   const handleForgotPassword = () => {
-    const e = identifier.includes('@') ? encodeURIComponent(identifier.trim()) : '';
-    router.push(`/ForgotPassword${e ? `?email=${e}` : ''}`);
+    const email = identifier.includes('@') ? identifier.trim() : undefined;
+    if (email) {
+      router.push({ pathname: '/ForgotPassword', params: { email } });
+    } else {
+      router.push('/ForgotPassword');
+    }
   };
 
   return {
-    identifier, setIdentifier,
-    password, setPassword,
-    showPassword, setShowPassword,
+    identifier,
+    setIdentifier,
+    password,
+    setPassword,
+    showPassword,
+    setShowPassword,
     loading,
     handleLogin,
     handleGooglePress,
@@ -155,7 +181,7 @@ function navigateByRole(
   router: ReturnType<typeof useRouter>
 ) {
   if (role === 'admin') router.replace('/(admin)/home');
-  else if (role === 'premium') router.replace('/'); // premium user → home (tuỳ bạn)
+  else if (role === 'premium') router.replace('/'); // premium user → home (up to you)
   else {
     if (startMode || level !== null) router.replace('/(tabs)');
     else router.replace('/(onboarding)/SelectLevel');
