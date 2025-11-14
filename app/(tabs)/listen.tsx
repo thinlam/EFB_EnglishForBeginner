@@ -15,15 +15,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 /* Styles */
 import { ListenStyles as S } from '@/components/style/tabs/ListenStyles';
 
-/* ✅ Import ảnh placeholder đúng chuẩn (từ app/(tabs) ra assets là ../../) */
+/* ✅ Ảnh placeholder (đường dẫn từ app/(tabs) ra assets) */
 import placeholderImg from '../../assets/images/placeholder-image.png';
 
-/* Dummy data (tạm thời) */
-const TOPICS = Array.from({ length: 20 }).map((_, i) => ({
-  id: `topic-${i + 1}`,
-  title: `topic`,
-  color: ['#93c5fd', '#86efac', '#e9d5ff', '#fcd34d'][i % 4],
-}));
+/* ✅ 5 level CEFR: A1 → C1 */
+const TOPICS = [
+  { id: 'A1', title: 'A1', color: '#93c5fd' },
+  { id: 'A2', title: 'A2', color: '#86efac' },
+  { id: 'B1', title: 'B1', color: '#e9d5ff' },
+  { id: 'B2', title: 'B2', color: '#fcd34d' },
+  { id: 'C1', title: 'C1', color: '#93c5fd' },
+] as const;
+
+/* ✅ Level hiện tại: CHỈ level này được bấm (ví dụ: đang ở A1) 
+   Sau này bạn có thể thay bằng hook tiến độ (Firestore/AsyncStorage) */
+const CURRENT_LEVEL: (typeof TOPICS)[number]['id'] = 'A1';
 
 export default function ListenScreen() {
   const isWeb = Platform.OS === 'web';
@@ -31,11 +37,14 @@ export default function ListenScreen() {
 
   const [q, setQ] = React.useState('');
   const [page, setPage] = React.useState(1);
-  const PAGE_SIZE = 8;
 
+  /* Với 5 item, để PAGE_SIZE = 5 hiển thị hết trong 1 trang */
+  const PAGE_SIZE = 5;
+
+  /* Lọc theo ô Search (A1…C1) */
   const filteredAll = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
-    return TOPICS.filter(t => t.title.toLowerCase().includes(kw));
+    return TOPICS.filter((t) => t.title.toLowerCase().includes(kw));
   }, [q]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAll.length / PAGE_SIZE));
@@ -45,11 +54,14 @@ export default function ListenScreen() {
     return filteredAll.slice(start, start + PAGE_SIZE);
   }, [filteredAll, page]);
 
-  const onPressStart = (id: string) => {
-    // TODO: điều hướng sang màn chi tiết
-    // router.push(`/(tabs)/listen/${id}`);
-    router.back(); // hoặc router.push('/(tabs)')
-  };
+  /* ✅ Chỉ được vào level hiện tại */
+  const canEnter = (id: string) => id === CURRENT_LEVEL;
+ // Xử lý bấm vào Start button
+ const onPressStart = (id: string) => {
+  if (!canEnter(id)) return;
+  router.push({ pathname: '/listien/[level]', params: { level: id } });
+};
+
 
   return (
     <SafeAreaView style={S.wrap}>
@@ -63,50 +75,74 @@ export default function ListenScreen() {
           <Ionicons name="search" size={18} color="#6b7280" />
           <TextInput
             style={S.searchInput}
-            placeholder="Search"
+            placeholder="Search level (A1…C1)"
             placeholderTextColor="#9ca3af"
             value={q}
-            onChangeText={(t) => { setPage(1); setQ(t); }}
+            onChangeText={(t) => {
+              setPage(1);
+              setQ(t);
+            }}
             autoCorrect={false}
           />
         </View>
 
-        {/* Header back + title (giữa, kiểu giống mock) */}
+        {/* Header: Back + Title (giữa) */}
         <View style={S.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} style={S.iconBtn} accessibilityLabel="Quay lại">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={S.iconBtn}
+            accessibilityLabel="Quay lại"
+          >
             <Ionicons name="arrow-back" size={22} color="#111827" />
           </TouchableOpacity>
           <Text style={S.title}>FULL TOPIC LISTEN</Text>
           <View style={{ width: 32, height: 32 }} />
         </View>
 
-        {/* List topics */}
+        {/* Danh sách level */}
         <View style={{ gap: 14 }}>
-          {filtered.map(item => (
-            <View key={item.id} style={[S.card, { backgroundColor: item.color }]}>
-              <View style={S.cardLeft}>
-                <View style={S.thumb}>
-                  <Image
-                    source={placeholderImg}
-                    style={{ width: '100%', height: '100%', opacity: 0.25 }}
-                    resizeMode="cover"
-                  />
-                </View>
-                <Text style={S.cardTitle}>{item.title}</Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={() => onPressStart(item.id)}
-                style={S.startBtn}
-                accessibilityLabel={`Start ${item.title}`}
+          {filtered.map((item) => {
+            const locked = !canEnter(item.id);
+            return (
+              <View
+                key={item.id}
+                style={[
+                  S.card,
+                  { backgroundColor: item.color, opacity: locked ? 0.6 : 1 },
+                ]}
+                accessibilityState={{ disabled: locked }}
               >
-                <Text style={S.startBtnText}>Start</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+                <View style={S.cardLeft}>
+                  <View style={S.thumb}>
+                    <Image
+                      source={placeholderImg}
+                      style={{ width: '100%', height: '100%', opacity: 0.25 }}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <Text style={S.cardTitle}>{item.title}</Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => onPressStart(item.id)}
+                  style={[S.startBtn, locked && { backgroundColor: '#d1d5db' }]}
+                  disabled={locked}
+                  accessibilityLabel={
+                    locked ? `Locked ${item.title}` : `Start ${item.title}`
+                  }
+                >
+                  <Text
+                    style={[S.startBtnText, locked && { color: '#6b7280' }]}
+                  >
+                    {locked ? 'Locked' : 'Start'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
         </View>
 
-        {/* Pagination */}
+        {/* Phân trang (với 5 item thì chỉ có 1 trang, vẫn giữ để tái dùng sau) */}
         <View style={S.pagingRow}>
           {/* Prev */}
           <TouchableOpacity
@@ -119,7 +155,6 @@ export default function ListenScreen() {
 
           {/* Numbers */}
           <View style={S.pageNumbers}>
-            {/* Left edge: 1 + maybe ... */}
             {page > 2 && (
               <>
                 <TouchableOpacity
@@ -129,22 +164,26 @@ export default function ListenScreen() {
                 >
                   <Text style={S.pageDotText}>1</Text>
                 </TouchableOpacity>
-                {/* show ellipsis only if the first middle page is >2 */}
                 {(() => {
-                  const middle = [page - 1, page, page + 1]
-                    .filter(n => n > 1 && n < totalPages);
+                  const middle = [page - 1, page, page + 1].filter(
+                    (n) => n > 1 && n < totalPages
+                  );
                   const leftmost = Math.min(...middle);
-                  return leftmost > 2 ? <Text key="ellipsis-left" style={S.ellipsis}>…</Text> : null;
+                  return leftmost > 2 ? (
+                    <Text key="ellipsis-left" style={S.ellipsis}>
+                      …
+                    </Text>
+                  ) : null;
                 })()}
               </>
             )}
 
-            {/* Middle: unique pages around current (no duplicates) */}
             {(() => {
-              const around = [page - 1, page, page + 1]
-                .filter(n => n > 1 && n < totalPages);
-              const pageNumbers = Array.from(new Set(around)); // remove duplicates
-              return pageNumbers.map(n => (
+              const around = [page - 1, page, page + 1].filter(
+                (n) => n > 1 && n < totalPages
+              );
+              const pageNumbers = Array.from(new Set(around));
+              return pageNumbers.map((n) => (
                 <TouchableOpacity
                   key={`p-${n}`}
                   onPress={() => setPage(n)}
@@ -155,21 +194,26 @@ export default function ListenScreen() {
               ));
             })()}
 
-            {/* Right edge: maybe ... + last */}
             {totalPages > 1 && (
               <>
                 {(() => {
-                  const middle = [page - 1, page, page + 1]
-                    .filter(n => n > 1 && n < totalPages);
+                  const middle = [page - 1, page, page + 1].filter(
+                    (n) => n > 1 && n < totalPages
+                  );
                   const rightmost = Math.max(...middle);
-                  return rightmost < totalPages - 1
-                    ? <Text key="ellipsis-right" style={S.ellipsis}>…</Text>
-                    : null;
+                  return rightmost < totalPages - 1 ? (
+                    <Text key="ellipsis-right" style={S.ellipsis}>
+                      …
+                    </Text>
+                  ) : null;
                 })()}
                 <TouchableOpacity
                   key={`p-${totalPages}`}
                   onPress={() => setPage(totalPages)}
-                  style={[S.pageDot, page === totalPages && S.pageDotActive]}
+                  style={[
+                    S.pageDot,
+                    page === totalPages && S.pageDotActive,
+                  ]}
                 >
                   <Text style={S.pageDotText}>{totalPages}</Text>
                 </TouchableOpacity>

@@ -2,10 +2,10 @@ import { styles } from '@/components/style/HomeStyles';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 export default function AdminHomeScreen() {
@@ -18,11 +18,11 @@ export default function AdminHomeScreen() {
       children: [
         { title: 'Từ vựng', path: '/(admin)/vocabulary' },
         { title: 'Ngữ pháp', path: '/(admin)/grammar' },
-        { title: 'Luyện nghe',path: '/(admin)/listen' },
+        { title: 'Luyện nghe',path: '/(admin)/listen/listen-screen' },
         { title: 'Luyện nói' },
-        { title: 'Luyện đọc' },
+        { title: 'Luyện đọc', path: '/(admin)/reading/reading-screen'},
         { title: 'Luyện viết' },
-       { title: 'Bài kiểm tra', path: '/(admin)/testList' },
+      { title: 'Bài kiểm tra', path: '/(admin)/testList' },
 
       ],
     },
@@ -48,7 +48,7 @@ export default function AdminHomeScreen() {
     { title: 'Phần thưởng / Xếp hạng', path: '/(admin)/rewards' },
   ],
 },
-    
+  
     {
       title: '📊 Thống kê & Thông báo',
       children: [
