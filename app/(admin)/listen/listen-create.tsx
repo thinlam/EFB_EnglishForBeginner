@@ -1,4 +1,4 @@
-// app/(admin)/ListenCreate.tsx
+// app/(admin)/listen-create.tsx
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,9 +19,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/* Styles */
-import { ListenCreateStyles as CS } from '@/components/style/ListenCreateStyles';
-import { COLORS, ListenStyles as S } from '@/components/style/ListenStyles';
+/* Styles (đã tách) */
+import { ListenCreateStyles as CS } from '@/components/style/admin/listen/listen-create-styles';
+import { COLORS, ListenStyles as S } from '@/components/style/admin/listen/listen-screen-styles';
 
 /* Firestore */
 import { db } from '@/scripts/firebase';
@@ -53,11 +53,11 @@ const EXERCISE_BY_LEVEL: Record<CEFR, ExerciseType> = {
 };
 
 const TEMPLATE_BY_TYPE: Record<ExerciseType, any> = {
-  fill_gaps:     { sentence: "I __ a book.", answer: "have", choices: ["has","have","am"] },
-  guess_object:  { options: [{label:"pen"},{label:"book"},{label:"phone"}], correctIndex: 1 },
-  phoneme_choice:{ word: "thought", ipaOptions: ["θɔːt","tɔːt","ðɒt","sɔːt"], correctIndex: 0 },
-  phrase_gaps:   { paragraph: "I’m looking __ my keys.", gaps: [{ index: 13, answer: "for", choices:["at","for","into"] }] },
-  reading_mcq:   { passage: "Paragraph...", questions:[{ q:"Main idea?", options:["A","B","C","D"], correctIndex: 2 }] },
+  fill_gaps:     { sentence: 'I __ a book.', answer: 'have', choices: ['has', 'have', 'am'] },
+  guess_object:  { options: [{ label: 'pen' }, { label: 'book' }, { label: 'phone' }], correctIndex: 1 },
+  phoneme_choice:{ word: 'thought', ipaOptions: ['θɔːt', 'tɔːt', 'ðɒt', 'sɔːt'], correctIndex: 0 },
+  phrase_gaps:   { paragraph: 'I’m looking __ my keys.', gaps: [{ index: 13, answer: 'for', choices: ['at','for','into'] }] },
+  reading_mcq:   { passage: 'Paragraph...', questions: [{ q: 'Main idea?', options: ['A','B','C','D'], correctIndex: 2 }] },
 };
 
 type ListenDoc = {
@@ -185,7 +185,7 @@ function LevelPickerRow({ value, onChange }: { value: CEFR; onChange: (v: CEFR) 
   return (
     <>
       <TouchableOpacity
-        style={[S.filterPicker, { marginBottom: 12 }]}
+        style={[S.filterPicker, CS.levelPickerTrigger]}
         onPress={() => setOpen(true)}
         activeOpacity={0.85}>
         <Text style={S.filterValueText}>{value}</Text>
@@ -194,75 +194,42 @@ function LevelPickerRow({ value, onChange }: { value: CEFR; onChange: (v: CEFR) 
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <TouchableOpacity
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.45)',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
+          style={CS.levelModalOverlay}
           activeOpacity={1}
           onPress={() => setOpen(false)}>
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => {}}
-            style={{
-              width: '86%',
-              maxWidth: 380,
-              backgroundColor: COLORS.card,
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: COLORS.borderSoft,
-              overflow: 'hidden',
-            }}>
-            <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
-              <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '700' }}>
+            style={CS.levelModalContainer}>
+            <View style={CS.levelModalHeader}>
+              <Text style={CS.levelModalTitle}>
                 Chọn cấp độ
               </Text>
             </View>
             {LEVELS.map((lv) => (
               <TouchableOpacity
                 key={lv}
-                style={{
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
+                style={CS.levelOptionRow}
                 activeOpacity={0.9}
                 onPress={() => {
                   onChange(lv);
                   setOpen(false);
                 }}>
                 <Text
-                  style={{
-                    color: COLORS.text,
-                    fontSize: 15,
-                    fontWeight: value === lv ? '700' : '500',
-                  }}>
+                  style={[
+                    CS.levelOptionText,
+                    value === lv && CS.levelOptionTextActive,
+                  ]}>
                   {lv}
                 </Text>
                 {value === lv && <Ionicons name="checkmark" size={18} color={COLORS.create} />}
               </TouchableOpacity>
             ))}
-            <View
-              style={{
-                padding: 12,
-                borderTopWidth: 1,
-                borderTopColor: COLORS.border,
-                alignItems: 'flex-end',
-              }}>
+            <View style={CS.levelModalFooter}>
               <TouchableOpacity
                 onPress={() => setOpen(false)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 10,
-                  backgroundColor: COLORS.card2,
-                  borderWidth: 1,
-                  borderColor: COLORS.border,
-                }}>
-                <Text style={{ color: COLORS.text, fontWeight: '700' }}>Đóng</Text>
+                style={CS.levelModalCloseBtn}>
+                <Text style={CS.levelModalCloseText}>Đóng</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -286,15 +253,19 @@ function MediaPreview({ uri, mediaType }: { uri: string; mediaType?: string | nu
   }, [uri, player]);
 
   return (
-    <View style={{ marginTop: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border }}>
-      <View style={{ backgroundColor: COLORS.card, padding: 12 }}>
-        <Text style={{ color: COLORS.text, fontWeight: '700', marginBottom: 8 }}>
+    <View style={CS.mediaPreviewWrapper}>
+      <View style={CS.mediaPreviewCard}>
+        <Text style={CS.mediaPreviewTitle}>
           Preview {isVideoMedia ? 'Video' : 'Audio'}
         </Text>
-        <View style={{ width: '100%', aspectRatio: isVideoMedia ? 16 / 9 : undefined, height: isVideoMedia ? undefined : 56, backgroundColor: '#000', borderRadius: 8, overflow: 'hidden' }}>
+        <View
+          style={[
+            CS.mediaPreviewPlayerBase,
+            isVideoMedia ? CS.mediaPreviewPlayerVideo : CS.mediaPreviewPlayerAudio,
+          ]}>
           <VideoView
             player={player}
-            style={{ width: '100%', height: '100%' }}
+            style={CS.mediaPreviewVideoView}
             allowsFullscreen
             allowsPictureInPicture
             contentFit="contain"
@@ -321,7 +292,7 @@ export default function ListenCreateScreen() {
   const [payloadText, setPayloadText] = useState('');
   const [payloadTouched, setPayloadTouched] = useState(false);
   const [published, setPublished] = useState<boolean>(true);
-  const [picked, setPicked] = useState<{ name: string; uri: string; file?: File | null; mimeType?: string | null } | null>(null);
+  const [picked, setPicked] = useState<{ name: string; uri: string; file?: any; mimeType?: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number>(0);
   const [original, setOriginal] = useState<{ audioUrl?: string; mediaType?: string | null }>({});
@@ -343,15 +314,18 @@ export default function ListenCreateScreen() {
         const snap = await getDoc(doc(db, 'listens', editId));
         if (snap.exists() && mounted) {
           const d = snap.data() as ListenDoc;
+          const exType = (d.exerciseType ?? EXERCISE_BY_LEVEL['A1']);
           setTitle(d.title || '');
           setTranscript(d.transcript || '');
           setLevel(d.level || 'A1');
-          setExerciseType(d.exerciseType || EXERCISE_BY_LEVEL['A1']);
-          setPayloadText(JSON.stringify(d.payload ?? TEMPLATE_BY_TYPE[d.exerciseType || 'A1'], null, 2));
+          setExerciseType(exType);
+          setPayloadText(JSON.stringify(d.payload ?? TEMPLATE_BY_TYPE[exType], null, 2));
           setUrlInput(d.audioUrl || '');
           setOriginal({ audioUrl: d.audioUrl, mediaType: d.mediaType ?? null });
           setPublished(d.isPublished ?? true);
-        } else router.back();
+        } else {
+          router.back();
+        }
       } catch (e: any) {
         Alert.alert('Lỗi', e?.message ?? 'Không tải được dữ liệu.');
       } finally {
@@ -376,7 +350,6 @@ export default function ListenCreateScreen() {
       setPicked({
         name: f.name ?? 'media',
         uri: f.uri,
-        // @ts-ignore
         file: (f as any)?.file ?? null,
         mimeType: (f as any)?.mimeType ?? null,
       });
@@ -456,7 +429,7 @@ export default function ListenCreateScreen() {
       else
         await addDoc(collection(db, 'listens'), { ...payloadWrite, createdAt: serverTimestamp() });
 
-      router.replace('/(admin)/listen');
+      router.replace('/(admin)/listen/listen-screen');
     } catch (e: any) {
       Alert.alert('Lỗi', e?.message ?? 'Không thể lưu');
     } finally {
@@ -467,9 +440,11 @@ export default function ListenCreateScreen() {
 
   /* ---------- UI ---------- */
   const effectiveUrl = (urlInput || original.audioUrl || '').trim();
-  const effectiveMediaType = (picked?.name
-    ? (isAudioExt(getExt(picked.name)) ? guessAudioMime(getExt(picked.name)) : guessVideoMime(getExt(picked.name)))
-    : (original.mediaType ?? null)) || (effectiveUrl ? inferMediaTypeFromUrl(effectiveUrl) : null);
+  const effectiveMediaType =
+    (picked?.name
+      ? (isAudioExt(getExt(picked.name)) ? guessAudioMime(getExt(picked.name)) : guessVideoMime(getExt(picked.name)))
+      : (original.mediaType ?? null)) ||
+    (effectiveUrl ? inferMediaTypeFromUrl(effectiveUrl) : null);
 
   const Form = (
     <>
@@ -478,16 +453,16 @@ export default function ListenCreateScreen() {
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={S.headerTitle}>{editId ? 'Sửa bài nghe' : 'Tạo bài nghe'}</Text>
-        <View style={{ width: 22 }} />
+        <View style={CS.headerRightPlaceholder} />
       </View>
 
       {loadingDoc ? (
-        <View style={{ padding: 24 }}>
+        <View style={CS.loadingContainer}>
           <ActivityIndicator color={COLORS.create} />
         </View>
       ) : (
         <ScrollView
-          style={{ flex: 1 }}
+          style={CS.scroll}
           contentContainerStyle={{ paddingBottom: insets.bottom + 28 }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled">
@@ -518,37 +493,33 @@ export default function ListenCreateScreen() {
             <LevelPickerRow value={level} onChange={onChangeLevel} />
 
             {/* Published */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <View style={CS.publishedRow}>
               <Text style={CS.label}>Published</Text>
               <TouchableOpacity
                 onPress={() => setPublished((v) => !v)}
                 activeOpacity={0.9}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  borderRadius: 10,
-                  backgroundColor: published ? '#16a34a' : '#9ca3af',
-                  borderWidth: 1,
-                  borderColor: published ? '#15803d' : '#6b7280',
-                }}>
-                <Text style={{ color: '#fff', fontWeight: '700' }}>{published ? 'ON' : 'OFF'}</Text>
+                style={[
+                  CS.publishToggleBase,
+                  published ? CS.publishToggleOn : CS.publishToggleOff,
+                ]}>
+                <Text style={CS.publishToggleText}>{published ? 'ON' : 'OFF'}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Exercise Type */}
             <Text style={CS.label}>Exercise Type</Text>
-            <TextInput value={exerciseType} editable={false} style={[CS.input, { opacity: 0.85 }]} />
+            <TextInput value={exerciseType} editable={false} style={[CS.input, CS.exerciseTypeInput]} />
 
             {/* Payload JSON */}
             <Text style={CS.label}>Payload (JSON theo dạng bài)</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+            <View style={CS.payloadButtonsRow}>
               <TouchableOpacity
                 disabled={busy}
                 onPress={() => {
                   setPayloadText(JSON.stringify(TEMPLATE_BY_TYPE[exerciseType], null, 2));
                   setPayloadTouched(true);
                 }}
-                style={[CS.pickBtn, { flex: 0 }]}
+                style={[CS.pickBtn, CS.payloadTemplateBtn]}
                 activeOpacity={0.85}>
                 <Text style={CS.pickBtnText}>Dán template</Text>
               </TouchableOpacity>
@@ -560,7 +531,7 @@ export default function ListenCreateScreen() {
                 setPayloadTouched(true);
               }}
               multiline
-              style={[CS.input, CS.inputMultiline, { minHeight: 140 }]}
+              style={[CS.input, CS.inputMultiline, CS.payloadInput]}
               autoCapitalize="none"
             />
 

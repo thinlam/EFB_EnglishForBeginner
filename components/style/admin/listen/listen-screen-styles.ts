@@ -22,7 +22,7 @@ export const ListenStyles = StyleSheet.create({
   /* Screen */
   container: { flex: 1, backgroundColor: COLORS.bg },
 
-  /* Header (Back + Title) */
+  /* Header */
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -40,6 +40,7 @@ export const ListenStyles = StyleSheet.create({
     color: COLORS.text,
     textAlign: 'center',
   },
+  headerSpacer: { width: 22 },
 
   /* Search + Filter */
   filterRow: {
@@ -63,6 +64,7 @@ export const ListenStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+  mr6: { marginRight: 6 },
   searchInput: { flex: 1, color: COLORS.text, fontSize: 14, paddingVertical: 0 },
 
   /* Level picker button */
@@ -100,6 +102,10 @@ export const ListenStyles = StyleSheet.create({
   emptyText: { color: COLORS.muted, textAlign: 'center' },
   emptyEm: { color: COLORS.create, fontWeight: '700' },
 
+  /* List */
+  spinner: { marginTop: 40 },
+  listContent: {},
+
   /* Card item */
   card: {
     marginHorizontal: 16,
@@ -116,6 +122,11 @@ export const ListenStyles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
+  flex1: { flex: 1 },
+  alignEnd: { alignItems: 'flex-end' },
+  mt6: { marginTop: 6 },
+  ml8: { marginLeft: 8 },
+
   cardTitle: { flex: 1, color: COLORS.text, fontSize: 16, fontWeight: '700' },
 
   /* CEFR badge */
@@ -135,9 +146,6 @@ export const ListenStyles = StyleSheet.create({
   rowLabel: { color: COLORS.muted, fontSize: 12, minWidth: 92 },
   rowTextLink: { color: COLORS.link, fontSize: 13, textDecorationLine: 'underline' },
 
-  /* Content */
-  cardTranscript: { color: COLORS.muted, fontSize: 13, flex: 1 },
-
   /* Actions */
   cardActions: {
     flexDirection: 'row',
@@ -146,6 +154,7 @@ export const ListenStyles = StyleSheet.create({
     gap: 12,
     flexWrap: 'nowrap',
   },
+  actionsTight: { justifyContent: 'flex-start' },
   iconBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -159,6 +168,25 @@ export const ListenStyles = StyleSheet.create({
     minHeight: 36,
   },
   iconBtnText: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
+  textEdit: { color: COLORS.edit },
+  textDel: { color: COLORS.del },
+
+  /* Level quick picker */
+  levelRow: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },
+  levelChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: 'transparent',
+  },
+  levelChipActive: {
+    borderColor: '#111827',
+    backgroundColor: '#111827',
+  },
+  levelChipText: { color: COLORS.text, fontWeight: '600' },
+  levelChipTextActive: { color: '#fff' },
 
   /* FAB */
   fab: {
@@ -179,4 +207,100 @@ export const ListenStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+
+  /* Modal (Transcript) */
+  overlayCenter: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  dialog: {
+    width: '92%',
+    maxWidth: 520,
+    maxHeight: '80%',
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 2,
+    padding: 6,
+    borderRadius: 10,
+    backgroundColor: COLORS.card2,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+  },
+  modalHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
+  modalBody: { paddingHorizontal: 16, paddingVertical: 12 },
+  modalText: { color: COLORS.subText, fontSize: 14, lineHeight: 22 },
+  modalInput: {
+    color: COLORS.text,
+    backgroundColor: COLORS.card2,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    borderRadius: 10,
+    padding: 12,
+    minHeight: 160,
+    textAlignVertical: 'top',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  editBtnBg: { backgroundColor: COLORS.card2 },
+  saveBtnBg: { backgroundColor: COLORS.create, borderColor: COLORS.border },
+  saveBtnText: { color: COLORS.bg },
+
+  /* Modal (Level picker) */
+  overlayDim: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  levelDialog: {
+    width: 260,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+    overflow: 'hidden',
+  },
+  levelHeader: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  levelTitle: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
+  levelItemRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderSoft,
+  },
+  levelItemText: { color: COLORS.text, fontSize: 15, fontWeight: '500' },
+  levelItemTextSelected: { fontWeight: '700' },
 });
