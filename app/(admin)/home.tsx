@@ -1,6 +1,7 @@
 import { styles } from '@/components/style/HomeStyles';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import React, { useState } from 'react';
+
 import {
   ScrollView,
   Text,
