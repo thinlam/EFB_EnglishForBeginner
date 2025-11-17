@@ -83,4 +83,19 @@ export const styles = StyleSheet.create({
   levelChipActive: { backgroundColor: '#fff' },
   levelText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   levelTextActive: { color: '#0B1220' },
+  premiumBadge: {
+  alignSelf: 'flex-start',
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 999,
+  marginBottom: 6,
+},
+premiumBadgeText: {
+  fontSize: 11,
+  fontWeight: '700',
+  letterSpacing: 1,
+  color: '#FFFFFF',
+  textTransform: 'uppercase',
+},
+
 });

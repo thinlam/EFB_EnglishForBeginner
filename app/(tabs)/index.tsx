@@ -17,9 +17,10 @@ import { styles } from '@/components/style/tab/HomeScreenStyles';
 const FILTER_CARDS_BY_LEVEL = true;
 
 export default function HomeScreen() {
-  const { greetingName, level } = useAuthProfile();
+  const { greetingName, level, isPremium } = useAuthProfile();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  
 
   const filteredData = useMemo(() => {
     if (!FILTER_CARDS_BY_LEVEL) return DATA;
@@ -92,17 +93,35 @@ export default function HomeScreen() {
     <SafeAreaView style={[styles.screen, { paddingTop: insets.top }]} edges={['top', 'left', 'right']}>
       {/* Greeting */}
       <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.hello}>
-            Xin chào, <Text style={styles.helloBold}>{greetingName}</Text>
-          </Text>
-          <Text style={styles.subHello}>Học đều mỗi ngày để lên trình nhé!</Text>
-        </View>
-        <View style={styles.headerLevelPill}>
-          <Text style={styles.headerLevelLabel}>CEFR</Text>
-          <Text style={styles.headerLevelText}>{level}</Text>
-        </View>
-      </View>
+  <View style={{ flex: 1 }}>
+    {/* PREMIUM badge bảy sắc cầu vồng */}
+    {isPremium && (
+      <LinearGradient
+        colors={['#F97316', '#FACC15', '#22C55E', '#3B82F6', '#A855F7']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.premiumBadge}
+      >
+        <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+      </LinearGradient>
+    )}
+
+    {/* Dòng chào */}
+    <Text style={styles.hello}>
+      {isPremium ? 'Super, ' : 'Xin chào, '}
+      <Text style={styles.helloBold}>{greetingName}</Text>
+    </Text>
+
+    <Text style={styles.subHello}>
+      Học đều mỗi ngày để lên trình nhé!
+    </Text>
+  </View>
+
+  <View style={styles.headerLevelPill}>
+    <Text style={styles.headerLevelLabel}>CEFR</Text>
+    <Text style={styles.headerLevelText}>{level}</Text>
+  </View>
+</View>
 
       {/* Cards */}
       <FlatList
