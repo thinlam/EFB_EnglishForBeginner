@@ -25,7 +25,7 @@ export const DATA: Item[] = [
     gradient: ['#FDE047', '#F59E0B'] as const, topics: 12, levels: ['A1','A2','B1','B2','C1','C2'] },
   { id: '5', title: 'Workbook', icon: 'document-text-outline',
     gradient: ['#2DD4BF', '#0EA5E9'] as const, subtitle: 'Bài tập tổng hợp', levels: ['All'] },
-  { id: '6', title: 'Dịch', icon: 'globe',
+  { id: '6', title: 'Translate', icon: 'globe',
     gradient: ['#34D399', '#14B8A6'] as const, subtitle: 'Dịch văn bản', levels: ['Tool'] },
   { id: '7', title: 'Bảng xếp hạng', icon: 'trophy',
     gradient: ['#FB923C', '#B91C1C'] as const, subtitle: 'Xếp hạng', levels: ['Ranking'] },

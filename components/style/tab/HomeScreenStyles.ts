@@ -12,6 +12,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
 
   hello: { color: '#0B1220', fontSize: 18, fontWeight: '500' },
@@ -26,7 +27,12 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  headerLevelLabel: { color: '#6B7280', fontSize: 10, fontWeight: '600', marginBottom: 2 },
+  headerLevelLabel: {
+    color: '#6B7280',
+    fontSize: 10,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
   headerLevelText: { color: '#111827', fontWeight: '800', fontSize: 16 },
 
   card: {
@@ -48,7 +54,11 @@ export const styles = StyleSheet.create({
     padding: 14,
   },
 
-  cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
 
   iconBubble: {
     width: 32,
@@ -83,19 +93,54 @@ export const styles = StyleSheet.create({
   levelChipActive: { backgroundColor: '#fff' },
   levelText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   levelTextActive: { color: '#0B1220' },
-  premiumBadge: {
-  alignSelf: 'flex-start',
-  paddingHorizontal: 10,
-  paddingVertical: 4,
-  borderRadius: 999,
-  marginBottom: 6,
-},
-premiumBadgeText: {
-  fontSize: 11,
-  fontWeight: '700',
-  letterSpacing: 1,
-  color: '#FFFFFF',
-  textTransform: 'uppercase',
-},
 
+  // PREMIUM badge trên đầu
+  premiumBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginBottom: 6,
+  },
+  premiumBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+
+  // Row chứa avatar + text
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+
+  headerTextBlock: {
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  // Avatar
+  avatarPremiumRing: {
+    padding: 2,
+    borderRadius: 999,
+    marginRight: 10,
+  },
+
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: 'rgba(15,23,42,0.12)', // hơi tối để nổi trên nền trắng
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  avatarText: {
+    color: '#111827',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });
