@@ -1,19 +1,23 @@
 // components/style/admin/listen/listen-create-styles.ts
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { COLORS } from './listen-screen-styles';
 
 export const ListenCreateStyles = StyleSheet.create({
   /* =========== CƠ BẢN CHO SCREEN & INPUT =========== */
   screen: {
+    width: '100%',
+    maxWidth: 720,          // đẹp hơn trên web, tablet
+    alignSelf: 'center',
     paddingHorizontal: 16,
     paddingTop: 12,
+    paddingBottom: 24,
     gap: 12,
   },
 
   label: {
     marginBottom: 6,
     color: COLORS.muted,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
 
@@ -34,6 +38,23 @@ export const ListenCreateStyles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
+  /* ---- Section card ---- */
+  sectionCard: {
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+  },
+
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+
   pickBtn: {
     marginTop: 4,
     marginBottom: 8,
@@ -43,6 +64,16 @@ export const ListenCreateStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.create,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+
+  pickBtnDisabled: {
+    opacity: 0.6,
   },
 
   pickBtnText: {
@@ -65,12 +96,22 @@ export const ListenCreateStyles = StyleSheet.create({
   },
 
   saveBtn: {
-    marginTop: 16,
+    marginTop: 8,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.create,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+
+  saveBtnDisabled: {
+    opacity: 0.6,
   },
 
   saveBtnText: {
@@ -78,10 +119,6 @@ export const ListenCreateStyles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
-
-  // ================= Giữ nguyên các style cũ của bạn ở đây =================
-  // (nếu bạn còn các style cũ khác thì dán thêm lên trên hoặc dưới, miễn không trùng key)
-  // ========================================================================
 
   /* ---- Header ---- */
   headerRightPlaceholder: {
@@ -110,6 +147,12 @@ export const ListenCreateStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
     overflow: 'hidden',
+
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
   levelModalHeader: {
     padding: 14,
@@ -158,6 +201,7 @@ export const ListenCreateStyles = StyleSheet.create({
   /* ---- Media Preview ---- */
   mediaPreviewWrapper: {
     marginTop: 12,
+    marginBottom: 8,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
@@ -193,13 +237,15 @@ export const ListenCreateStyles = StyleSheet.create({
   /* ---- Loading ---- */
   loadingContainer: {
     padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   /* ---- Published toggle ---- */
   publishedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
     marginBottom: 8,
   },
   publishToggleBase: {
@@ -227,15 +273,16 @@ export const ListenCreateStyles = StyleSheet.create({
   },
 
   /* ---- Payload section ---- */
-  payloadButtonsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  payloadTemplateBtn: {
-    flex: 0,
-  },
   payloadInput: {
     minHeight: 140,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  payloadHint: {
+    fontSize: 12,
+    color: COLORS.muted,
+    marginBottom: 4,
   },
 });
