@@ -46,7 +46,7 @@ export default function SelectLevelScreen() {
             onPress={() => handleSelect(item.stars)}
             activeOpacity={0.85}
           >
-            {renderStars(item.stars, FontAwesome)}
+            {renderStars(item.stars, FontAwesome as React.ComponentType<any>)}
             <Text style={styles.optionLabel}>{item.label}</Text>
           </TouchableOpacity>
         )}
