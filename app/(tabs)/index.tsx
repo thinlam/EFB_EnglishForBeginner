@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/* Firebase (để fallback lấy auth.photoURL) */
+/* Firebase (fallback lấy auth.photoURL) */
 import { auth } from '@/scripts/firebase';
 
 /* Hooks */
@@ -25,30 +25,62 @@ import { DATA, Item } from '@/constants/tab/cards';
 /* Styles */
 import { styles } from '@/components/style/tab/HomeScreenStyles';
 
+/* CEFR Pill có nước lượn sóng */
+import { CefrPill } from '@/components/CefrPill';
+
 const FILTER_CARDS_BY_LEVEL = true;
 
+/** Thứ tự CEFR và số XP cần để lên mỗi level */
+const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
+const XP_PER_LEVEL = 100;
+
+/** Tính level + progress từ tổng XP */
+function getCefrFromXp(totalXp: number) {
+  if (!Number.isFinite(totalXp) || totalXp < 0) {
+    totalXp = 0;
+  }
+
+  const maxIndex = CEFR_ORDER.length - 1;
+
+  // mỗi level 100 XP: 0–99 → A1, 100–199 → A2, ...
+  const idx = Math.min(Math.floor(totalXp / XP_PER_LEVEL), maxIndex);
+  const level = CEFR_ORDER[idx];
+
+  const xpInThisLevel = totalXp - idx * XP_PER_LEVEL;
+  const progress = Math.min(xpInThisLevel / XP_PER_LEVEL, 1);
+  return { level, progress };
+}
+
 export default function HomeScreen() {
-  // Lấy profile từ hook (GIỮ nguyên hook như bạn đang dùng)
   const profile = useAuthProfile();
-  const { greetingName, level, isPremium } = profile;
-  const hookPhotoURL: string | null = (profile as any).photoURL ?? null;
-
-  // Fallback thêm từ Firebase Auth phòng khi hook chưa có photoURL
-  const authPhotoURL: string | null = auth.currentUser?.photoURL ?? null;
-
-  // URL cuối cùng dùng cho avatar
-  const photoURL: string | null = hookPhotoURL || authPhotoURL || null;
-
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // Ký tự đầu để dùng khi không có avatar
+  const greetingName = profile.greetingName;
+  const isPremium = (profile as any).isPremium ?? false;
+
+  // Lấy ce fr XP (tổng điểm) từ profile
+  // TODO: sau này em lưu thật trong Firestore là ok
+  const totalXp: number = (profile as any).cefrXp ?? 40;
+
+  const { level, progress: levelProgress } = useMemo(
+    () => getCefrFromXp(totalXp),
+    [totalXp],
+  );
+
+  // Avatar URL
+  const hookPhotoURL: string | null = (profile as any).photoURL ?? null;
+  const authPhotoURL: string | null = auth.currentUser?.photoURL ?? null;
+  const photoURL: string | null = hookPhotoURL || authPhotoURL || null;
+
+  // Ký tự đầu khi không có avatar
   const initial = useMemo(() => {
     const raw = (greetingName || '').trim();
     if (!raw) return 'U';
     return raw[0]!.toUpperCase();
   }, [greetingName]);
 
+  // Lọc card theo level (dùng level đã tính từ XP)
   const filteredData = useMemo(() => {
     if (!FILTER_CARDS_BY_LEVEL) return DATA;
     return DATA.filter((it) => {
@@ -130,7 +162,6 @@ export default function HomeScreen() {
   );
 
   const renderAvatar = () => {
-    // Có URL avatar (từ hook hoặc từ auth)
     if (photoURL) {
       if (isPremium) {
         return (
@@ -158,7 +189,6 @@ export default function HomeScreen() {
       );
     }
 
-    // Không có avatar → dùng chữ cái đầu
     if (isPremium) {
       return (
         <LinearGradient
@@ -218,10 +248,8 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.headerLevelPill}>
-          <Text style={styles.headerLevelLabel}>CEFR</Text>
-          <Text style={styles.headerLevelText}>{level}</Text>
-        </View>
+        {/* CEFR Pill có nước lượn sóng, dùng level & progress từ XP */}
+        <CefrPill level={level} progress={levelProgress} />
       </View>
 
       {/* LIST CARD */}

@@ -1,57 +1,143 @@
+// components/style/tab/HomeScreenStyles.ts
 import { Dimensions, StyleSheet } from 'react-native';
 
 const { width } = Dimensions.get('window');
 export const CARD_WIDTH = width / 2 - 24;
 
 export const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#FFFFFF' },
+  screen: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
 
+  /* HEADER */
   header: {
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
 
-  hello: { color: '#0B1220', fontSize: 18, fontWeight: '500' },
-  helloBold: { fontWeight: '800' },
-  subHello: { color: '#6B7280', fontSize: 12, marginTop: 2 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
 
-  headerLevelPill: {
-    marginLeft: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
+  headerTextBlock: {
+    marginLeft: 12,
+    flexShrink: 1,
+  },
+
+  hello: {
+    color: '#0B1220',
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  helloBold: {
+    fontWeight: '800',
+  },
+  subHello: {
+    color: '#6B7280',
+    fontSize: 12,
+    marginTop: 2,
+  },
+
+  /* Avatar */
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
     alignItems: 'center',
   },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4B5563',
+  },
+  avatarPremiumRing: {
+    padding: 2,
+    borderRadius: 999,
+  },
+
+  /* PREMIUM badge */
+  premiumBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  premiumBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#111827',
+    letterSpacing: 0.6,
+  },
+
+  /* CEFR pill + nước */
+  headerLevelPill: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+    padding: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+    overflow: 'hidden',
+  },
+
+  levelWaterContainer: {
+    flex: 1,
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  levelWaterFill: {
+    position: 'absolute',
+    left: -20,
+    right: -20,
+    bottom: -5,
+    backgroundColor: '#BFDBFE',
+    opacity: 0.85,
+    borderRadius: 32,
+  },
+
+  levelTextWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   headerLevelLabel: {
     color: '#6B7280',
     fontSize: 10,
     fontWeight: '600',
-    marginBottom: 2,
   },
-  headerLevelText: { color: '#111827', fontWeight: '800', fontSize: 16 },
+  headerLevelText: {
+    color: '#0B1220',
+    fontSize: 16,
+    fontWeight: '800',
+  },
 
+  /* CARD LIST */
   card: {
     width: CARD_WIDTH,
     height: 140,
-    borderRadius: 16,
+    borderRadius: 18,
     marginBottom: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
   },
 
   gradientBg: {
     flex: 1,
-    borderRadius: 16,
-    padding: 14,
+    padding: 12,
+    borderRadius: 18,
   },
 
   cardTopRow: {
@@ -63,84 +149,54 @@ export const styles = StyleSheet.create({
   iconBubble: {
     width: 32,
     height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
-
-  title: { fontSize: 18, fontWeight: '900', color: '#fff', marginTop: 10 },
-
-  topics: { fontSize: 14, color: '#F9FAFB', fontWeight: '600' },
-  subtitle: {
-    fontSize: 14,
-    color: '#F9FAFB',
-    fontStyle: 'italic',
-    fontWeight: '500',
-    maxWidth: CARD_WIDTH - 80,
-  },
-
-  levelRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
-  levelChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    marginRight: 6,
-    marginBottom: 6,
-    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  levelChipActive: { backgroundColor: '#fff' },
-  levelText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  levelTextActive: { color: '#0B1220' },
 
-  // PREMIUM badge trên đầu
-  premiumBadge: {
-    alignSelf: 'flex-start',
+  subtitle: {
+    color: '#F9FAFB',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+
+  topics: {
+    color: '#E5E7EB',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+
+  title: {
+    marginTop: 8,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
+  levelRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+  },
+
+  levelChip: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    marginBottom: 6,
+    backgroundColor: 'rgba(15,23,42,0.25)',
   },
-  premiumBadgeText: {
+
+  levelChipActive: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+
+  levelText: {
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    color: '#FFFFFF',
-    textTransform: 'uppercase',
+    fontWeight: '600',
+    color: '#E5E7EB',
   },
 
-  // Row chứa avatar + text
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-
-  headerTextBlock: {
-    flex: 1,
-    marginLeft: 10,
-  },
-
-  // Avatar
-  avatarPremiumRing: {
-    padding: 2,
-    borderRadius: 999,
-    marginRight: 10,
-  },
-
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    backgroundColor: 'rgba(15,23,42,0.12)', // hơi tối để nổi trên nền trắng
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  avatarText: {
+  levelTextActive: {
     color: '#111827',
-    fontSize: 16,
-    fontWeight: '700',
   },
 });
