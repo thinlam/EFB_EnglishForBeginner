@@ -109,6 +109,12 @@ export default function TabLayout() {
             href : null,
           }}
           />
+          <Tabs.Screen
+          name = "grammar/detail/[id]"
+          options={{
+            href : null,
+          }}
+          />
     </Tabs>
     
   )

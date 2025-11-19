@@ -1,8 +1,4 @@
-/**
- * Dự án: EFB - English For Beginners
- * Màn hình: Vocabulary theo cấp độ CEFR
- * Chức năng: Chọn chủ đề → xem từ vựng theo level & topic.
- */
+// app/(tabs)/WordBookScreen.tsx
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -11,31 +7,53 @@ import { FlatList, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { styles } from '@/components/style/WorkBookStyles';
+import {
+  getGrammarByLevel,
+  type GrammarPoint,
+} from '@/hooks/grammar/useLevelGrammar';
 import { useAuthProfile } from '@/hooks/tab/useAuthProfile';
 import {
   getVocabByLevel,
   type VocabWord,
 } from '@/hooks/useLevelVocabulary';
 
-/** Random pastel mượt, ổn định theo index */
-function getPastelColor(seed: number) {
-  const hue = (seed * 53) % 360; // đổi góc màu
-  const saturation = 38; // pastel → bão hoà thấp
-  const lightness = 88; // sáng
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-}
-
 export default function WordBookScreen() {
   const router = useRouter();
-  const { level } = useAuthProfile(); // có thể là '1', '2', 'A1',...
-  const { vocab, topics, cefrLevel } = getVocabByLevel(level);
+  const { level } = useAuthProfile();
 
+  const [tab, setTab] = useState<'voc' | 'gra'>('voc');
+
+  const { vocab, topics, cefrLevel } = getVocabByLevel(level);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
 
   const filteredWords = useMemo(() => {
     if (!selectedTopic) return vocab;
     return vocab.filter((w) => w.topic === selectedTopic);
   }, [selectedTopic, vocab]);
+
+  const { items: grammarItems } = getGrammarByLevel(level);
+
+  const renderTab = () => (
+    <View style={styles.tabWrap}>
+      <TouchableOpacity
+        style={[styles.tabBtn, tab === 'voc' && styles.tabBtnActive]}
+        onPress={() => setTab('voc')}
+      >
+        <Text style={[styles.tabText, tab === 'voc' && styles.tabTextActive]}>
+          Từ vựng
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.tabBtn, tab === 'gra' && styles.tabBtnActive]}
+        onPress={() => setTab('gra')}
+      >
+        <Text style={[styles.tabText, tab === 'gra' && styles.tabTextActive]}>
+          Ngữ pháp
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   const renderTopicCard = ({
     item,
@@ -44,118 +62,120 @@ export default function WordBookScreen() {
     item: string;
     index: number;
   }) => {
-    const bg = getPastelColor(index);
+    const pastelColors = ['#FDECEF', '#FFF5DC', '#EAF7EE', '#E8F4FF', '#F1EDFF'];
+    const bg = pastelColors[index % pastelColors.length];
 
     return (
       <TouchableOpacity
         style={[styles.topicCard, { backgroundColor: bg }]}
         onPress={() => setSelectedTopic(item)}
       >
-        <Text style={styles.topicCardTitle}>{item}</Text>
-
-        <View style={styles.topicCardBadge}>
-          <Text style={styles.topicCardBadgeText}>
+        <View>
+          <Text style={styles.topicCardTitle}>{item}</Text>
+          <Text style={styles.topicCardSub}>
             {vocab.filter((v) => v.topic === item).length} từ
           </Text>
         </View>
+
+        <Ionicons name="chevron-forward" size={20} color="#4B5563" />
       </TouchableOpacity>
     );
   };
 
   const renderWordItem = ({ item }: { item: VocabWord }) => (
     <TouchableOpacity
-      style={styles.card}
+      style={styles.wordCard}
       onPress={() => router.push(`/vocab/detail/${item.id}`)}
     >
-      <View style={styles.cardHeaderRow}>
-        <View style={styles.wordBlock}>
-          <Text style={styles.wordText}>{item.word}</Text>
-          {!!item.phonetic && (
-            <Text style={styles.phoneticText}>{item.phonetic}</Text>
-          )}
-        </View>
-
-        {!!item.topic && (
-          <View style={styles.topicPill}>
-            <Ionicons name="pricetag-outline" size={12} />
-            <Text style={styles.topicText}>{item.topic}</Text>
-          </View>
+      <View style={styles.wordLeft}>
+        <Text style={styles.wordText}>{item.word}</Text>
+        {!!item.phonetic && (
+          <Text style={styles.wordPhonetic}>{item.phonetic}</Text>
         )}
       </View>
-
-      <Text style={styles.meaningText}>{item.meaningVi}</Text>
-
-      {!!item.exampleEn && (
-        <View style={styles.exampleBlock}>
-          <Text style={styles.exampleEnText}>{item.exampleEn}</Text>
-          {!!item.exampleVi && (
-            <Text style={styles.exampleViText}>{item.exampleVi}</Text>
-          )}
-        </View>
-      )}
+      <Ionicons name="arrow-forward" size={18} color="#4B5563" />
     </TouchableOpacity>
   );
 
-  const renderEmpty = () => (
-    <View style={styles.emptyWrap}>
-      <View style={styles.emptyIconCircle}>
-        <Ionicons name="book-outline" size={28} />
+  const renderGrammarItem = ({ item }: { item: GrammarPoint }) => (
+    <TouchableOpacity
+      style={styles.grammarCard}
+      onPress={() => router.push({ pathname: '/(tabs)/grammar/detail/[id]', params: { id: item.id } })}
+    >
+      <Text style={styles.grammarTag}>A1 • Grammar</Text>
+      <Text style={styles.grammarTitle}>{item.title}</Text>
+      <Text style={styles.grammarPattern}>{item.pattern}</Text>
+      <Text style={styles.grammarSummary}>{item.summary}</Text>
+
+      <View style={styles.grammarExampleBlock}>
+        <Text style={styles.grammarExampleEn}>{item.exampleEn}</Text>
+        <Text style={styles.grammarExampleVi}>{item.exampleVi}</Text>
       </View>
-      <Text style={styles.emptyTitle}>Chưa có từ vựng nào cho level này</Text>
-      <Text style={styles.emptySubtitle}>
-        Hãy thêm dữ liệu từ vựng trong constants/vocab để hiển thị nội dung.
-      </Text>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.headerWrap}>
-          <View style={styles.headerAccent} />
-          <View style={styles.headerTextWrap}>
-            <Text style={styles.headerTitle}>Từ vựng Level {cefrLevel}</Text>
-            <Text style={styles.headerSubtitle}>
-              Chọn chủ đề để bắt đầu học từ vựng phù hợp với level.
-            </Text>
-          </View>
-          <View style={styles.headerRightSpace} />
-        </View>
+        {renderTab()}
 
-        {/* MODE 1: chưa chọn chủ đề → list topic dọc, có scroll */}
-        {!selectedTopic && (
-          <FlatList
-            data={topics}
-            keyExtractor={(item) => item}
-            renderItem={renderTopicCard}
-            contentContainerStyle={styles.topicListContainer}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={renderEmpty}
-          />
+        {/* TAB: VOCAB */}
+        {tab === 'voc' && (
+          <>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Từ vựng Level {cefrLevel}</Text>
+              <Text style={styles.headerSubtitle}>
+                Chọn chủ đề để bắt đầu học.
+              </Text>
+            </View>
+
+            {!selectedTopic && (
+              <FlatList
+                data={topics}
+                keyExtractor={(item) => item}
+                renderItem={renderTopicCard}
+                contentContainerStyle={{ paddingBottom: 40 }}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+
+            {selectedTopic && (
+              <>
+                <TouchableOpacity
+                  style={styles.backBtn}
+                  onPress={() => setSelectedTopic(null)}
+                >
+                  <Ionicons name="arrow-back" size={18} />
+                  <Text style={styles.backBtnText}>Chủ đề</Text>
+                </TouchableOpacity>
+
+                <FlatList
+                  data={filteredWords}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderWordItem}
+                  contentContainerStyle={{ paddingBottom: 80 }}
+                  showsVerticalScrollIndicator={false}
+                />
+              </>
+            )}
+          </>
         )}
 
-        {/* MODE 2: đã chọn 1 chủ đề → list từ vựng của chủ đề đó */}
-        {selectedTopic && (
+        {/* TAB: GRAMMAR */}
+        {tab === 'gra' && (
           <>
-            <TouchableOpacity
-              style={styles.backBtn}
-              onPress={() => setSelectedTopic(null)}
-            >
-              <Ionicons name="arrow-back" size={18} />
-              <Text style={styles.backBtnText}>Chủ đề</Text>
-            </TouchableOpacity>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Ngữ pháp Level {cefrLevel}</Text>
+              <Text style={styles.headerSubtitle}>
+                Các điểm ngữ pháp cơ bản bạn cần nắm ở trình độ này.
+              </Text>
+            </View>
 
             <FlatList
-              data={filteredWords}
+              data={grammarItems}
               keyExtractor={(item) => item.id}
-              renderItem={renderWordItem}
-              contentContainerStyle={
-                filteredWords.length === 0
-                  ? styles.listEmptyContainer
-                  : styles.listContainer
-              }
-              ListEmptyComponent={renderEmpty}
+              renderItem={renderGrammarItem}
+              contentContainerStyle={{ paddingBottom: 80 }}
               showsVerticalScrollIndicator={false}
             />
           </>

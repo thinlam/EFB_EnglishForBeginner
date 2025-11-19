@@ -1,10 +1,4 @@
-export type VocabQuestion = {
-  id: string;
-  word: string;
-  meaning: string; // nghĩa đúng
-  pos?: 'n' | 'v' | 'adj' | 'adv' | 'phr';
-  level?: 'A1'|'A2'|'B1'|'B2'|'C1'|'C2';
-};
+
 export type VerbForms = {
   base: string;
   thirdPerson: string;
@@ -13,16 +7,32 @@ export type VerbForms = {
   pastParticiple: string;
 };
 
+export type IdiomItem = {
+  phrase: string;      // cụm từ / thành ngữ
+  meaning: string;     // nghĩa tiếng Việt
+  exampleEn?: string;
+  exampleVi?: string;
+};
+
+export type MeaningItem = {
+  definition: string;  // nghĩa tiếng Việt
+  exampleEn?: string;
+  exampleVi?: string;
+};
+
+export type VocabEntry = {
+  pos: string;                 // noun / verb / adjective / adverb / phrase...
+  forms?: VerbForms;           // chỉ dùng cho động từ
+  meanings: MeaningItem[];     // nhiều nghĩa
+  idioms?: IdiomItem[];        // thành ngữ / collocation liên quan
+};
+
 export type VocabItem = {
   id: string;
-  word: string;
-  phonetic: string;
-  meaningVi: string;
-  pos: string;
-  exampleEn: string;
-  exampleVi: string;
+  word: string;                // headword (có thể là phrase)
+  phonetic?: string;
+  entries: VocabEntry[];       // một từ có thể nhiều từ loại
   topic: string;
   createdAt: string;
-  forms?: VerbForms; // 👉 thêm dòng này
 };
 
