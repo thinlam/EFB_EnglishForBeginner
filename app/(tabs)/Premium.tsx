@@ -45,7 +45,7 @@ export default function PremiumScreen() {
     <SafeAreaView style={S.container}>
       {/* HEADER */}
       <View style={S.headerWrapper}>
-        <Text style={S.headerTitle}>Premium Unlock</Text>
+        <Text style={S.headerTitle}>Premium </Text>
         <Text style={S.headerSubtitle}>
           Nâng cấp để học không giới hạn, không quảng cáo và mở khóa toàn bộ nội dung.
         </Text>
