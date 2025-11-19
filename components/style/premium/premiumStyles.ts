@@ -1,105 +1,179 @@
 // components/style/premium/premiumStyles.ts
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 export const premiumStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#fdfdffff', // slate-900
   },
+
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 32,
   },
+
+  /* HEADER */
   headerWrapper: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0b0c0cff',
   },
   headerSubtitle: {
     marginTop: 4,
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 13,
+    color: '#121213ff',
   },
+
+  /* HERO CARD */
   heroCard: {
-    borderRadius: 20,
-    padding: 24,
-    marginTop: 16,
-    marginBottom: 24,
-    overflow: 'hidden',
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    marginBottom: 20,
   },
   heroIcon: {
-    fontSize: 40,
-    textAlign: 'center',
+    fontSize: 26,
+    marginBottom: 6,
   },
   heroTitle: {
-    marginTop: 10,
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
-    textAlign: 'center',
   },
   heroText: {
-    marginTop: 6,
-    fontSize: 14,
-    color: '#1F2933',
-    textAlign: 'center',
+    marginTop: 4,
+    fontSize: 13,
+    color: '#1F2937',
   },
+
+  /* SECTION TITLE */
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
-    marginBottom: 10,
+    color: '#151618ff',
+    marginBottom: 8,
+    marginTop: 8,
   },
+
+  /* BENEFITS */
   benefitRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   benefitIcon: {
-    marginTop: 2,
     marginRight: 8,
+    marginTop: 2,
   },
   benefitText: {
     flex: 1,
-    fontSize: 14,
-    color: '#374151',
+    fontSize: 13,
+    color: '#111010ff',
   },
+
+  /* PLANS WRAPPER */
   plansContainer: {
-    marginTop: 18,
+    marginTop: 16,
+    marginBottom: 16,
   },
-  ctaButton: {
-    marginTop: 26,
+
+  /* PLAN CARD */
+  planCard: {
+    width: width - 32,
     borderRadius: 16,
+    paddingHorizontal: 16,
     paddingVertical: 14,
+    backgroundColor: '#020617', // slate-950
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    marginBottom: 12,
+  },
+  planCardSelected: {
+    borderColor: '#FACC15',
+    backgroundColor: '#111827',
+  },
+
+  planHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  planTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#F9FAFB',
+  },
+
+  badgeWrapper: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: '#FACC15',
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+
+  planDescription: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 8,
+  },
+
+  planFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  planPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FDE68A',
+  },
+
+  /* CTA BUTTON */
+  ctaButton: {
+    marginTop: 8,
+    borderRadius: 999,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: '#FACC15',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F59E0B',
   },
   ctaText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#FFF',
+    fontWeight: '800',
+    color: '#111827',
   },
   ctaSubText: {
     marginTop: 4,
-    fontSize: 12,
-    color: '#FEF3C7',
+    fontSize: 11,
+    color: '#4B5563',
   },
+
+  /* FOOTER */
   footerText: {
-    marginTop: 18,
+    marginTop: 12,
     fontSize: 12,
     textAlign: 'center',
-    color: '#6B7280',
+    color: '#9CA3AF',
   },
   restoreText: {
-    marginTop: 8,
-    fontSize: 13,
+    marginTop: 4,
+    fontSize: 12,
     textAlign: 'center',
-    color: '#2563EB',
+    color: '#60A5FA',
+    textDecorationLine: 'underline',
   },
 });

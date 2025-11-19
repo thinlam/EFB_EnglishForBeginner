@@ -76,23 +76,31 @@ export default function ProfileScreen() {
   const level = u.level || 'A1';
 
   // ----- PREMIUM STATE -----
-  const expiresDate =
-    u.premiumExpiresAt ? new Date(u.premiumExpiresAt as string) : null;
+  // ----- PREMIUM STATE -----
+function parseDate(v: any): Date | null {
+  if (!v) return null;
+  if (v?.toDate) return v.toDate(); // Firestore Timestamp
+  if (v instanceof Date) return v;
+  if (typeof v === 'string' || typeof v === 'number') return new Date(v);
+  return null;
+}
 
-  const now = Date.now();
-  const hasFutureExpire =
-    expiresDate && !Number.isNaN(expiresDate.getTime())
-      ? expiresDate.getTime() > now
-      : false;
+const expiresDate = parseDate(u.premiumExpiresAt);
 
-  const isPremium = !!(
-    (typeof u.premium === 'boolean' && u.premium) ||
-    u.premiumPlanId ||
-    hasFutureExpire
-  );
+const now = Date.now();
+const hasFutureExpire =
+  expiresDate && !Number.isNaN(expiresDate.getTime())
+    ? expiresDate.getTime() > now
+    : false;
 
-  const premiumStartText = fmtDate(u.premiumUpdatedAt);
-  const premiumEndText = fmtDate(u.premiumExpiresAt);
+const isPremium = !!(
+  (typeof u.premium === 'boolean' && u.premium) ||
+  u.premiumPlanId ||
+  hasFutureExpire
+);
+
+const premiumStartText = fmtDate(u.premiumUpdatedAt);
+const premiumEndText = fmtDate(u.premiumExpiresAt);
 
   const handlePremiumPress = () => {
     router.push('/Premium');

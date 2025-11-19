@@ -1,35 +1,31 @@
-// constants/premium.ts
-import { PremiumPlan } from '@/types/Premium/premium';
+// constants/Premium/premium.ts
+import type { PremiumPlan } from '@/types/Premium/premium';
 
 export const PREMIUM_BENEFITS: string[] = [
-  'Không quảng cáo trong suốt quá trình học',
-  'Mở khóa tất cả bài học Listening & Reading',
-  'Truy cập toàn bộ mini-game (Caro, Sprint, v.v.)',
-  'X2 EXP mỗi ngày để lên level nhanh hơn',
-  'Luyện đề & bài test không giới hạn số lượt',
-  'Tải nội dung quan trọng để học offline',
-  'Thống kê tiến độ học chi tiết theo ngày/tuần',
-  'Tự động đồng bộ tiến trình trên cloud',
+  'Không quảng cáo trong quá trình học',
+  'Mở khóa tất cả bài học & trò chơi',
+  'Lộ trình học cá nhân hoá theo cấp độ',
+  'Ưu tiên cập nhật tính năng mới',
+  'Hỗ trợ kỹ thuật nhanh hơn',
 ];
 
 export const PREMIUM_PLANS: PremiumPlan[] = [
   {
     id: 'monthly',
-    title: 'Gói tháng',
-    priceLabel: '59.000đ / tháng',
-    description: 'Linh hoạt, có thể hủy bất kỳ lúc nào.',
+    label: 'Monthly Premium',
+    description: 'Thanh toán theo tháng, linh hoạt, có thể hủy bất kỳ lúc nào.',
+    price: 59000,
+    currency: 'VND',
+    badge: 'Popular',
   },
   {
     id: 'yearly',
-    title: 'Gói năm',
-    priceLabel: '399.000đ / năm',
-    badge: 'Tiết kiệm nhất',
-    description: 'Tiết kiệm hơn so với gói tháng, phù hợp học lâu dài.',
-  },
-  {
-    id: 'lifetime',
-    title: 'Trọn đời',
-    priceLabel: '699.000đ / một lần',
-    description: 'Thanh toán 1 lần, sử dụng trọn đời.',
+    label: 'Yearly Premium',
+    description: 'Tiết kiệm hơn so với trả theo tháng, phù hợp học lâu dài.',
+    price: 499000,
+    currency: 'VND',
+    highlight: true,
+    bestValue: true,
+    badge: 'Best Value',
   },
 ];

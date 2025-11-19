@@ -1,8 +1,8 @@
-// app/(tabs)/premium.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
+  Alert,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -15,8 +15,6 @@ import { premiumStyles as S } from '@/components/style/premium/premiumStyles';
 import { PREMIUM_BENEFITS, PREMIUM_PLANS } from '@/constants/Premium/premium';
 import { usePremiumPurchase } from '@/hooks/premium/usePremiumPurchase';
 import { PremiumPlanId } from '@/types/Premium/premium';
-// import { useRouter } from 'expo-router'; // nếu cần điều hướng
-
 
 export default function PremiumScreen() {
   const [selectedPlanId, setSelectedPlanId] = useState<PremiumPlanId>('yearly');
@@ -24,7 +22,23 @@ export default function PremiumScreen() {
 
   const handleUpgrade = () => {
     if (loading) return;
-    purchasePremium(selectedPlanId);
+
+    const plan = PREMIUM_PLANS.find((p) => p.id === selectedPlanId);
+    const planLabel = plan?.label ?? 'this plan';
+
+    Alert.alert(
+      'Confirm purchase',
+      `Do you want to purchase ${planLabel}?`,
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: () => {
+            purchasePremium(selectedPlanId);
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -92,9 +106,12 @@ export default function PremiumScreen() {
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={handleUpgrade}
-          style={S.ctaButton}
+          style={[S.ctaButton, loading && { opacity: 0.6 }]}
+          disabled={loading}
         >
-          <Text style={S.ctaText}>Upgrade Now</Text>
+          <Text style={S.ctaText}>
+            {loading ? 'Processing…' : 'Upgrade Now'}
+          </Text>
           <Text style={S.ctaSubText}>
             Thanh toán an toàn – không ràng buộc, có thể hủy bất kỳ lúc nào.
           </Text>
