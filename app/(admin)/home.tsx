@@ -17,8 +17,6 @@ export default function AdminHomeScreen() {
     {
       title: '🎓 Quản lý nội dung học',
       children: [
-        { title: 'Từ vựng', path: '/(admin)/vocabulary' },
-        { title: 'Ngữ pháp', path: '/(admin)/grammar' },
         { title: 'Luyện nghe',path: '/(admin)/listen/listen-screen' },
         { title: 'Luyện nói' },
         { title: 'Luyện đọc', path: '/(admin)/reading/reading-screen'},

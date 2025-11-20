@@ -1,64 +1,164 @@
-import { auth, db } from '@/scripts/firebase';
+// hooks/tab/useAuthProfile.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 
-export function useAuthProfile() {
-  const [level, setLevel] = useState<string>('A1');
-  const [greetingName, setGreetingName] = useState<string>('bạn');
+import { auth, db } from '@/scripts/firebase';
+
+const STORAGE_KEY = '@efb_auth_profile';
+
+type UserDoc = {
+  name?: string;
+  fullName?: string;
+  display_name?: string;
+  hoten?: string;
+  profile?: { name?: string };
+  nickname?: string;
+  username?: string;
+
+  level?: string;
+  cefrLevel?: string;
+  cefrXp?: number;
+
+  isPremium?: boolean;
+  premium?: boolean;
+  premiumPlanId?: string;
+  premiumExpiresAt?: any;
+
+  photoURL?: string | null;
+  avatarURL?: string | null;
+};
+
+type AuthProfile = {
+  greetingName: string;
+  level: string;
+  cefrXp: number;
+  isPremium: boolean;
+  photoURL: string | null;
+};
+
+function deriveGreetingName(docData: UserDoc, user: any): string {
+  const fromDoc =
+    docData?.name ||
+    docData?.fullName ||
+    docData?.display_name ||
+    docData?.hoten ||
+    docData?.profile?.name ||
+    docData?.nickname ||
+    docData?.username;
+
+  const fromAuth = user?.displayName;
+
+  const raw = (fromDoc || fromAuth || '').trim();
+  return raw || 'bạn';
+}
+
+function deriveLevel(docData: UserDoc): string {
+  return docData?.level || docData?.cefrLevel || 'A1';
+}
+
+function deriveCefrXp(docData: UserDoc): number {
+  const xp = (docData as any)?.cefrXp;
+  return typeof xp === 'number' && Number.isFinite(xp) ? xp : 0;
+}
+
+function deriveIsPremium(docData: UserDoc): boolean {
+  const { isPremium, premium, premiumPlanId, premiumExpiresAt } = docData;
+
+  let hasFutureExpire = false;
+  if (premiumExpiresAt) {
+    let d: Date | null = null;
+    if (typeof premiumExpiresAt?.toDate === 'function') {
+      d = premiumExpiresAt.toDate();
+    } else if (premiumExpiresAt instanceof Date) {
+      d = premiumExpiresAt;
+    } else if (
+      typeof premiumExpiresAt === 'string' ||
+      typeof premiumExpiresAt === 'number'
+    ) {
+      d = new Date(premiumExpiresAt);
+    }
+    if (d && !Number.isNaN(d.getTime())) {
+      hasFutureExpire = d.getTime() > Date.now();
+    }
+  }
+
+  return !!(
+    (typeof isPremium === 'boolean' && isPremium) ||
+    (typeof premium === 'boolean' && premium) ||
+    premiumPlanId ||
+    hasFutureExpire
+  );
+}
+
+function derivePhotoURL(docData: UserDoc, user: any): string | null {
+  return (
+    docData?.photoURL ||
+    docData?.avatarURL ||
+    user?.photoURL ||
+    null
+  );
+}
+
+export function useAuthProfile(): AuthProfile {
+  const [state, setState] = useState<AuthProfile>({
+    greetingName: 'bạn',
+    level: 'A1',
+    cefrXp: 0,
+    isPremium: false,
+    photoURL: null,
+  });
 
   useEffect(() => {
+    const user = auth.currentUser;
+
+    // nếu chưa đăng nhập thì giữ default
+    if (!user) return;
+
+    // 1. load cache từ AsyncStorage cho cảm giác “instant”
     (async () => {
-      const u = auth.currentUser;
-
-      const pickName = (snap?: any, user?: any) => {
-        const fromSnap =
-          snap?.get?.('name') ||
-          snap?.get?.('fullName') ||
-          snap?.get?.('display_name') ||
-          snap?.get?.('hoten') ||
-          snap?.get?.('profile')?.name ||
-          snap?.get?.('nickname') ||
-          snap?.get?.('username');
-        const fromAuth =
-          user?.displayName || (user?.email ? String(user.email).split('@')[0] : '');
-        return (fromSnap || fromAuth || '').toString().trim();
-      };
-
       try {
-        if (u) {
-          const snap = await getDoc(doc(db, 'users', u.uid));
-          const cefrFromDb = snap.exists() ? snap.get('levelCefr') : undefined;
-          if (typeof cefrFromDb === 'string' && cefrFromDb) {
-            setLevel(cefrFromDb);
-            await AsyncStorage.setItem('efb.level', cefrFromDb);
-          } else {
-            const localLevel = await AsyncStorage.getItem('efb.level');
-            if (localLevel) setLevel(localLevel);
-          }
-
-          const resolved = pickName(snap, u);
-          if (resolved) {
-            setGreetingName(resolved);
-            await AsyncStorage.setItem('efb.name', resolved);
-          } else {
-            const localName = await AsyncStorage.getItem('efb.name');
-            if (localName) setGreetingName(localName);
-          }
-        } else {
-          const localName = await AsyncStorage.getItem('efb.name');
-          if (localName) setGreetingName(localName);
-          const localLevel = await AsyncStorage.getItem('efb.level');
-          if (localLevel) setLevel(localLevel);
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw) as AuthProfile;
+          setState((prev) => ({ ...prev, ...cached }));
         }
-      } catch {
-        const localName = await AsyncStorage.getItem('efb.name');
-        if (localName) setGreetingName(localName);
-        const localLevel = await AsyncStorage.getItem('efb.level');
-        if (localLevel) setLevel(localLevel);
+      } catch (err) {
+        console.log('load auth profile cache error:', err);
       }
     })();
+
+    // 2. subscribe Firestore realtime để cập nhật ngay sau khi mua Premium
+    const ref = doc(db, 'users', user.uid);
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        if (!snap.exists()) return;
+
+        const data = snap.data() as UserDoc;
+
+        const next: AuthProfile = {
+          greetingName: deriveGreetingName(data, user),
+          level: deriveLevel(data),
+          cefrXp: deriveCefrXp(data),
+          isPremium: deriveIsPremium(data),
+          photoURL: derivePhotoURL(data, user),
+        };
+
+        setState(next);
+
+        // lưu cache lại
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+      },
+      (err) => {
+        console.log('useAuthProfile listen error:', err);
+      },
+    );
+
+    return () => {
+      unsub();
+    };
   }, []);
 
-  return { level, greetingName };
+  return state;
 }
