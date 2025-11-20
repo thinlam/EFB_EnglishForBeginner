@@ -561,7 +561,7 @@ export default function CaroLevelMapPro() {
               unlocked={unlocked}
               stars={stars}
               isCurrent={isCurrent}
-              onPress={() => router.push({ pathname: '/game/caro/play', params: { level: n.lv } })}
+              onPress={() => router.push({ pathname: '/game/play', params: { level: n.lv } })}
               pulseScale={pulseScale}
               pulseOpacity={pulseOpacity}
             />
