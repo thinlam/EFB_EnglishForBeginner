@@ -6,8 +6,8 @@
 import { styles } from '@/components/style/LayoutStyles'
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
+import React from 'react'
 import { Text, View } from 'react-native'
-
 export default function TabLayout() {
   return (
     <Tabs
@@ -105,6 +105,12 @@ export default function TabLayout() {
           />
           <Tabs.Screen
           name = "game/Caro/[level]"
+          options={{
+            href : null,
+          }}
+          />
+          <Tabs.Screen
+          name = "grammar/detail/[id]"
           options={{
             href : null,
           }}
