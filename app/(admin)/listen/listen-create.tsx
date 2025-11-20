@@ -62,6 +62,10 @@ type ListenDoc = {
   exerciseType?: ExerciseType;
   payload?: any;
   isPublished?: boolean;
+
+  // file tài liệu bài tập (Word/PDF/Excel)
+  exerciseFileUrl?: string | null;
+  exerciseFileName?: string | null;
 };
 
 /* ================= Utils ================= */
@@ -112,7 +116,7 @@ function guessVideoMime(ext: string) {
   return 'video/mp4';
 }
 
-/* ================= Cloudinary upload ================= */
+/* ================= Cloudinary upload (audio/video) ================= */
 async function uploadMediaToCloudinary(
   localUri: string,
   folder: string,
@@ -177,6 +181,52 @@ async function uploadMediaToCloudinary(
   }
 
   return { secure_url, public_id, deliveryUrl, mediaType, isAudio };
+}
+
+/* ================= Upload raw file (Word / Excel / PDF) ================= */
+async function uploadRawFileToCloudinary(
+  localUri: string,
+  folder: string,
+  baseName?: string,
+  onProgress?: (pct: number) => void,
+): Promise<{ secure_url: string; public_id: string }> {
+  const fileName = `${baseName || 'file'}_${Date.now()}`;
+
+  const form = new FormData();
+  form.append('file', {
+    uri: localUri,
+    name: fileName,
+    type: 'application/octet-stream',
+  } as any);
+  form.append('upload_preset', CLOUD_PRESET);
+  form.append('folder', `${CLOUD_FOLDER}/${folder}`);
+
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/raw/upload`;
+
+  const res = await new Promise<{ status: number; text: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = (e) => {
+      if (onProgress && e.lengthComputable) {
+        onProgress(Math.round((e.loaded / Math.max(e.total, 1)) * 100));
+      }
+    };
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) resolve({ status: xhr.status, text: xhr.responseText });
+    };
+    xhr.onerror = (err) => reject(err);
+    xhr.open('POST', url);
+    xhr.send(form);
+  });
+
+  if (res.status < 200 || res.status >= 300) {
+    throw new Error(`Cloudinary upload failed (${res.status}): ${res.text}`);
+  }
+
+  const json = JSON.parse(res.text);
+  return {
+    secure_url: json.secure_url as string,
+    public_id: json.public_id as string,
+  };
 }
 
 /* ================= Level Picker ================= */
@@ -299,8 +349,15 @@ export default function ListenCreateScreen() {
   const [level, setLevel] = useState<CEFR>('A1');
   const [exerciseType, setExerciseType] = useState<ExerciseType>(EXERCISE_BY_LEVEL['A1']);
   const [payloadText, setPayloadText] = useState('');
-  const [published, setPublished] = useState<boolean>(true);
+
   const [picked, setPicked] = useState<{ name: string; uri: string; file?: any; mimeType?: string | null } | null>(null);
+
+  // file tài liệu bài tập (Word/PDF/Excel)
+  const [exerciseFile, setExerciseFile] =
+    useState<{ name: string; uri: string } | null>(null);
+  const [originalExerciseFile, setOriginalExerciseFile] =
+    useState<{ url?: string | null; name?: string | null }>({});
+
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number>(0);
   const [original, setOriginal] = useState<{ audioUrl?: string; mediaType?: string | null }>({});
@@ -309,10 +366,10 @@ export default function ListenCreateScreen() {
     setLevel(v);
     const t = EXERCISE_BY_LEVEL[v];
     setExerciseType(t);
-    // Không auto dán template nữa, admin tự nhập JSON
+    // chỉ đổi level -> exerciseType; nội dung bài tập nằm ở payloadText
   };
 
-  /* Load doc when editing */
+  /* Load doc khi edit */
   useEffect(() => {
     let mounted = true;
 
@@ -332,7 +389,10 @@ export default function ListenCreateScreen() {
           setPayloadText(d.payload ? JSON.stringify(d.payload, null, 2) : '');
           setUrlInput(d.audioUrl || '');
           setOriginal({ audioUrl: d.audioUrl, mediaType: d.mediaType ?? null });
-          setPublished(d.isPublished ?? true);
+          setOriginalExerciseFile({
+            url: d.exerciseFileUrl ?? null,
+            name: d.exerciseFileName ?? null,
+          });
         } else {
           router.back();
         }
@@ -348,6 +408,7 @@ export default function ListenCreateScreen() {
     };
   }, [editId, router]);
 
+  /* Chọn media file (audio/video) */
   const pickMedia = async () => {
     const r = await DocumentPicker.getDocumentAsync({
       copyToCacheDirectory: true,
@@ -370,11 +431,35 @@ export default function ListenCreateScreen() {
     }
   };
 
+  /* Chọn file Word / Excel / PDF */
+  const pickExerciseFile = async () => {
+    const r = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+      multiple: false,
+      type: [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ],
+    });
+    if (r.canceled) return;
+
+    const f = r.assets?.[0];
+    if (f?.uri) {
+      setExerciseFile({
+        name: f.name ?? 'exercise-file',
+        uri: f.uri,
+      });
+    }
+  };
+
   const onSave = async () => {
     Keyboard.dismiss();
 
     if (!title.trim()) {
-      return Alert.alert('Thiếu tiêu đề', 'Vui lòng nhập tiêu đề.');
+      return Alert.alert('Thiếu Title', 'Vui lòng nhập Title.');
     }
     if (!picked?.uri && !urlInput.trim() && !original.audioUrl) {
       return Alert.alert('Thiếu nội dung', 'Vui lòng chọn file hoặc nhập URL media.');
@@ -383,7 +468,7 @@ export default function ListenCreateScreen() {
     setBusy(true);
     setProgress(0);
 
-    // Parse payload JSON (admin tự nhập)
+    // Parse payload JSON (admin / giáo viên tự nhập)
     let parsedPayload: any = {};
     try {
       parsedPayload = payloadText.trim() ? JSON.parse(payloadText) : {};
@@ -396,32 +481,32 @@ export default function ListenCreateScreen() {
       return;
     }
 
-    // Validate theo loại bài
+    // Validate tối thiểu theo loại bài (tuỳ bạn có thể nới lỏng)
     try {
       switch (exerciseType) {
         case 'fill_gaps':
           if (!(parsedPayload.sentence && parsedPayload.answer)) {
-            throw new Error('Bài A1 cần có "sentence" và "answer".');
+            throw new Error('Bài A1 (fill_gaps) thường cần có "sentence" và "answer".');
           }
           break;
         case 'guess_object':
           if (!(Array.isArray(parsedPayload.options) && Number.isInteger(parsedPayload.correctIndex))) {
-            throw new Error('Bài A2 cần có "options" (mảng) và "correctIndex".');
+            throw new Error('Bài A2 (guess_object) cần "options" (mảng) và "correctIndex".');
           }
           break;
         case 'phoneme_choice':
           if (!(parsedPayload.word && Array.isArray(parsedPayload.ipaOptions))) {
-            throw new Error('Bài B1 cần "word" và "ipaOptions" (mảng).');
+            throw new Error('Bài B1 (phoneme_choice) cần "word" và "ipaOptions" (mảng).');
           }
           break;
         case 'phrase_gaps':
           if (!(parsedPayload.paragraph && Array.isArray(parsedPayload.gaps))) {
-            throw new Error('Bài B2 cần "paragraph" và "gaps" (mảng).');
+            throw new Error('Bài B2 (phrase_gaps) cần "paragraph" và "gaps" (mảng).');
           }
           break;
         case 'reading_mcq':
           if (!(parsedPayload.passage && Array.isArray(parsedPayload.questions))) {
-            throw new Error('Bài C1 cần "passage" và "questions" (mảng).');
+            throw new Error('Bài C1 (reading_mcq) cần "passage" và "questions" (mảng).');
           }
           break;
       }
@@ -432,6 +517,7 @@ export default function ListenCreateScreen() {
     }
 
     try {
+      // 1) Xử lý media audio/video
       let finalUrl = urlInput.trim() || original.audioUrl || '';
       let mediaType = original.mediaType ?? null;
 
@@ -451,7 +537,29 @@ export default function ListenCreateScreen() {
         mediaType = inferMediaTypeFromUrl(finalUrl);
       }
 
-      const payloadWrite = {
+      // 2) Xử lý file tài liệu bài tập
+      let exerciseFileUrl = originalExerciseFile.url || null;
+      let exerciseFileName = originalExerciseFile.name || null;
+
+      // Nếu user chọn "bỏ file cũ"
+      if (!exerciseFile && !originalExerciseFile.url) {
+        exerciseFileUrl = null;
+        exerciseFileName = null;
+      }
+
+      // Nếu chọn file mới
+      if (exerciseFile?.uri) {
+        const { secure_url } = await uploadRawFileToCloudinary(
+          exerciseFile.uri,
+          'exercise_files',
+          slugify(title),
+          (pct) => setProgress(pct),
+        );
+        exerciseFileUrl = secure_url;
+        exerciseFileName = exerciseFile.name;
+      }
+
+      const basePayload = {
         title: title.trim(),
         transcript: transcript.trim(),
         audioUrl: finalUrl || null,
@@ -459,15 +567,19 @@ export default function ListenCreateScreen() {
         level,
         exerciseType,
         payload: parsedPayload,
-        isPublished: published,
+        exerciseFileUrl,
+        exerciseFileName,
         updatedAt: serverTimestamp(),
       };
 
       if (editId) {
-        await updateDoc(doc(db, 'listens', editId), payloadWrite);
+        // Không đụng isPublished khi sửa: list-screen chịu trách nhiệm bật/tắt
+        await updateDoc(doc(db, 'listens', editId), basePayload);
       } else {
+        // Bài mới tạo luôn Unpublished, admin bật ở list-screen
         await addDoc(collection(db, 'listens'), {
-          ...payloadWrite,
+          ...basePayload,
+          isPublished: false,
           createdAt: serverTimestamp(),
         });
       }
@@ -523,15 +635,25 @@ export default function ListenCreateScreen() {
             <View style={CS.sectionCard}>
               <Text style={CS.sectionTitle}>Thông tin bài nghe</Text>
 
-              <Text style={CS.label}>Tiêu đề</Text>
-              <TextInput
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Unit 1 - Greetings"
-                placeholderTextColor={COLORS.muted}
-                style={CS.input}
-              />
+              {/* Title + Level cùng hàng */}
+              <View style={CS.titleLevelRow}>
+                <View style={CS.titleColumn}>
+                  <Text style={CS.label}>Title</Text>
+                  <TextInput
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="Unit 1 - Greetings"
+                    placeholderTextColor={COLORS.muted}
+                    style={[CS.input, CS.titleInput]}
+                  />
+                </View>
+                <View style={CS.levelColumn}>
+                  <Text style={CS.label}>Level</Text>
+                  <LevelPickerRow value={level} onChange={onChangeLevel} />
+                </View>
+              </View>
 
+              {/* Transcript phía dưới */}
               <Text style={CS.label}>Transcript</Text>
               <TextInput
                 value={transcript}
@@ -541,42 +663,20 @@ export default function ListenCreateScreen() {
                 multiline
                 style={[CS.input, CS.inputMultiline]}
               />
-
-              <Text style={CS.label}>Level</Text>
-              <LevelPickerRow value={level} onChange={onChangeLevel} />
-
-              <View style={CS.publishedRow}>
-                <Text style={CS.label}>Published</Text>
-                <TouchableOpacity
-                  onPress={() => setPublished((v) => !v)}
-                  activeOpacity={0.9}
-                  style={[
-                    CS.publishToggleBase,
-                    published ? CS.publishToggleOn : CS.publishToggleOff,
-                  ]}>
-                  <Text style={CS.publishToggleText}>
-                    {published ? 'ON' : 'OFF'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
-            {/* SECTION 2: Bài tập / Payload */}
+            {/* SECTION 2: Bài tập / Payload + file tài liệu */}
             <View style={CS.sectionCard}>
               <Text style={CS.sectionTitle}>Bài tập</Text>
 
-              <Text style={CS.label}>Exercise Type</Text>
+              <Text style={CS.label}>Exercise Type (auto theo Level)</Text>
               <TextInput
                 value={exerciseType}
                 editable={false}
                 style={[CS.input, CS.exerciseTypeInput]}
               />
 
-              <Text style={CS.label}>Payload (JSON – admin tự nhập)</Text>
-              <Text style={CS.payloadHint}>
-                Dán hoặc gõ JSON đúng cấu trúc cho dạng bài này. Sai cú pháp
-                JSON sẽ không lưu được.
-              </Text>
+              <Text style={CS.label}>Payload (JSON cho bài tập)</Text>
               <TextInput
                 value={payloadText}
                 onChangeText={setPayloadText}
@@ -585,6 +685,53 @@ export default function ListenCreateScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+
+
+              {/* Tài liệu kèm theo */}
+              <Text style={[CS.label, { marginTop: 12 }]}>
+                Tài liệu tham khảo (Word / Excel / PDF)
+              </Text>
+
+              <TouchableOpacity
+                style={[CS.pickBtn, busy && CS.pickBtnDisabled]}
+                activeOpacity={0.85}
+                onPress={pickExerciseFile}
+                disabled={busy}
+              >
+                <Text style={CS.pickBtnText}>
+                  {exerciseFile ? 'Chọn lại file tài liệu' : 'Chọn file tài liệu'}
+                </Text>
+              </TouchableOpacity>
+
+              {!!exerciseFile && (
+                <View style={CS.fileActionRow}>
+                  <Text style={CS.fileName} numberOfLines={1}>
+                    📎 {exerciseFile.name}
+                  </Text>
+                  <TouchableOpacity
+                    style={CS.clearBtn}
+                    onPress={() => setExerciseFile(null)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={CS.clearBtnText}>Xóa</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {!!originalExerciseFile.url && !exerciseFile && (
+                <View style={CS.fileActionRow}>
+                  <Text style={CS.fileName} numberOfLines={1}>
+                    Đang dùng file cũ: {originalExerciseFile.name || originalExerciseFile.url}
+                  </Text>
+                  <TouchableOpacity
+                    style={CS.clearBtn}
+                    onPress={() => setOriginalExerciseFile({})}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={CS.clearBtnText}>Bỏ</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
 
             {/* SECTION 3: Media */}
@@ -601,9 +748,18 @@ export default function ListenCreateScreen() {
                 style={CS.input}
               />
               {!!original.audioUrl && !urlInput && !picked && (
-                <Text style={CS.fileName}>
-                  Giữ nguyên URL cũ: {original.audioUrl}
-                </Text>
+                <View style={CS.fileActionRow}>
+                  <Text style={CS.fileName}>
+                    Giữ nguyên URL cũ: {original.audioUrl}
+                  </Text>
+                  <TouchableOpacity
+                    style={CS.clearBtn}
+                    onPress={() => setOriginal({})}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={CS.clearBtnText}>Bỏ</Text>
+                  </TouchableOpacity>
+                </View>
               )}
 
               <TouchableOpacity
@@ -616,9 +772,18 @@ export default function ListenCreateScreen() {
               </TouchableOpacity>
 
               {!!picked && (
-                <Text style={CS.fileName} numberOfLines={1}>
-                  📄 {picked.name}
-                </Text>
+                <View style={CS.fileActionRow}>
+                  <Text style={CS.fileName} numberOfLines={1}>
+                    📄 {picked.name}
+                  </Text>
+                  <TouchableOpacity
+                    style={CS.clearBtn}
+                    onPress={() => setPicked(null)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={CS.clearBtnText}>Xóa</Text>
+                  </TouchableOpacity>
+                </View>
               )}
 
               {!!effectiveUrl && (
@@ -662,7 +827,6 @@ export default function ListenCreateScreen() {
       </View>
     );
   }
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}

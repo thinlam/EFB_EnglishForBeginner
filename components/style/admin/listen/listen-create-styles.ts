@@ -38,6 +38,24 @@ export const ListenCreateStyles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
+  /* ---- Title + Level cùng hàng ---- */
+  titleLevelRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+    marginBottom: 12,
+  },
+  titleColumn: {
+    flex: 1,
+  },
+  levelColumn: {
+    width: 110,
+    flexShrink: 0,
+  },
+  titleInput: {
+    marginBottom: 0,
+  },
+
   /* ---- Section card ---- */
   sectionCard: {
     borderRadius: 14,
@@ -84,9 +102,32 @@ export const ListenCreateStyles = StyleSheet.create({
 
   fileName: {
     marginTop: 2,
-    marginBottom: 8,
+    marginBottom: 4,
     fontSize: 12,
     color: COLORS.muted,
+    flex: 1,
+  },
+
+  fileActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+
+  clearBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card2 ?? COLORS.bg,
+  },
+
+  clearBtnText: {
+    fontSize: 11,
+    color: COLORS.muted,
+    fontWeight: '600',
   },
 
   progressText: {
@@ -131,7 +172,7 @@ export const ListenCreateStyles = StyleSheet.create({
 
   /* ---- Level Picker (modal) ---- */
   levelPickerTrigger: {
-    marginBottom: 12,
+    marginBottom: 0, // control bằng titleLevelRow
   },
   levelModalOverlay: {
     flex: 1,
@@ -241,32 +282,6 @@ export const ListenCreateStyles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  /* ---- Published toggle ---- */
-  publishedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  publishToggleBase: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  publishToggleOn: {
-    backgroundColor: '#16a34a',
-    borderColor: '#15803d',
-  },
-  publishToggleOff: {
-    backgroundColor: '#9ca3af',
-    borderColor: '#6b7280',
-  },
-  publishToggleText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-
   /* ---- Exercise type input ---- */
   exerciseTypeInput: {
     opacity: 0.85,
@@ -284,5 +299,11 @@ export const ListenCreateStyles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.muted,
     marginBottom: 4,
+  },
+
+  helperText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: COLORS.muted,
   },
 });
