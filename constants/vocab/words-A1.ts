@@ -197,6 +197,26 @@ export const WORDS_A1: readonly VocabItem[] = [
     ],
   },
 
+  {
+    id: 'A1-013',
+    word: 'brother',
+    phonetic: '/ˈbrʌð.ər/',
+    topic: 'Family',
+    createdAt: '2025-05-20T08:16:00Z',
+    entries: [
+      {
+        pos: 'noun',
+        meanings: [
+          {
+            definition: 'anh trai, em trai',
+            exampleEn: 'I have one brother and one sister.',
+            exampleVi: 'Tôi có một anh trai và một chị gái.',
+          },
+        ],
+      },
+    ],
+  },
+
   // --------------------------------
   // SCHOOL
   // --------------------------------
