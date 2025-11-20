@@ -1,7 +1,7 @@
 // hooks/auth/useLogin.ts
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 import { auth } from '@/scripts/firebase';
 import { useGoogleLogin } from '@/scripts/googleAuth';
@@ -27,7 +27,6 @@ export function useLogin({ router }: Opts) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Google OAuth (already configured externally)
   const { promptAsync, response } = useGoogleLogin();
 
   // ==== Handle Google response ====
@@ -53,11 +52,29 @@ export function useLogin({ router }: Opts) {
 
         await saveSession({ uid: user.uid, email: user.email ?? null, role });
 
-        Alert.alert('Success', 'Signed in with Google successfully!');
+        Toast.show({
+          type: 'success',
+          position: 'top',
+          text1: 'Đăng nhập thành công',
+          text2: 'Bạn đã đăng nhập bằng Google.',
+          visibilityTime: 8000,
+          autoHide: true,
+          topOffset: 60, // khoảng cách từ mép trên (status bar)
+        });
+
         navigateByRole(role, startMode, level, router);
       } catch (err: any) {
         console.error('Google login error:', err?.code ?? err?.message ?? err);
-        Alert.alert('Error', 'Cannot sign in with Google.');
+
+        Toast.show({
+          type: 'error',
+          position: 'top',
+          text1: 'Không thể đăng nhập bằng Google',
+          text2: 'Vui lòng thử lại sau.',
+          visibilityTime: 8000,
+          autoHide: true,
+          topOffset: 60,
+        });
       } finally {
         setLoading(false);
       }
@@ -70,7 +87,15 @@ export function useLogin({ router }: Opts) {
     const pw = password.trim();
 
     if (!idTrim || !pw) {
-      Alert.alert('Error', 'Please enter both email/username and password.');
+      Toast.show({
+        type: 'error',
+        position: 'top',
+        text1: 'Thiếu thông tin',
+        text2: 'Vui lòng nhập email/tên đăng nhập và mật khẩu.',
+        visibilityTime: 8000,
+        autoHide: true,
+        topOffset: 60,
+      });
       return;
     }
 
@@ -78,7 +103,7 @@ export function useLogin({ router }: Opts) {
     try {
       const loginEmail = idTrim.includes('@')
         ? normalizeEmail(idTrim)
-        : await resolveEmailFromUsername(idTrim); // will throw an error with .code if it fails
+        : await resolveEmailFromUsername(idTrim);
 
       const cred = await signInWithEmailAndPassword(auth, loginEmail, pw);
       const user = cred.user;
@@ -90,10 +115,19 @@ export function useLogin({ router }: Opts) {
 
       await saveSession({ uid: user.uid, email: user.email ?? loginEmail, role });
 
-      Alert.alert(
-        'Success',
-        `Congratulations ${role === 'admin' ? 'Administrator' : 'user'}!`
-      );
+      Toast.show({
+        type: 'success',
+        position: 'top',
+        text1: 'Đăng nhập thành công',
+        text2:
+          role === 'admin'
+            ? 'Chào mừng Quản trị viên quay lại.'
+            : 'Chào mừng bạn quay lại EFB.',
+        visibilityTime: 8000,
+        autoHide: true,
+        topOffset: 60,
+      });
+
       navigateByRole(role, startMode, level, router);
     } catch (error: any) {
       const code = error?.code ?? null;
@@ -101,46 +135,51 @@ export function useLogin({ router }: Opts) {
 
       console.log('Firebase login error:', code, msg);
 
-      let message = 'Login failed.';
+      let message = 'Đăng nhập thất bại. Vui lòng thử lại.';
+
       switch (code) {
-        // Firebase codes
         case 'auth/invalid-email':
-          message = 'Invalid email.';
+          message = 'Email không hợp lệ.';
           break;
         case 'auth/user-not-found':
-          message = 'Account not found.';
+          message = 'Tài khoản không tồn tại.';
           break;
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
-          message = 'Incorrect password.';
+          message = 'Mật khẩu không đúng.';
           break;
         case 'auth/too-many-requests':
-          message = 'Too many attempts. Please try again later.';
+          message = 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.';
           break;
         case 'auth/user-disabled':
-          message = 'This account has been disabled.';
+          message = 'Tài khoản của bạn đã bị vô hiệu hóa.';
           break;
         case 'auth/network-request-failed':
-          message = 'Network error. Please check your connection.';
+          message = 'Lỗi mạng. Kiểm tra kết nối Internet của bạn.';
           break;
-
-        // App-defined codes (from resolveEmailFromUsername)
         case 'USERNAME_NOT_FOUND':
-          message = 'Username does not exist or usernameLower is not set.';
+          message = 'Tên đăng nhập không tồn tại. Vui lòng kiểm tra lại.';
           break;
         case 'USERNAME_HAS_NO_EMAIL':
-          message = 'This account has no email bound to the username.';
+          message = 'Tài khoản này chưa liên kết email.';
           break;
-
         default:
-          // fallback using message (in case code is missing)
           if (msg === 'USERNAME_NOT_FOUND') {
-            message = 'Username does not exist or usernameLower is not set.';
+            message = 'Tên đăng nhập không tồn tại. Vui lòng kiểm tra lại.';
           } else if (msg === 'USERNAME_HAS_NO_EMAIL') {
-            message = 'This account has no email bound to the username.';
+            message = 'Tài khoản này chưa liên kết email.';
           }
       }
-      Alert.alert('Error', message);
+
+      Toast.show({
+        type: 'error',
+        position: 'top',
+        text1: 'Đăng nhập thất bại',
+        text2: message,
+        visibilityTime: 8000,
+        autoHide: true,
+        topOffset: 60,
+      });
     } finally {
       setLoading(false);
     }
@@ -181,7 +220,7 @@ function navigateByRole(
   router: ReturnType<typeof useRouter>
 ) {
   if (role === 'admin') router.replace('/(admin)/home');
-  else if (role === 'premium') router.replace('/'); // premium user → home (up to you)
+  else if (role === 'premium') router.replace('/');
   else {
     if (startMode || level !== null) router.replace('/(tabs)');
     else router.replace('/(onboarding)/SelectLevel');
