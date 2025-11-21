@@ -42,7 +42,6 @@ export default function AdminHomeScreen() {
     {
   title: '💰 Điểm & Thưởng',
   children: [
-    { title: 'Trò chơi' },
     { title: 'Quản lý coin', path: '/(admin)/coin' },
     { title: 'Phần thưởng / Xếp hạng', path: '/(admin)/rewards' },
   ],
