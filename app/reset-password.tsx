@@ -1,18 +1,17 @@
 /**
- * Dự án: EFB - English For Beginners
- * \* Mục đích: Xây dựng ứng dụng học tiếng Anh cơ bản.
- * người dùng: Người mới bắt đầu học tiếng Anh.
- * Chức năng: Đăng nhập, đăng ký, học từ vựng, ngữ pháp, luyện nghe nói.
- * Công nghệ: React Native, Expo, Firebase.
- * \* Tác giả: [NHÓM EFB]
- * Ngày tạo: 01/06/2025
+ * Project: EFB - English For Beginners
+ * Purpose: Basic English learning application.
+ * Users: English beginners.
+ * Features: Login, register, vocabulary, grammar, listening & speaking practice.
+ * Tech stack: React Native, Expo, Firebase.
+ * Author: EFB Team
+ * Created: 01/06/2025
  */
 
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Text,
@@ -20,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 export default function ResetPasswordScreen() {
   const { email } = useLocalSearchParams<{ email?: string }>();
@@ -29,44 +29,74 @@ export default function ResetPasswordScreen() {
   const [showRePassword, setShowRePassword] = useState(false);
   const router = useRouter();
 
+  const showError = (title: string, message: string) => {
+    Toast.show({
+      type: 'error',
+      position: 'top',
+      text1: title,
+      text2: message,
+      visibilityTime: 8000,
+      autoHide: true,
+      topOffset: 60,
+    });
+  };
+
+  const showSuccess = (title: string, message: string) => {
+    Toast.show({
+      type: 'success',
+      position: 'top',
+      text1: title,
+      text2: message,
+      visibilityTime: 8000,
+      autoHide: true,
+      topOffset: 60,
+    });
+  };
+
   const handleReset = async () => {
     if (!email) {
-      Alert.alert('Lỗi', 'Không tìm thấy email');
+      showError('Error', 'Email not found.');
       return;
     }
 
     if (!password || !rePassword) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      showError('Missing information', 'Please fill in all required fields.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Lỗi', 'Mật khẩu phải từ 6 ký tự trở lên');
+      showError(
+        'Weak password',
+        'Password must be at least 6 characters long.'
+      );
       return;
     }
 
     if (password !== rePassword) {
-      Alert.alert('Lỗi', 'Mật khẩu không trùng khớp');
+      showError('Password mismatch', 'Passwords do not match.');
       return;
     }
 
     try {
-      const res = await fetch('https://otp-server-production-6c26.up.railway.app/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, newPassword: password }),
-      });
+      const res = await fetch(
+        'https://otp-server-production-6c26.up.railway.app/reset-password',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, newPassword: password }),
+        }
+      );
 
       const data = await res.json();
 
       if (res.ok && data.success) {
-        Alert.alert('✅ Thành công', 'Mật khẩu đã được cập nhật');
+        showSuccess('Success', 'Your password has been updated.');
         router.replace('/login');
       } else {
-        Alert.alert('❌ Lỗi', data.message || 'Không thể cập nhật mật khẩu');
+        showError('Error', data.message || 'Unable to update password.');
       }
     } catch (err) {
-      Alert.alert('Lỗi', 'Không thể kết nối đến máy chủ');
+      showError('Error', 'Unable to connect to the server.');
     }
   };
 
@@ -80,24 +110,26 @@ export default function ResetPasswordScreen() {
         backgroundColor: '#f0f4ff',
       }}
     >
-      <Text style={{
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        color: '#6C63FF',
-        marginBottom: 24
-      }}>
-        🔐 Đặt lại mật khẩu
+      <Text
+        style={{
+          fontSize: 24,
+          fontWeight: 'bold',
+          textAlign: 'center',
+          color: '#6C63FF',
+          marginBottom: 24,
+        }}
+      >
+        🔐 Reset Password
       </Text>
 
       <Text style={{ color: '#555', fontSize: 14, marginBottom: 10 }}>
         Email: <Text style={{ fontWeight: 'bold' }}>{email}</Text>
       </Text>
 
-      {/* Mật khẩu mới */}
+      {/* New password */}
       <View style={{ position: 'relative', marginBottom: 16 }}>
         <TextInput
-          placeholder="Nhập mật khẩu mới"
+          placeholder="Enter new password"
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
@@ -116,14 +148,18 @@ export default function ResetPasswordScreen() {
           onPress={() => setShowPassword(!showPassword)}
           style={{ position: 'absolute', right: 14, top: 14 }}
         >
-          <FontAwesome5 name={showPassword ? 'eye' : 'eye-slash'} size={18} color="#888" />
+          <FontAwesome5
+            name={showPassword ? 'eye' : 'eye-slash'}
+            size={18}
+            color="#888"
+          />
         </TouchableOpacity>
       </View>
 
-      {/* Nhập lại mật khẩu */}
+      {/* Confirm password */}
       <View style={{ position: 'relative', marginBottom: 32 }}>
         <TextInput
-          placeholder="Nhập lại mật khẩu"
+          placeholder="Re-enter password"
           secureTextEntry={!showRePassword}
           value={rePassword}
           onChangeText={setRePassword}
@@ -142,7 +178,11 @@ export default function ResetPasswordScreen() {
           onPress={() => setShowRePassword(!showRePassword)}
           style={{ position: 'absolute', right: 14, top: 14 }}
         >
-          <FontAwesome5 name={showRePassword ? 'eye' : 'eye-slash'} size={18} color="#888" />
+          <FontAwesome5
+            name={showRePassword ? 'eye' : 'eye-slash'}
+            size={18}
+            color="#888"
+          />
         </TouchableOpacity>
       </View>
 
@@ -159,8 +199,15 @@ export default function ResetPasswordScreen() {
           elevation: 4,
         }}
       >
-        <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>
-          💾 LƯU MẬT KHẨU
+        <Text
+          style={{
+            color: 'white',
+            textAlign: 'center',
+            fontWeight: 'bold',
+            fontSize: 16,
+          }}
+        >
+          💾 SAVE PASSWORD
         </Text>
       </TouchableOpacity>
     </KeyboardAvoidingView>
