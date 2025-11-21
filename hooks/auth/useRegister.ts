@@ -55,35 +55,43 @@ export function useRegister({ onSuccess }: Opts = {}) {
     const cp = confirmPassword;
     const ph = number;
 
+    // Basic validations
     if (!e || !p || !n || !ph || !cp) {
-      return showError('Thiếu thông tin', 'Vui lòng nhập đầy đủ các trường.');
+      return showError(
+        'Missing information',
+        'Please fill in all required fields.'
+      );
     }
 
     if (!isEmail(e)) {
-      return showError('Email không hợp lệ', 'Vui lòng kiểm tra lại email.');
+      return showError(
+        'Invalid email',
+        'Please double-check your email address.'
+      );
     }
 
     if (!isVNPhone(ph)) {
       return showError(
-        'Số điện thoại không hợp lệ',
-        'Số điện thoại phải có đúng 10 số.'
+        'Invalid phone number',
+        'Phone number must contain exactly 10 digits.'
       );
     }
 
     if (!strongEnough(p)) {
       return showError(
-        'Mật khẩu yếu',
-        'Mật khẩu phải có ít nhất 6 ký tự.'
+        'Weak password',
+        'Password must be at least 6 characters long.'
       );
     }
 
     if (p !== cp) {
       return showError(
-        'Không khớp mật khẩu',
-        'Mật khẩu xác nhận không trùng khớp.'
+        'Password mismatch',
+        'Password confirmation does not match.'
       );
     }
 
+    // Create account
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -103,34 +111,35 @@ export function useRegister({ onSuccess }: Opts = {}) {
       });
 
       showSuccess(
-        'Đăng ký thành công',
-        'Tài khoản của bạn đã được tạo.'
+        'Registration successful',
+        'Your account has been created.'
       );
 
       onSuccess?.();
     } catch (error: any) {
-      let message = 'Đăng ký thất bại.';
+      let message = 'Registration failed.';
 
       switch (error?.code) {
         case 'auth/email-already-in-use':
-          message = 'Email này đã được sử dụng.';
+          message = 'This email is already in use.';
           break;
         case 'auth/invalid-email':
-          message = 'Email không hợp lệ.';
+          message = 'Invalid email address.';
           break;
         case 'auth/weak-password':
-          message = 'Mật khẩu quá yếu. (ít nhất 6 ký tự)';
+          message = 'Password is too weak. (At least 6 characters required.)';
           break;
         default:
           message = error?.message || message;
       }
 
-      showError('Đăng ký thất bại', message);
+      showError('Registration failed', message);
       console.error('[RegisterError]', error);
     }
   }, [name, email, number, password, confirmPassword, onSuccess]);
 
   return {
+    // fields
     name,
     setName,
     email,
@@ -142,11 +151,13 @@ export function useRegister({ onSuccess }: Opts = {}) {
     confirmPassword,
     setConfirmPassword,
 
+    // visibility toggles
     showPassword,
     setShowPassword,
     showConfirmPassword,
     setShowConfirmPassword,
 
+    // action
     handleRegister,
   };
 }

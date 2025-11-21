@@ -254,20 +254,22 @@ export default function HomeScreen() {
 
       {/* LIST CARD */}
       <FlatList
-        data={filteredData}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={{ justifyContent: 'space-between' }}
-        contentContainerStyle={{
-          paddingHorizontal: 12,
-          paddingBottom: (insets.bottom || 12) + 16,
-        }}
-        showsVerticalScrollIndicator={false}
-        {...(Platform.OS === 'ios'
-          ? { contentInsetAdjustmentBehavior: 'automatic' as const }
-          : {})}
-      />
+  data={filteredData}
+  renderItem={renderItem}
+  keyExtractor={(item) => item.id}
+  numColumns={2}
+  columnWrapperStyle={{ justifyContent: 'space-between', gap: 12 }}
+  contentContainerStyle={{
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: (insets.bottom || 12) + 16,
+  }}
+  showsVerticalScrollIndicator={false}
+  {...(Platform.OS === 'ios'
+    ? { contentInsetAdjustmentBehavior: 'automatic' as const }
+    : {})}
+/>
+
     </SafeAreaView>
   );
 }

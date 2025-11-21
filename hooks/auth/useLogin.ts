@@ -29,16 +29,17 @@ export function useLogin({ router }: Opts) {
 
   const { promptAsync, response } = useGoogleLogin();
 
-  // ==== Handle Google response ====
+  // ==== Google OAuth Response Handler ====
   useEffect(() => {
     (async () => {
       if (response?.type !== 'success') return;
       setLoading(true);
+
       try {
         const idToken = response.authentication?.idToken;
         if (!idToken) throw new Error('Missing idToken');
-        const credential = GoogleAuthProvider.credential(idToken);
 
+        const credential = GoogleAuthProvider.credential(idToken);
         const result = await signInWithCredential(auth, credential);
         const user = result.user;
 
@@ -50,16 +51,20 @@ export function useLogin({ router }: Opts) {
         const level = profile.level ?? null;
         const startMode = profile.startMode ?? null;
 
-        await saveSession({ uid: user.uid, email: user.email ?? null, role });
+        await saveSession({
+          uid: user.uid,
+          email: user.email ?? null,
+          role,
+        });
 
         Toast.show({
           type: 'success',
           position: 'top',
-          text1: 'Đăng nhập thành công',
-          text2: 'Bạn đã đăng nhập bằng Google.',
+          text1: 'Login successful',
+          text2: 'You signed in with Google.',
           visibilityTime: 8000,
           autoHide: true,
-          topOffset: 60, // khoảng cách từ mép trên (status bar)
+          topOffset: 60,
         });
 
         navigateByRole(role, startMode, level, router);
@@ -69,8 +74,8 @@ export function useLogin({ router }: Opts) {
         Toast.show({
           type: 'error',
           position: 'top',
-          text1: 'Không thể đăng nhập bằng Google',
-          text2: 'Vui lòng thử lại sau.',
+          text1: 'Google login failed',
+          text2: 'Please try again later.',
           visibilityTime: 8000,
           autoHide: true,
           topOffset: 60,
@@ -81,7 +86,7 @@ export function useLogin({ router }: Opts) {
     })();
   }, [response, router]);
 
-  // ==== Email/Username + Password ====
+  // ==== Email / Username + Password Login ====
   const handleLogin = async () => {
     const idTrim = identifier.trim();
     const pw = password.trim();
@@ -90,8 +95,8 @@ export function useLogin({ router }: Opts) {
       Toast.show({
         type: 'error',
         position: 'top',
-        text1: 'Thiếu thông tin',
-        text2: 'Vui lòng nhập email/tên đăng nhập và mật khẩu.',
+        text1: 'Missing information',
+        text2: 'Please enter your email/username and password.',
         visibilityTime: 8000,
         autoHide: true,
         topOffset: 60,
@@ -100,6 +105,7 @@ export function useLogin({ router }: Opts) {
     }
 
     setLoading(true);
+
     try {
       const loginEmail = idTrim.includes('@')
         ? normalizeEmail(idTrim)
@@ -108,21 +114,29 @@ export function useLogin({ router }: Opts) {
       const cred = await signInWithEmailAndPassword(auth, loginEmail, pw);
       const user = cred.user;
 
-      const profile = await ensureUserProfile(user.uid, user.email ?? loginEmail);
+      const profile = await ensureUserProfile(
+        user.uid,
+        user.email ?? loginEmail
+      );
+
       const role: Role = (profile.role as Role) || 'user';
       const level = profile.level ?? null;
       const startMode = profile.startMode ?? null;
 
-      await saveSession({ uid: user.uid, email: user.email ?? loginEmail, role });
+      await saveSession({
+        uid: user.uid,
+        email: user.email ?? loginEmail,
+        role,
+      });
 
       Toast.show({
         type: 'success',
         position: 'top',
-        text1: 'Đăng nhập thành công',
+        text1: 'Login successful',
         text2:
           role === 'admin'
-            ? 'Chào mừng Quản trị viên quay lại.'
-            : 'Chào mừng bạn quay lại EFB.',
+            ? 'Welcome back, Administrator.'
+            : 'Welcome back to EFB!',
         visibilityTime: 8000,
         autoHide: true,
         topOffset: 60,
@@ -135,46 +149,53 @@ export function useLogin({ router }: Opts) {
 
       console.log('Firebase login error:', code, msg);
 
-      let message = 'Đăng nhập thất bại. Vui lòng thử lại.';
+      let message = 'Login failed. Please try again.';
 
       switch (code) {
         case 'auth/invalid-email':
-          message = 'Email không hợp lệ.';
+          message = 'Invalid email format.';
           break;
+
         case 'auth/user-not-found':
-          message = 'Tài khoản không tồn tại.';
+          message = 'Account not found.';
           break;
+
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
-          message = 'Mật khẩu không đúng.';
+          message = 'Incorrect password.';
           break;
+
         case 'auth/too-many-requests':
-          message = 'Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.';
+          message = 'Too many attempts. Please try again later.';
           break;
+
         case 'auth/user-disabled':
-          message = 'Tài khoản của bạn đã bị vô hiệu hóa.';
+          message = 'This account has been disabled.';
           break;
+
         case 'auth/network-request-failed':
-          message = 'Lỗi mạng. Kiểm tra kết nối Internet của bạn.';
+          message = 'Network error. Check your Internet connection.';
           break;
+
         case 'USERNAME_NOT_FOUND':
-          message = 'Tên đăng nhập không tồn tại. Vui lòng kiểm tra lại.';
+          message = 'Username does not exist. Please check again.';
           break;
+
         case 'USERNAME_HAS_NO_EMAIL':
-          message = 'Tài khoản này chưa liên kết email.';
+          message = 'This username is not linked to any email.';
           break;
+
         default:
-          if (msg === 'USERNAME_NOT_FOUND') {
-            message = 'Tên đăng nhập không tồn tại. Vui lòng kiểm tra lại.';
-          } else if (msg === 'USERNAME_HAS_NO_EMAIL') {
-            message = 'Tài khoản này chưa liên kết email.';
-          }
+          if (msg === 'USERNAME_NOT_FOUND')
+            message = 'Username does not exist. Please check again.';
+          if (msg === 'USERNAME_HAS_NO_EMAIL')
+            message = 'This username is not linked to any email.';
       }
 
       Toast.show({
         type: 'error',
         position: 'top',
-        text1: 'Đăng nhập thất bại',
+        text1: 'Login failed',
         text2: message,
         visibilityTime: 8000,
         autoHide: true,
@@ -191,11 +212,9 @@ export function useLogin({ router }: Opts) {
 
   const handleForgotPassword = () => {
     const email = identifier.includes('@') ? identifier.trim() : undefined;
-    if (email) {
+    if (email)
       router.push({ pathname: '/ForgotPassword', params: { email } });
-    } else {
-      router.push('/ForgotPassword');
-    }
+    else router.push('/ForgotPassword');
   };
 
   return {
@@ -212,7 +231,7 @@ export function useLogin({ router }: Opts) {
   };
 }
 
-/* ===== navigation helper ===== */
+/* ===== Navigation Helper ===== */
 function navigateByRole(
   role: Role,
   startMode: string | null,
