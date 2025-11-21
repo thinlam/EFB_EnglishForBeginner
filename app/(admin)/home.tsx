@@ -18,7 +18,7 @@ export default function AdminHomeScreen() {
       title: '🎓 Quản lý nội dung học',
       children: [
         { title: 'Luyện nghe',path: '/(admin)/listen/listen-screen' },
-        { title: 'Luyện nói' },
+        { title: 'Luyện nói',Path: '/(admin)/speaking/speaking-screen'},
         { title: 'Luyện đọc', path: '/(admin)/reading/reading-screen'},
         { title: 'Luyện viết' },
       { title: 'Bài kiểm tra', path: '/(admin)/testList' },
