@@ -63,6 +63,7 @@ export function usePremiumPurchase() {
         {
           premium: true,
           isPremium: true,
+          role: 'premium',
           premiumPlanId: plan.id,
           premiumPlanLabel: plan.label,
           premiumPrice: plan.price,

@@ -11,13 +11,11 @@ import { ActivityIndicator, View } from 'react-native';
 export default function Index() {
   const raw = useAuthProfile() as any;
 
-  // hook có thể trả { profile, loading } hoặc trả profile trực tiếp
   const profile =
     raw?.profile ?? raw?.user ?? raw?.userData ?? raw ?? null;
 
   const loading = raw?.loading ?? false;
 
-  // Loading Firebase profile → show spinner
   if (loading) {
     return (
       <View
@@ -32,7 +30,7 @@ export default function Index() {
     );
   }
 
-  // ❌ chưa đăng nhập → đưa về Welcome
+  // ❌ chưa đăng nhập → Welcome
   if (!profile) {
     return <Redirect href="/Welcome" />;
   }
@@ -44,11 +42,6 @@ export default function Index() {
     return <Redirect href="/admin" />;
   }
 
-  // ⭐ Premium và User đều vào tabs
-  if (role === 'premium' || role === 'user') {
-    return <Redirect href="/" />;
-  }
-
-  // fallback
-  return <Redirect href="/" />;
+  // ⭐ Premium + User → vào tabs
+  return <Redirect href="/(tabs)" />;
 }
