@@ -36,7 +36,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
-type ReadingType = 'story' | 'news' | 'email' | 'notice' | 'ad' | 'blog' | 'dialogue' | 'instruction';
+type ReadingType =
+  | 'story'
+  | 'news'
+  | 'email'
+  | 'notice'
+  | 'ad'
+  | 'blog'
+  | 'dialogue'
+  | 'instruction';
 type Topic =
   | 'Work & Office'
   | 'Travel & Transport'
@@ -87,12 +95,18 @@ function formatDate(d?: Date | null) {
 
 function colorForLevel(l?: string) {
   switch (l) {
-    case 'A1': return '#22c55e';
-    case 'A2': return '#10b981';
-    case 'B1': return '#06b6d4';
-    case 'B2': return '#60a5fa';
-    case 'C1': return '#a78bfa';
-    default:   return '#9ca3af';
+    case 'A1':
+      return '#22c55e';
+    case 'A2':
+      return '#10b981';
+    case 'B1':
+      return '#06b6d4';
+    case 'B2':
+      return '#60a5fa';
+    case 'C1':
+      return '#a78bfa';
+    default:
+      return '#9ca3af';
   }
 }
 
@@ -154,7 +168,13 @@ export default function ReadingScreen() {
     title: string;
     content: string;
     editing: boolean;
-  }>({ visible: false, id: undefined, title: '', content: '', editing: false });
+  }>({
+    visible: false,
+    id: undefined,
+    title: '',
+    content: '',
+    editing: false,
+  });
 
   const [levelCenter, setLevelCenter] = useState(false);
   const [topicCenter, setTopicCenter] = useState(false);
@@ -174,11 +194,22 @@ export default function ReadingScreen() {
           level: (raw.level as CEFR) ?? 'A1',
           topic: (raw.topic as Topic) ?? 'Daily Life',
           type: (raw.type as ReadingType) ?? 'story',
-          bandMin: typeof raw.bandMin === 'number' ? raw.bandMin : undefined,
-          bandMax: typeof raw.bandMax === 'number' ? raw.bandMax : undefined,
-          questionsCount: typeof raw.questionsCount === 'number' ? raw.questionsCount : undefined,
-          createdAt: raw.createdAt instanceof Timestamp ? raw.createdAt.toDate() : null,
-          updatedAt: raw.updatedAt instanceof Timestamp ? raw.updatedAt.toDate() : null,
+          bandMin:
+            typeof raw.bandMin === 'number' ? raw.bandMin : undefined,
+          bandMax:
+            typeof raw.bandMax === 'number' ? raw.bandMax : undefined,
+          questionsCount:
+            typeof raw.questionsCount === 'number'
+              ? raw.questionsCount
+              : undefined,
+          createdAt:
+            raw.createdAt instanceof Timestamp
+              ? raw.createdAt.toDate()
+              : null,
+          updatedAt:
+            raw.updatedAt instanceof Timestamp
+              ? raw.updatedAt.toDate()
+              : null,
         };
       });
       setItems(data);
@@ -190,8 +221,15 @@ export default function ReadingScreen() {
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -208,37 +246,53 @@ export default function ReadingScreen() {
         (it.passage ?? '').toLowerCase().includes(text) ||
         (it.sourceUrl ?? '').toLowerCase().includes(text) ||
         (it.topic ?? '').toLowerCase().includes(text);
-        // Loại (type) không còn được dùng để tìm
+      // Loại (type) không còn được dùng để tìm
 
-      const matchLevel = filterLevel === 'ALL' ? true : it.level === filterLevel;
-      const matchTopic = filterTopic === 'ALL' ? true : it.topic === filterTopic;
+      const matchLevel =
+        filterLevel === 'ALL' ? true : it.level === filterLevel;
+      const matchTopic =
+        filterTopic === 'ALL' ? true : it.topic === filterTopic;
 
       return matchText && matchLevel && matchTopic;
     });
   }, [items, searchText, filterLevel, filterTopic]);
 
   const onEdit = (id: string) => {
-    router.push({ pathname: '/(admin)/reading/reading-create', params: { id } });
+    router.push({
+      pathname: '/(admin)/reading/reading-create',
+      params: { id },
+    });
+  };
+
+  const onManageQuestions = (item: Reading) => {
+    router.push({
+      pathname: '/(admin)/reading/reading-questions',
+      params: { id: item.id, title: item.title },
+    });
   };
 
   const onDelete = (id: string) => {
-    Alert.alert('Bạn muốn làm gì?', 'Sửa nội dung hay xoá hẳn bài đọc này?', [
-      { text: 'Huỷ', style: 'cancel' },
-      { text: 'Sửa', onPress: () => onEdit(id) },
-      {
-        text: 'Xoá hẳn',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteDoc(doc(db, 'readings', id));
-            setItems((prev) => prev.filter((i) => i.id !== id));
-          } catch (e: any) {
-            console.error(e);
-            Alert.alert('Lỗi', e?.message ?? 'Không xoá được');
-          }
+    Alert.alert(
+      'Bạn muốn làm gì?',
+      'Sửa nội dung hay xoá hẳn bài đọc này?',
+      [
+        { text: 'Huỷ', style: 'cancel' },
+        { text: 'Sửa', onPress: () => onEdit(id) },
+        {
+          text: 'Xoá hẳn',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'readings', id));
+              setItems((prev) => prev.filter((i) => i.id !== id));
+            } catch (e: any) {
+              console.error(e);
+              Alert.alert('Lỗi', e?.message ?? 'Không xoá được');
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const openPassage = (item: Reading) => {
@@ -265,7 +319,9 @@ export default function ReadingScreen() {
       });
       setItems((prev) =>
         prev.map((it) =>
-          it.id === docModal.id ? { ...it, passage: docModal.content } : it
+          it.id === docModal.id
+            ? { ...it, passage: docModal.content }
+            : it
         )
       );
       setDocModal((p) => ({ ...p, editing: false }));
@@ -284,37 +340,68 @@ export default function ReadingScreen() {
         <View style={S.cardHeader}>
           <View style={{ flex: 1 }}>
             <View style={S.rowLine}>
-              <Ionicons name="book-outline" size={16} color={COLORS.subText} />
+              <Ionicons
+                name="book-outline"
+                size={16}
+                color={COLORS.subText}
+              />
               <Text style={S.rowLabel}>Tiêu đề:</Text>
-              <Text style={S.cardTitle} numberOfLines={2}>{item.title}</Text>
+              <Text style={S.cardTitle} numberOfLines={2}>
+                {item.title}
+              </Text>
             </View>
           </View>
-          <View style={[S.badge, { backgroundColor: colorForLevel(item.level) }]}>
+          <View
+            style={[
+              S.badge,
+              { backgroundColor: colorForLevel(item.level) },
+            ]}
+          >
             <Text style={S.badgeText}>{item.level ?? '—'}</Text>
           </View>
         </View>
 
         <View style={[S.rowLine, { marginTop: 6 }]}>
-          <Ionicons name="albums-outline" size={16} color={COLORS.subText} />
+          <Ionicons
+            name="albums-outline"
+            size={16}
+            color={COLORS.subText}
+          />
           <Text style={S.rowLabel}>Chủ đề:</Text>
           <Text style={S.rowText}>{item.topic ?? '—'}</Text>
         </View>
 
         <View style={[S.rowLine, { marginTop: 4 }]}>
-          <Ionicons name="speedometer-outline" size={16} color={COLORS.subText} />
+          <Ionicons
+            name="speedometer-outline"
+            size={16}
+            color={COLORS.subText}
+          />
           <Text style={S.rowLabel}>Band:</Text>
-          <Text style={S.rowText}>{bandLabel(item.bandMin, item.bandMax)}</Text>
+          <Text style={S.rowText}>
+            {bandLabel(item.bandMin, item.bandMax)}
+          </Text>
           {!!item.questionsCount && (
             <>
-              <Text style={[S.rowLabel, { marginLeft: 8 }]}>Câu hỏi:</Text>
-              <Text style={S.rowText}>{item.questionsCount}</Text>
+              <Text
+                style={[S.rowLabel, { marginLeft: 8 }]}
+              >
+                Câu hỏi:
+              </Text>
+              <Text style={S.rowText}>
+                {item.questionsCount}
+              </Text>
             </>
           )}
         </View>
 
         {(item.updatedAt || item.createdAt) && (
           <View style={[S.rowLine, { marginTop: 4 }]}>
-            <Ionicons name="calendar-clear-outline" size={16} color={COLORS.subText} />
+            <Ionicons
+              name="calendar-clear-outline"
+              size={16}
+              color={COLORS.subText}
+            />
             <Text style={S.rowLabel}>Cập nhật:</Text>
             <Text style={S.rowText}>
               {formatDate(item.updatedAt || item.createdAt)}
@@ -324,9 +411,17 @@ export default function ReadingScreen() {
 
         {!!item.passage?.trim() && (
           <View style={S.rowLine}>
-            <Ionicons name="document-text-outline" size={16} color={COLORS.link} />
+            <Ionicons
+              name="document-text-outline"
+              size={16}
+              color={COLORS.link}
+            />
             <Text style={S.rowLabel}>Bài đọc:</Text>
-            <TouchableOpacity onPress={() => openPassage(item)} activeOpacity={0.7} style={{ flex: 1 }}>
+            <TouchableOpacity
+              onPress={() => openPassage(item)}
+              activeOpacity={0.7}
+              style={{ flex: 1 }}
+            >
               <Text style={S.rowTextLink} numberOfLines={1}>
                 {snippet(item.passage)} {wc ? `• ${wc} từ` : ''}
               </Text>
@@ -336,35 +431,109 @@ export default function ReadingScreen() {
 
         {!!item.sourceUrl?.trim() && (
           <View style={S.rowLine}>
-            <Ionicons name="link-outline" size={16} color={COLORS.link} />
+            <Ionicons
+              name="link-outline"
+              size={16}
+              color={COLORS.link}
+            />
             <Text style={S.rowLabel}>Nguồn:</Text>
-            <TouchableOpacity onPress={() => openInApp(item.sourceUrl)} activeOpacity={0.7} style={{ flex: 1 }}>
-              <Text style={S.rowTextLink} numberOfLines={1}>{item.sourceUrl}</Text>
+            <TouchableOpacity
+              onPress={() => openInApp(item.sourceUrl)}
+              activeOpacity={0.7}
+              style={{ flex: 1 }}
+            >
+              <Text style={S.rowTextLink} numberOfLines={1}>
+                {item.sourceUrl}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
 
-        <View style={[S.cardActions, { flexWrap: 'nowrap', justifyContent: 'flex-start', gap: 12 }]}>
-          <TouchableOpacity style={S.iconBtn} onPress={() => openPassage(item)}>
-            <Ionicons name="eye-outline" size={20} color={COLORS.text} />
+        <View
+          style={[
+            S.cardActions,
+            {
+              flexWrap: 'nowrap',
+              justifyContent: 'flex-start',
+              gap: 12,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={S.iconBtn}
+            onPress={() => openPassage(item)}
+          >
+            <Ionicons
+              name="eye-outline"
+              size={20}
+              color={COLORS.text}
+            />
             <Text style={S.iconBtnText}>Xem bài</Text>
           </TouchableOpacity>
 
           {!!item.sourceUrl?.trim() && (
-            <TouchableOpacity style={S.iconBtn} onPress={() => openInApp(item.sourceUrl)}>
-              <Ionicons name="open-outline" size={20} color={COLORS.text} />
+            <TouchableOpacity
+              style={S.iconBtn}
+              onPress={() => openInApp(item.sourceUrl)}
+            >
+              <Ionicons
+                name="open-outline"
+                size={20}
+                color={COLORS.text}
+              />
               <Text style={S.iconBtnText}>Mở nguồn</Text>
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={S.iconBtn} onPress={() => onEdit(item.id)}>
-            <Ionicons name="create-outline" size={20} color={COLORS.edit} />
-            <Text style={[S.iconBtnText, { color: COLORS.edit }]}>Sửa</Text>
+          {/* Nút quản lý câu hỏi */}
+          <TouchableOpacity
+            style={S.iconBtn}
+            onPress={() => onManageQuestions(item)}
+          >
+            <Ionicons
+              name="help-circle-outline"
+              size={20}
+              color={COLORS.text}
+            />
+            <Text style={S.iconBtnText}>Câu hỏi</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={S.iconBtn} onPress={() => onDelete(item.id)}>
-            <Ionicons name="trash-outline" size={20} color={COLORS.del} />
-            <Text style={[S.iconBtnText, { color: COLORS.del }]}>Xoá</Text>
+          <TouchableOpacity
+            style={S.iconBtn}
+            onPress={() => onEdit(item.id)}
+          >
+            <Ionicons
+              name="create-outline"
+              size={20}
+              color={COLORS.edit}
+            />
+            <Text
+              style={[
+                S.iconBtnText,
+                { color: COLORS.edit },
+              ]}
+            >
+              Sửa
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={S.iconBtn}
+            onPress={() => onDelete(item.id)}
+          >
+            <Ionicons
+              name="trash-outline"
+              size={20}
+              color={COLORS.del}
+            />
+            <Text
+              style={[
+                S.iconBtnText,
+                { color: COLORS.del },
+              ]}
+            >
+              Xoá
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -376,8 +545,16 @@ export default function ReadingScreen() {
       <StatusBar barStyle="light-content" />
 
       <View style={S.header}>
-        <TouchableOpacity onPress={() => router.push('/(admin)/home')} style={S.backBtn} activeOpacity={0.7}>
-          <Ionicons name="arrow-back-outline" size={22} color={COLORS.text} />
+        <TouchableOpacity
+          onPress={() => router.push('/(admin)/home')}
+          style={S.backBtn}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="arrow-back-outline"
+            size={22}
+            color={COLORS.text}
+          />
         </TouchableOpacity>
         <Text style={S.headerTitle}>Quản lý Reading</Text>
         <View style={{ width: 22 }} />
@@ -386,7 +563,12 @@ export default function ReadingScreen() {
       {/* SEARCH ROW (hàng 1) */}
       <View style={[S.filterRow, { gap: 8 }]}>
         <View style={[S.searchBox, { flex: 1 }]}>
-          <Ionicons name="search-outline" size={18} color={COLORS.muted} style={{ marginRight: 6 }} />
+          <Ionicons
+            name="search-outline"
+            size={18}
+            color={COLORS.muted}
+            style={{ marginRight: 6 }}
+          />
           <TextInput
             placeholder="Tìm theo tiêu đề, bài đọc, link, chủ đề…"
             placeholderTextColor={COLORS.muted}
@@ -402,43 +584,84 @@ export default function ReadingScreen() {
 
       {/* FILTER ROW (hàng 2: Level + Topic) */}
       <View style={[S.filterRow, { gap: 8 }]}>
-        <TouchableOpacity activeOpacity={0.9} onPress={() => setLevelCenter(true)} style={[S.filterPicker, { flex: 1 }]}>
-          <Text style={S.filterValueText}>{filterLevel === 'ALL' ? 'Level: All' : `Level: ${filterLevel}`}</Text>
-          <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => setLevelCenter(true)}
+          style={[S.filterPicker, { flex: 1 }]}
+        >
+          <Text style={S.filterValueText}>
+            {filterLevel === 'ALL'
+              ? 'Level: All'
+              : `Level: ${filterLevel}`}
+          </Text>
+          <Ionicons
+            name="chevron-down"
+            size={16}
+            color={COLORS.muted}
+            style={S.filterChevron}
+          />
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.9} onPress={() => setTopicCenter(true)} style={[S.filterPicker, { flex: 1 }]}>
-          <Text style={S.filterValueText}>{filterTopic === 'ALL' ? 'Topic: All' : `Topic: ${filterTopic}`}</Text>
-          <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => setTopicCenter(true)}
+          style={[S.filterPicker, { flex: 1 }]}
+        >
+          <Text style={S.filterValueText}>
+            {filterTopic === 'ALL'
+              ? 'Topic: All'
+              : `Topic: ${filterTopic}`}
+          </Text>
+          <Ionicons
+            name="chevron-down"
+            size={16}
+            color={COLORS.muted}
+            style={S.filterChevron}
+          />
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.create} />
+        <ActivityIndicator
+          style={{ marginTop: 40 }}
+          color={COLORS.create}
+        />
       ) : (
         <FlatList
           data={filteredItems}
           keyExtractor={(item) => item.id}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+            />
+          }
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 24,
+          }}
           ListEmptyComponent={
             <View style={S.emptyWrap}>
               <Text style={S.emptyTitle}>Chưa có bài đọc</Text>
               <Text style={S.emptyText}>
-                Bấm <Text style={S.emptyEm}>+</Text> để tạo bài đọc đầu tiên.
+                Bấm <Text style={S.emptyEm}>+</Text> để tạo bài đọc đầu
+                tiên.
               </Text>
             </View>
           }
           renderItem={renderItem}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
-          ListFooterComponent={<View style={{ height: 84 + insets.bottom }} />}
+          ListFooterComponent={
+            <View style={{ height: 84 + insets.bottom }} />
+          }
         />
       )}
 
       <TouchableOpacity
         style={[S.fab, { bottom: 24 + insets.bottom }]}
-        onPress={() => router.push('/(admin)/reading/reading-create')}
+        onPress={() =>
+          router.push('/(admin)/reading/reading-create')
+        }
         activeOpacity={0.85}
       >
         <Ionicons name="add-outline" size={28} color={COLORS.bg} />
@@ -449,10 +672,24 @@ export default function ReadingScreen() {
         visible={docModal.visible}
         transparent
         animationType="fade"
-        onRequestClose={() => setDocModal((p) => ({ ...p, visible: false }))}
+        onRequestClose={() =>
+          setDocModal((p) => ({ ...p, visible: false }))
+        }
       >
-        <TouchableWithoutFeedback onPress={() => setDocModal((p) => ({ ...p, visible: false }))}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+        <TouchableWithoutFeedback
+          onPress={() =>
+            setDocModal((p) => ({ ...p, visible: false }))
+          }
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 16,
+            }}
+          >
             <TouchableWithoutFeedback onPress={() => {}}>
               <View
                 style={{
@@ -468,25 +705,71 @@ export default function ReadingScreen() {
                 }}
               >
                 <TouchableOpacity
-                  onPress={() => setDocModal((p) => ({ ...p, visible: false }))}
-                  style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: 6, borderRadius: 10, backgroundColor: COLORS.card2, borderWidth: 1, borderColor: COLORS.borderSoft }}
-                  hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                  onPress={() =>
+                    setDocModal((p) => ({ ...p, visible: false }))
+                  }
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    zIndex: 2,
+                    padding: 6,
+                    borderRadius: 10,
+                    backgroundColor: COLORS.card2,
+                    borderWidth: 1,
+                    borderColor: COLORS.borderSoft,
+                  }}
+                  hitSlop={{
+                    top: 8,
+                    right: 8,
+                    bottom: 8,
+                    left: 8,
+                  }}
                 >
-                  <Ionicons name="close" size={18} color={COLORS.text} />
+                  <Ionicons
+                    name="close"
+                    size={18}
+                    color={COLORS.text}
+                  />
                 </TouchableOpacity>
 
-                <View style={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
-                  <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '700' }} numberOfLines={2}>
+                <View
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingTop: 14,
+                    paddingBottom: 8,
+                    borderBottomWidth: 1,
+                    borderBottomColor: COLORS.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: COLORS.text,
+                      fontSize: 16,
+                      fontWeight: '700',
+                    }}
+                    numberOfLines={2}
+                  >
                     {docModal.title || 'Bài đọc'}
                   </Text>
                 </View>
 
                 {docModal.editing ? (
-                  <ScrollView style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+                  <ScrollView
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                    }}
+                  >
                     <TextInput
                       multiline
                       value={docModal.content}
-                      onChangeText={(t) => setDocModal((p) => ({ ...p, content: t }))}
+                      onChangeText={(t) =>
+                        setDocModal((p) => ({
+                          ...p,
+                          content: t,
+                        }))
+                      }
                       style={{
                         color: COLORS.text,
                         backgroundColor: COLORS.card2,
@@ -502,30 +785,79 @@ export default function ReadingScreen() {
                     />
                   </ScrollView>
                 ) : (
-                  <ScrollView style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-                    <Text style={{ color: COLORS.subText, fontSize: 14, lineHeight: 22 }}>
+                  <ScrollView
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: COLORS.subText,
+                        fontSize: 14,
+                        lineHeight: 22,
+                      }}
+                    >
                       {docModal.content}
                     </Text>
                   </ScrollView>
                 )}
 
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, padding: 12, borderTopWidth: 1, borderTopColor: COLORS.border }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'flex-end',
+                    gap: 12,
+                    padding: 12,
+                    borderTopWidth: 1,
+                    borderTopColor: COLORS.border,
+                  }}
+                >
                   {!docModal.editing ? (
                     <TouchableOpacity
-                      style={[S.iconBtn, { backgroundColor: COLORS.card2 }]}
-                      onPress={() => setDocModal((p) => ({ ...p, editing: true }))}
+                      style={[
+                        S.iconBtn,
+                        { backgroundColor: COLORS.card2 },
+                      ]}
+                      onPress={() =>
+                        setDocModal((p) => ({
+                          ...p,
+                          editing: true,
+                        }))
+                      }
                     >
-                      <Ionicons name="create-outline" size={20} color={COLORS.text} />
+                      <Ionicons
+                        name="create-outline"
+                        size={20}
+                        color={COLORS.text}
+                      />
                       <Text style={S.iconBtnText}>Chỉnh sửa</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
-                      style={[S.iconBtn, { backgroundColor: COLORS.create, borderColor: COLORS.border }]}
+                      style={[
+                        S.iconBtn,
+                        {
+                          backgroundColor: COLORS.create,
+                          borderColor: COLORS.border,
+                        },
+                      ]}
                       onPress={savePassage}
                       activeOpacity={0.9}
                     >
-                      <Ionicons name="save-outline" size={20} color={COLORS.bg} />
-                      <Text style={[S.iconBtnText, { color: COLORS.bg }]}>Lưu</Text>
+                      <Ionicons
+                        name="save-outline"
+                        size={20}
+                        color={COLORS.bg}
+                      />
+                      <Text
+                        style={[
+                          S.iconBtnText,
+                          { color: COLORS.bg },
+                        ]}
+                      >
+                        Lưu
+                      </Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -542,8 +874,18 @@ export default function ReadingScreen() {
         animationType="fade"
         onRequestClose={() => setLevelCenter(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setLevelCenter(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+        <TouchableWithoutFeedback
+          onPress={() => setLevelCenter(false)}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.45)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 16,
+            }}
+          >
             <TouchableWithoutFeedback onPress={() => {}}>
               <View
                 style={{
@@ -555,8 +897,22 @@ export default function ReadingScreen() {
                   overflow: 'hidden',
                 }}
               >
-                <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
-                  <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '700' }}>Chọn cấp độ</Text>
+                <View
+                  style={{
+                    padding: 14,
+                    borderBottomWidth: 1,
+                    borderBottomColor: COLORS.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: COLORS.text,
+                      fontSize: 16,
+                      fontWeight: '700',
+                    }}
+                  >
+                    Chọn cấp độ
+                  </Text>
                 </View>
 
                 {LEVELS.map((lv) => {
@@ -566,7 +922,10 @@ export default function ReadingScreen() {
                     <TouchableOpacity
                       key={lv}
                       activeOpacity={0.9}
-                      onPress={() => { setFilterLevel(lv); setLevelCenter(false); }}
+                      onPress={() => {
+                        setFilterLevel(lv);
+                        setLevelCenter(false);
+                      }}
                       style={{
                         paddingHorizontal: 16,
                         paddingVertical: 12,
@@ -577,10 +936,22 @@ export default function ReadingScreen() {
                         borderBottomColor: COLORS.borderSoft,
                       }}
                     >
-                      <Text style={{ color: COLORS.text, fontSize: 15, fontWeight: selected ? '700' : '500' }}>
+                      <Text
+                        style={{
+                          color: COLORS.text,
+                          fontSize: 15,
+                          fontWeight: selected ? '700' : '500',
+                        }}
+                      >
                         {label}
                       </Text>
-                      {selected && <Ionicons name="checkmark" size={18} color={COLORS.create} />}
+                      {selected && (
+                        <Ionicons
+                          name="checkmark"
+                          size={18}
+                          color={COLORS.create}
+                        />
+                      )}
                     </TouchableOpacity>
                   );
                 })}
@@ -597,8 +968,18 @@ export default function ReadingScreen() {
         animationType="fade"
         onRequestClose={() => setTopicCenter(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setTopicCenter(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+        <TouchableWithoutFeedback
+          onPress={() => setTopicCenter(false)}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.45)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: 16,
+            }}
+          >
             <TouchableWithoutFeedback onPress={() => {}}>
               <View
                 style={{
@@ -610,8 +991,22 @@ export default function ReadingScreen() {
                   overflow: 'hidden',
                 }}
               >
-                <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
-                  <Text style={{ color: COLORS.text, fontSize: 16, fontWeight: '700' }}>Chọn chủ đề</Text>
+                <View
+                  style={{
+                    padding: 14,
+                    borderBottomWidth: 1,
+                    borderBottomColor: COLORS.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: COLORS.text,
+                      fontSize: 16,
+                      fontWeight: '700',
+                    }}
+                  >
+                    Chọn chủ đề
+                  </Text>
                 </View>
 
                 {TOPICS.map((tp) => {
@@ -621,7 +1016,10 @@ export default function ReadingScreen() {
                     <TouchableOpacity
                       key={tp}
                       activeOpacity={0.9}
-                      onPress={() => { setFilterTopic(tp); setTopicCenter(false); }}
+                      onPress={() => {
+                        setFilterTopic(tp);
+                        setTopicCenter(false);
+                      }}
                       style={{
                         paddingHorizontal: 16,
                         paddingVertical: 12,
@@ -632,10 +1030,22 @@ export default function ReadingScreen() {
                         borderBottomColor: COLORS.borderSoft,
                       }}
                     >
-                      <Text style={{ color: COLORS.text, fontSize: 15, fontWeight: selected ? '700' : '500' }}>
+                      <Text
+                        style={{
+                          color: COLORS.text,
+                          fontSize: 15,
+                          fontWeight: selected ? '700' : '500',
+                        }}
+                      >
                         {label}
                       </Text>
-                      {selected && <Ionicons name="checkmark" size={18} color={COLORS.create} />}
+                      {selected && (
+                        <Ionicons
+                          name="checkmark"
+                          size={18}
+                          color={COLORS.create}
+                        />
+                      )}
                     </TouchableOpacity>
                   );
                 })}

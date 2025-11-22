@@ -69,5 +69,60 @@ export const ReadingCreateStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
+    /* ───────────────────── Modal Styles ───────────────────── */
+
+  modalWrap: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  modalBox: {
+    width: '85%',
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.borderSoft,
+  },
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 14,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+
+  modalItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.card2,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.borderSoft,
+    marginBottom: 6,
+  },
+
+  modalItemText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+
+  modalClose: {
+    marginTop: 12,
+    alignSelf: 'flex-end',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+
+  modalCloseText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.create,
+  },
+
   pickerValue: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
 });

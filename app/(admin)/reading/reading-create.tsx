@@ -16,17 +16,27 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
-type ReadingType = 'story' | 'news' | 'email' | 'notice' | 'ad' | 'blog' | 'dialogue' | 'instruction';
+type ReadingType =
+  | 'story'
+  | 'news'
+  | 'email'
+  | 'notice'
+  | 'ad'
+  | 'blog'
+  | 'dialogue'
+  | 'instruction';
+
 type Topic =
   | 'Work & Office'
   | 'Travel & Transport'
@@ -40,21 +50,53 @@ type Topic =
 
 const LEVELS: CEFR[] = ['A1', 'A2', 'B1', 'B2', 'C1'];
 const TOPICS: Topic[] = [
-  'Work & Office', 'Travel & Transport', 'Daily Life', 'Shopping & Service',
-  'Education', 'Technology', 'Entertainment', 'Health & Food', 'Business'
+  'Work & Office',
+  'Travel & Transport',
+  'Daily Life',
+  'Shopping & Service',
+  'Education',
+  'Technology',
+  'Entertainment',
+  'Health & Food',
+  'Business',
 ];
 const TYPES: ReadingType[] = [
-  'story', 'news', 'email', 'notice', 'ad', 'blog', 'dialogue', 'instruction',
+  'story',
+  'news',
+  'email',
+  'notice',
+  'ad',
+  'blog',
+  'dialogue',
+  'instruction',
 ];
+
+// Gợi ý mặc định cho từng level khi tạo mới
+const READING_LEVEL_CONFIG: Record<
+  CEFR,
+  { bandMin: number; bandMax: number; questionsCount: number }
+> = {
+  A1: { bandMin: 60, bandMax: 120, questionsCount: 4 }, // Level 1
+  A2: { bandMin: 120, bandMax: 220, questionsCount: 5 }, // Level 2
+  B1: { bandMin: 220, bandMax: 350, questionsCount: 7 }, // Level 3
+  B2: { bandMin: 350, bandMax: 550, questionsCount: 9 }, // Level 4
+  C1: { bandMin: 550, bandMax: 900, questionsCount: 11 }, // Level 5
+};
 
 function colorForLevel(l?: string) {
   switch (l) {
-    case 'A1': return '#22c55e';
-    case 'A2': return '#10b981';
-    case 'B1': return '#06b6d4';
-    case 'B2': return '#60a5fa';
-    case 'C1': return '#a78bfa';
-    default:   return '#9ca3af';
+    case 'A1':
+      return '#22c55e';
+    case 'A2':
+      return '#10b981';
+    case 'B1':
+      return '#06b6d4';
+    case 'B2':
+      return '#60a5fa';
+    case 'C1':
+      return '#a78bfa';
+    default:
+      return '#9ca3af';
   }
 }
 
@@ -72,9 +114,11 @@ export default function ReadingCreate() {
   const [level, setLevel] = useState<CEFR>('A1');
   const [topic, setTopic] = useState<Topic>('Daily Life');
   const [type, setType] = useState<ReadingType>('story');
+
   const [bandMin, setBandMin] = useState<string>('200');
   const [bandMax, setBandMax] = useState<string>('300');
   const [questionsCount, setQuestionsCount] = useState<string>('5');
+
   const [sourceUrl, setSourceUrl] = useState('');
   const [passage, setPassage] = useState('');
 
@@ -83,6 +127,17 @@ export default function ReadingCreate() {
   const [topicPicker, setTopicPicker] = useState(false);
   const [typePicker, setTypePicker] = useState(false);
 
+  // Khi TẠO MỚI: tự set bandMin/bandMax/questionsCount theo level
+  useEffect(() => {
+    if (editingId) return; // đang sửa thì không auto
+    const cfg = READING_LEVEL_CONFIG[level];
+    if (!cfg) return;
+    setBandMin(String(cfg.bandMin));
+    setBandMax(String(cfg.bandMax));
+    setQuestionsCount(String(cfg.questionsCount));
+  }, [level, editingId]);
+
+  // Nếu có id → load data để edit
   useEffect(() => {
     const fetch = async () => {
       if (!editingId) return;
@@ -117,22 +172,29 @@ export default function ReadingCreate() {
   const canSave = useMemo(() => {
     if (!title.trim()) return false;
     if (!passage.trim()) return false;
+
     const bMin = Number(bandMin);
     const bMax = Number(bandMax);
     if (Number.isNaN(bMin) || Number.isNaN(bMax)) return false;
     if (bMin < 0 || bMax < 0) return false;
     if (bMax && bMin && bMin > bMax) return false;
+
     const qc = Number(questionsCount);
     if (Number.isNaN(qc) || qc < 0) return false;
+
     return true;
   }, [title, passage, bandMin, bandMax, questionsCount]);
 
   const onSave = async () => {
     if (!canSave || saving) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng kiểm tra lại tiêu đề, nội dung và các trường số.');
+      Alert.alert(
+        'Thiếu thông tin',
+        'Vui lòng kiểm tra lại tiêu đề, nội dung và các trường số.'
+      );
       return;
     }
     setSaving(true);
+
     const payload = {
       title: title.trim(),
       level,
@@ -148,9 +210,15 @@ export default function ReadingCreate() {
     };
 
     try {
-      if (editingId) await updateDoc(doc(db, 'readings', editingId), payload);
-      else await addDoc(collection(db, 'readings'), payload);
-      Alert.alert('Thành công', editingId ? 'Đã cập nhật bài đọc.' : 'Đã tạo bài đọc.');
+      if (editingId) {
+        await updateDoc(doc(db, 'readings', editingId), payload);
+      } else {
+        await addDoc(collection(db, 'readings'), payload);
+      }
+      Alert.alert(
+        'Thành công',
+        editingId ? 'Đã cập nhật bài đọc.' : 'Đã tạo bài đọc.'
+      );
       router.back();
     } catch (e: any) {
       console.error(e);
@@ -167,7 +235,9 @@ export default function ReadingCreate() {
         <TouchableOpacity onPress={() => router.back()} style={S.backBtn}>
           <Ionicons name="arrow-back-outline" size={22} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>{editingId ? 'Sửa Reading' : 'Tạo Reading'}</Text>
+        <Text style={S.headerTitle}>
+          {editingId ? 'Sửa Reading' : 'Tạo Reading'}
+        </Text>
         <TouchableOpacity
           onPress={onSave}
           disabled={!canSave || saving || loading}
@@ -176,15 +246,27 @@ export default function ReadingCreate() {
             { backgroundColor: canSave ? COLORS.create : COLORS.card2 },
           ]}
         >
-          <Ionicons name="save-outline" size={18} color={canSave ? COLORS.bg : COLORS.text} />
-          <Text style={[S.saveText, { color: canSave ? COLORS.bg : COLORS.text }]}>
+          <Ionicons
+            name="save-outline"
+            size={18}
+            color={canSave ? COLORS.bg : COLORS.text}
+          />
+          <Text
+            style={[S.saveText, { color: canSave ? COLORS.bg : COLORS.text }]}
+          >
             {saving ? 'Đang lưu…' : 'Lưu'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={S.formWrap} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={S.formWrap}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Tiêu đề */}
           <View style={S.formRow}>
             <Text style={S.formLabel}>Tiêu đề</Text>
@@ -199,17 +281,42 @@ export default function ReadingCreate() {
 
           {/* Level / Topic / Type */}
           <View style={S.formGroupRow}>
-            <TouchableOpacity style={S.picker} onPress={() => setLevelPicker(true)}>
-              <Text style={S.pickerValue}>Level: {level}</Text>
-              <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
+            <TouchableOpacity
+              style={S.picker}
+              onPress={() => setLevelPicker(true)}
+            >
+              <Text style={S.pickerValue}>
+                Level: {level}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={16}
+                color={COLORS.muted}
+              />
             </TouchableOpacity>
-            <TouchableOpacity style={S.picker} onPress={() => setTopicPicker(true)}>
+
+            <TouchableOpacity
+              style={S.picker}
+              onPress={() => setTopicPicker(true)}
+            >
               <Text style={S.pickerValue}>Topic: {topic}</Text>
-              <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
+              <Ionicons
+                name="chevron-down"
+                size={16}
+                color={COLORS.muted}
+              />
             </TouchableOpacity>
-            <TouchableOpacity style={S.picker} onPress={() => setTypePicker(true)}>
+
+            <TouchableOpacity
+              style={S.picker}
+              onPress={() => setTypePicker(true)}
+            >
               <Text style={S.pickerValue}>Type: {type}</Text>
-              <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
+              <Ionicons
+                name="chevron-down"
+                size={16}
+                color={COLORS.muted}
+              />
             </TouchableOpacity>
           </View>
 
@@ -241,6 +348,7 @@ export default function ReadingCreate() {
             />
           </View>
 
+          {/* Source URL */}
           <View style={S.formRow}>
             <Text style={S.formLabel}>Nguồn (URL)</Text>
             <TextInput
@@ -253,6 +361,7 @@ export default function ReadingCreate() {
             />
           </View>
 
+          {/* Passage */}
           <View style={S.formRow}>
             <Text style={S.formLabel}>Nội dung bài đọc</Text>
             <TextInput
@@ -266,6 +375,97 @@ export default function ReadingCreate() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ─────────────── Modal: LEVEL ─────────────── */}
+      <Modal visible={levelPicker} transparent animationType="slide">
+        <View style={S.modalWrap}>
+          <View style={S.modalBox}>
+            <Text style={S.modalTitle}>Chọn Level</Text>
+
+            {LEVELS.map((lv) => (
+              <TouchableOpacity
+                key={lv}
+                style={[S.modalItem, { borderLeftColor: colorForLevel(lv) }]}
+                onPress={() => {
+                  setLevel(lv);
+                  setLevelPicker(false);
+                }}
+              >
+                <Text
+                  style={[S.modalItemText, { color: colorForLevel(lv) }]}
+                >
+                  {lv}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              onPress={() => setLevelPicker(false)}
+              style={S.modalClose}
+            >
+              <Text style={S.modalCloseText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─────────────── Modal: TOPIC ─────────────── */}
+      <Modal visible={topicPicker} transparent animationType="slide">
+        <View style={S.modalWrap}>
+          <View style={S.modalBox}>
+            <Text style={S.modalTitle}>Chọn Topic</Text>
+
+            {TOPICS.map((tp) => (
+              <TouchableOpacity
+                key={tp}
+                style={S.modalItem}
+                onPress={() => {
+                  setTopic(tp);
+                  setTopicPicker(false);
+                }}
+              >
+                <Text style={S.modalItemText}>{tp}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              onPress={() => setTopicPicker(false)}
+              style={S.modalClose}
+            >
+              <Text style={S.modalCloseText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─────────────── Modal: TYPE ─────────────── */}
+      <Modal visible={typePicker} transparent animationType="slide">
+        <View style={S.modalWrap}>
+          <View style={S.modalBox}>
+            <Text style={S.modalTitle}>Chọn Type</Text>
+
+            {TYPES.map((tp) => (
+              <TouchableOpacity
+                key={tp}
+                style={S.modalItem}
+                onPress={() => {
+                  setType(tp);
+                  setTypePicker(false);
+                }}
+              >
+                <Text style={S.modalItemText}>{tp}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              onPress={() => setTypePicker(false)}
+              style={S.modalClose}
+            >
+              <Text style={S.modalCloseText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
