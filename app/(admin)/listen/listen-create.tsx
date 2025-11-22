@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -52,12 +53,23 @@ const EXERCISE_BY_LEVEL: Record<CEFR, ExerciseType> = {
   C1: 'reading_mcq',
 };
 
-const TEMPLATE_BY_TYPE: Record<ExerciseType, any> = {
-  fill_gaps:     { sentence: 'I __ a book.', answer: 'have', choices: ['has', 'have', 'am'] },
-  guess_object:  { options: [{ label: 'pen' }, { label: 'book' }, { label: 'phone' }], correctIndex: 1 },
-  phoneme_choice:{ word: 'thought', ipaOptions: ['θɔːt', 'tɔːt', 'ðɒt', 'sɔːt'], correctIndex: 0 },
-  phrase_gaps:   { paragraph: 'I’m looking __ my keys.', gaps: [{ index: 13, answer: 'for', choices: ['at','for','into'] }] },
-  reading_mcq:   { passage: 'Paragraph...', questions: [{ q: 'Main idea?', options: ['A','B','C','D'], correctIndex: 2 }] },
+type QuestionKind = 'dictation' | 'fill_blank' | 'mcq' | 'summary';
+
+type ListeningQuestion = {
+  id: string;
+  kind: QuestionKind;
+  startSec: number;
+  endSec: number;
+  prompt: string;
+  answer: string | string[];
+  options?: string[];
+};
+
+type ListeningPayload = {
+  kind: 'listening_template';
+  level: CEFR;
+  note?: string;
+  questions: ListeningQuestion[];
 };
 
 type ListenDoc = {
@@ -69,6 +81,10 @@ type ListenDoc = {
   exerciseType?: ExerciseType;
   payload?: any;
   isPublished?: boolean;
+
+  // file tài liệu bài tập
+  exerciseFileUrl?: string | null;
+  exerciseFileName?: string | null;
 };
 
 /* ================= Utils ================= */
@@ -82,7 +98,13 @@ function isCloudinaryVideoUrl(u: string) {
 }
 function isVideoUrl(u: string) {
   const l = (u || '').toLowerCase();
-  return l.endsWith('.mp4') || l.endsWith('.m4v') || l.endsWith('.mov') || isHlsUrl(l) || isCloudinaryVideoUrl(l);
+  return (
+    l.endsWith('.mp4') ||
+    l.endsWith('.m4v') ||
+    l.endsWith('.mov') ||
+    isHlsUrl(l) ||
+    isCloudinaryVideoUrl(l)
+  );
 }
 function inferMediaTypeFromUrl(u: string): string {
   const lower = (u || '').toLowerCase();
@@ -120,7 +142,7 @@ async function uploadMediaToCloudinary(
   baseName?: string,
   onProgress?: (pct: number) => void,
   opts?: { forceAudioMp3?: boolean; videoDelivery?: 'mp4' | 'hls' }
-): Promise<{ secure_url: string; public_id: string; deliveryUrl: string; mediaType: string; isAudio: boolean; }> {
+): Promise<{ secure_url: string; public_id: string; deliveryUrl: string; mediaType: string; isAudio: boolean }> {
   const ext = getExt(localUri);
   const isAudio = isAudioExt(ext);
   const mime = isAudio ? guessAudioMime(ext) : guessVideoMime(ext);
@@ -136,8 +158,9 @@ async function uploadMediaToCloudinary(
   const res = await new Promise<{ status: number; text: string }>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.upload.onprogress = (e) => {
-      if (onProgress && e.lengthComputable)
+      if (onProgress && e.lengthComputable) {
         onProgress(Math.round((e.loaded / Math.max(e.total, 1)) * 100));
+      }
     };
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4) resolve({ status: xhr.status, text: xhr.responseText });
@@ -147,8 +170,9 @@ async function uploadMediaToCloudinary(
     xhr.send(form);
   });
 
-  if (res.status < 200 || res.status >= 300)
+  if (res.status < 200 || res.status >= 300) {
     throw new Error(`Cloudinary upload failed (${res.status}): ${res.text}`);
+  }
 
   const json = JSON.parse(res.text);
   const public_id: string = json.public_id;
@@ -178,10 +202,318 @@ async function uploadMediaToCloudinary(
   return { secure_url, public_id, deliveryUrl, mediaType, isAudio };
 }
 
+/* Upload raw file (Word / Excel / PDF) */
+async function uploadRawFileToCloudinary(
+  localUri: string,
+  folder: string,
+  baseName?: string,
+  onProgress?: (pct: number) => void,
+): Promise<{ secure_url: string; public_id: string }> {
+  const fileName = `${baseName || 'file'}_${Date.now()}`;
+
+  const form = new FormData();
+  form.append('file', {
+    uri: localUri,
+    name: fileName,
+    type: 'application/octet-stream',
+  } as any);
+  form.append('upload_preset', CLOUD_PRESET);
+  form.append('folder', `${CLOUD_FOLDER}/${folder}`);
+
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/raw/upload`;
+
+  const res = await new Promise<{ status: number; text: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = (e) => {
+      if (onProgress && e.lengthComputable) {
+        onProgress(Math.round((e.loaded / Math.max(e.total, 1)) * 100));
+      }
+    };
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) resolve({ status: xhr.status, text: xhr.responseText });
+    };
+    xhr.onerror = (err) => reject(err);
+    xhr.open('POST', url);
+    xhr.send(form);
+  });
+
+  if (res.status < 200 || res.status >= 300) {
+    throw new Error(`Cloudinary upload failed (${res.status}): ${res.text}`);
+  }
+
+  const json = JSON.parse(res.text);
+  return {
+    secure_url: json.secure_url as string,
+    public_id: json.public_id as string,
+  };
+}
+
+/* ================= Listening templates theo Level ================= */
+function getDefaultPayloadForLevel(level: CEFR): ListeningPayload {
+  switch (level) {
+    case 'A1':
+      return {
+        kind: 'listening_template',
+        level,
+        note: 'A1 – nghe câu ngắn, điền từ và chọn đáp án đơn giản. Điền startSec/endSec theo audio.',
+        questions: [
+          {
+            id: 'a1_q1',
+            kind: 'dictation',
+            startSec: 0,
+            endSec: 4,
+            prompt: 'Type what you hear.',
+            answer: 'Billy, are you able to send emails?',
+          },
+          {
+            id: 'a1_q2',
+            kind: 'fill_blank',
+            startSec: 5,
+            endSec: 9,
+            prompt: 'I can’t _______ to my account.',
+            answer: 'connect',
+            options: ['connect', 'control', 'continue'],
+          },
+          {
+            id: 'a1_q3',
+            kind: 'mcq',
+            startSec: 10,
+            endSec: 15,
+            prompt: 'What problem does the speaker have?',
+            answer: 'He can’t send emails.',
+            options: [
+              'He can’t send emails.',
+              'He can’t open a file.',
+              'The internet is slow.',
+            ],
+          },
+          {
+            id: 'a1_q4',
+            kind: 'mcq',
+            startSec: 16,
+            endSec: 20,
+            prompt: 'How does the speaker greet the other person?',
+            answer: 'Hello.',
+            options: ['Hello.', 'Goodbye.', 'Thank you.'],
+          },
+        ],
+      };
+
+    case 'A2':
+      return {
+        kind: 'listening_template',
+        level,
+        note: 'A2 – tình huống đơn giản, nghe – điền từ và hỏi ý chính.',
+        questions: [
+          {
+            id: 'a2_q1',
+            kind: 'fill_blank',
+            startSec: 0,
+            endSec: 4,
+            prompt: 'Complete the sentence you hear.',
+            answer: 'I can’t connect to my account.',
+          },
+          {
+            id: 'a2_q2',
+            kind: 'fill_blank',
+            startSec: 5,
+            endSec: 9,
+            prompt: 'I can’t _______ to my account.',
+            answer: 'connect',
+            options: ['connect', 'control', 'continue'],
+          },
+          {
+            id: 'a2_q3',
+            kind: 'mcq',
+            startSec: 10,
+            endSec: 15,
+            prompt: 'What is the main problem?',
+            answer: 'He cannot send emails.',
+            options: [
+              'He cannot send emails.',
+              'He cannot open the browser.',
+              'He cannot print a document.',
+            ],
+          },
+          {
+            id: 'a2_q4',
+            kind: 'mcq',
+            startSec: 16,
+            endSec: 22,
+            prompt: 'Where does this conversation probably take place?',
+            answer: 'In an office.',
+            options: ['In an office.', 'At a restaurant.', 'At a supermarket.'],
+          },
+        ],
+      };
+
+    case 'B1':
+      return {
+        kind: 'listening_template',
+        level,
+        note: 'B1 – hội thoại ngắn, nghe – chép câu và chọn nguyên nhân / giải pháp.',
+        questions: [
+          {
+            id: 'b1_q1',
+            kind: 'dictation',
+            startSec: 0,
+            endSec: 5,
+            prompt: 'Write down the full sentence you hear.',
+            answer: 'An error message keeps popping up that says "Unable to connect".',
+          },
+          {
+            id: 'b1_q2',
+            kind: 'dictation',
+            startSec: 6,
+            endSec: 11,
+            prompt: 'Write down what the speaker says.',
+            answer: 'I just called down to the IT Department.',
+          },
+          {
+            id: 'b1_q3',
+            kind: 'mcq',
+            startSec: 12,
+            endSec: 18,
+            prompt: 'Why did the speaker call the IT Department?',
+            answer: 'To report an email problem.',
+            options: [
+              'To report an email problem.',
+              'To buy new software.',
+              'To ask for a password reset.',
+            ],
+          },
+          {
+            id: 'b1_q4',
+            kind: 'mcq',
+            startSec: 19,
+            endSec: 25,
+            prompt: 'What will probably happen next?',
+            answer: 'The problem will be fixed soon.',
+            options: [
+              'The problem will be fixed soon.',
+              'The system will be turned off permanently.',
+              'The speaker will quit the job.',
+            ],
+          },
+        ],
+      };
+
+    case 'B2':
+      return {
+        kind: 'listening_template',
+        level,
+        note: 'B2 – đoạn dài hơn, nghe – hoàn thành câu và chọn ý đúng nhất.',
+        questions: [
+          {
+            id: 'b2_q1',
+            kind: 'fill_blank',
+            startSec: 0,
+            endSec: 7,
+            prompt: 'Complete the sentence from the audio.',
+            answer: 'The technician explained that sometimes there are outages and they are controlled locally.',
+          },
+          {
+            id: 'b2_q2',
+            kind: 'fill_blank',
+            startSec: 8,
+            endSec: 14,
+            prompt: 'Fill in the missing parts.',
+            answer: [
+              'sometimes there are outages',
+              'they are controlled locally',
+            ],
+          },
+          {
+            id: 'b2_q3',
+            kind: 'mcq',
+            startSec: 15,
+            endSec: 22,
+            prompt: 'What is the technician explaining?',
+            answer: 'The reason for the email outage.',
+            options: [
+              'The reason for the email outage.',
+              'How to install new software.',
+              'How to change the computer.',
+            ],
+          },
+          {
+            id: 'b2_q4',
+            kind: 'mcq',
+            startSec: 23,
+            endSec: 30,
+            prompt: 'What is implied about the problem?',
+            answer: 'It will be solved at the local level.',
+            options: [
+              'It will be solved at the local level.',
+              'It is a global company-wide problem.',
+              'No one is responsible for it.',
+            ],
+          },
+        ],
+      };
+
+    case 'C1':
+    default:
+      return {
+        kind: 'listening_template',
+        level: 'C1',
+        note: 'C1 – nghe đoạn dài, tóm tắt ý chính và trả lời câu hỏi phân tích.',
+        questions: [
+          {
+            id: 'c1_q1',
+            kind: 'summary',
+            startSec: 0,
+            endSec: 20,
+            prompt: 'Summarise the main problem with the email system in one sentence.',
+            answer:
+              'The local control device fails periodically, causing repeated interruptions in the email service.',
+          },
+          {
+            id: 'c1_q2',
+            kind: 'summary',
+            startSec: 21,
+            endSec: 40,
+            prompt: 'Summarise the technician’s explanation in one sentence.',
+            answer:
+              'The technician explains that outages are local and occur during maintenance or hardware failure.',
+          },
+          {
+            id: 'c1_q3',
+            kind: 'mcq',
+            startSec: 41,
+            endSec: 55,
+            prompt: 'According to the audio, what is the biggest risk for the company?',
+            answer: 'Frequent local outages can disrupt critical communication.',
+            options: [
+              'Frequent local outages can disrupt critical communication.',
+              'The company will lose all of its data.',
+              'Employees will stop using email completely.',
+            ],
+          },
+          {
+            id: 'c1_q4',
+            kind: 'mcq',
+            startSec: 56,
+            endSec: 70,
+            prompt: 'What is the most likely long-term solution mentioned?',
+            answer: 'Upgrading the local control system or moving to a more stable platform.',
+            options: [
+              'Upgrading the local control system or moving to a more stable platform.',
+              'Stopping all email communication.',
+              'Asking employees to check email less often.',
+            ],
+          },
+        ],
+      };
+  }
+}
+
 /* ================= Level Picker ================= */
 const LEVELS: CEFR[] = ['A1', 'A2', 'B1', 'B2', 'C1'];
+
 function LevelPickerRow({ value, onChange }: { value: CEFR; onChange: (v: CEFR) => void }) {
   const [open, setOpen] = useState(false);
+
   return (
     <>
       <TouchableOpacity
@@ -202,10 +534,9 @@ function LevelPickerRow({ value, onChange }: { value: CEFR; onChange: (v: CEFR) 
             onPress={() => {}}
             style={CS.levelModalContainer}>
             <View style={CS.levelModalHeader}>
-              <Text style={CS.levelModalTitle}>
-                Chọn cấp độ
-              </Text>
+              <Text style={CS.levelModalTitle}>Chọn cấp độ</Text>
             </View>
+
             {LEVELS.map((lv) => (
               <TouchableOpacity
                 key={lv}
@@ -222,9 +553,12 @@ function LevelPickerRow({ value, onChange }: { value: CEFR; onChange: (v: CEFR) 
                   ]}>
                   {lv}
                 </Text>
-                {value === lv && <Ionicons name="checkmark" size={18} color={COLORS.create} />}
+                {value === lv && (
+                  <Ionicons name="checkmark" size={18} color={COLORS.create} />
+                )}
               </TouchableOpacity>
             ))}
+
             <View style={CS.levelModalFooter}>
               <TouchableOpacity
                 onPress={() => setOpen(false)}
@@ -242,12 +576,16 @@ function LevelPickerRow({ value, onChange }: { value: CEFR; onChange: (v: CEFR) 
 /* ================= Media Preview ================= */
 function MediaPreview({ uri, mediaType }: { uri: string; mediaType?: string | null }) {
   if (!uri) return null;
+
   const isVideoMedia =
     (mediaType || '').startsWith('video/') ||
     mediaType === 'application/x-mpegURL' ||
     isVideoUrl(uri);
 
-  const player = useVideoPlayer(undefined, (p) => { p.loop = false; });
+  const player = useVideoPlayer(undefined, (p) => {
+    p.loop = false;
+  });
+
   useEffect(() => {
     player.replace(uri);
   }, [uri, player]);
@@ -290,9 +628,16 @@ export default function ListenCreateScreen() {
   const [level, setLevel] = useState<CEFR>('A1');
   const [exerciseType, setExerciseType] = useState<ExerciseType>(EXERCISE_BY_LEVEL['A1']);
   const [payloadText, setPayloadText] = useState('');
-  const [payloadTouched, setPayloadTouched] = useState(false);
-  const [published, setPublished] = useState<boolean>(true);
+
   const [picked, setPicked] = useState<{ name: string; uri: string; file?: any; mimeType?: string | null } | null>(null);
+
+  // file tài liệu bài tập (Word/PDF/Excel)
+  const [exerciseFile, setExerciseFile] =
+    useState<{ name: string; uri: string } | null>(null);
+  const [originalExerciseFile, setOriginalExerciseFile] =
+    useState<{ url?: string | null; name?: string | null }>({});
+  const [exerciseFileRemoved, setExerciseFileRemoved] = useState(false);
+
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number>(0);
   const [original, setOriginal] = useState<{ audioUrl?: string; mediaType?: string | null }>({});
@@ -301,12 +646,13 @@ export default function ListenCreateScreen() {
     setLevel(v);
     const t = EXERCISE_BY_LEVEL[v];
     setExerciseType(t);
-    if (!payloadTouched) setPayloadText(JSON.stringify(TEMPLATE_BY_TYPE[t], null, 2));
+    // Level đổi → dạng bài đổi theo, payload giáo viên tự chọn "Áp dụng sườn"
   };
 
   /* Load doc when editing */
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       if (!editId) return;
       try {
@@ -314,15 +660,19 @@ export default function ListenCreateScreen() {
         const snap = await getDoc(doc(db, 'listens', editId));
         if (snap.exists() && mounted) {
           const d = snap.data() as ListenDoc;
-          const exType = (d.exerciseType ?? EXERCISE_BY_LEVEL['A1']);
+          const exType = d.exerciseType ?? EXERCISE_BY_LEVEL['A1'];
+
           setTitle(d.title || '');
           setTranscript(d.transcript || '');
           setLevel(d.level || 'A1');
           setExerciseType(exType);
-          setPayloadText(JSON.stringify(d.payload ?? TEMPLATE_BY_TYPE[exType], null, 2));
+          setPayloadText(d.payload ? JSON.stringify(d.payload, null, 2) : '');
           setUrlInput(d.audioUrl || '');
           setOriginal({ audioUrl: d.audioUrl, mediaType: d.mediaType ?? null });
-          setPublished(d.isPublished ?? true);
+          setOriginalExerciseFile({
+            url: d.exerciseFileUrl ?? null,
+            name: d.exerciseFileName ?? null,
+          });
         } else {
           router.back();
         }
@@ -332,7 +682,10 @@ export default function ListenCreateScreen() {
         if (mounted) setLoadingDoc(false);
       }
     })();
-    return () => { mounted = false; };
+
+    return () => {
+      mounted = false;
+    };
   }, [editId, router]);
 
   const pickMedia = async () => {
@@ -345,6 +698,7 @@ export default function ListenCreateScreen() {
       ],
     });
     if (r.canceled) return;
+
     const f = r.assets?.[0];
     if (f?.uri) {
       setPicked({
@@ -356,37 +710,116 @@ export default function ListenCreateScreen() {
     }
   };
 
+  // chọn file Word / Excel / PDF
+  const pickExerciseFile = async () => {
+    const r = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+      multiple: false,
+      type: [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ],
+    });
+    if (r.canceled) return;
+
+    const f = r.assets?.[0];
+    if (f?.uri) {
+      setExerciseFile({
+        name: f.name ?? 'exercise-file',
+        uri: f.uri,
+      });
+      setExerciseFileRemoved(false);
+    }
+  };
+
+  const removeExerciseFile = () => {
+    setExerciseFile(null);
+    setOriginalExerciseFile({ url: null, name: null });
+    setExerciseFileRemoved(true);
+  };
+
+  const applyLevelTemplate = () => {
+    const tpl = getDefaultPayloadForLevel(level);
+    const pretty = JSON.stringify(tpl, null, 2);
+
+    if (payloadText.trim()) {
+      Alert.alert(
+        'Ghi đè payload?',
+        `Payload hiện tại sẽ được thay bằng sườn mẫu cho level ${level}.`,
+        [
+          { text: 'Huỷ', style: 'cancel' },
+          { text: 'Đồng ý', onPress: () => setPayloadText(pretty) },
+        ],
+      );
+    } else {
+      setPayloadText(pretty);
+    }
+  };
+
   const onSave = async () => {
     Keyboard.dismiss();
-    if (!title.trim()) return Alert.alert('Thiếu tiêu đề', 'Vui lòng nhập tiêu đề.');
-    if (!picked?.uri && !urlInput.trim() && !original.audioUrl)
-      return Alert.alert('Thiếu nội dung', 'Chọn file hoặc nhập URL.');
+
+    if (!title.trim()) {
+      return Alert.alert('Thiếu Title', 'Vui lòng nhập Title.');
+    }
+    if (!picked?.uri && !urlInput.trim() && !original.audioUrl) {
+      return Alert.alert('Thiếu nội dung', 'Vui lòng chọn file hoặc nhập URL media.');
+    }
 
     setBusy(true);
     setProgress(0);
 
-    // Parse payload JSON
+    // Parse payload JSON (admin tự nhập)
     let parsedPayload: any = {};
-    try { parsedPayload = payloadText.trim() ? JSON.parse(payloadText) : {}; }
-    catch { Alert.alert('Payload không hợp lệ'); setBusy(false); return; }
-
     try {
-      switch (exerciseType) {
-        case 'fill_gaps':
-          if (!(parsedPayload.sentence && parsedPayload.answer)) throw new Error('A1 cần "sentence" & "answer".');
-          break;
-        case 'guess_object':
-          if (!(Array.isArray(parsedPayload.options) && Number.isInteger(parsedPayload.correctIndex))) throw new Error('A2 cần "options" & "correctIndex".');
-          break;
-        case 'phoneme_choice':
-          if (!(parsedPayload.word && Array.isArray(parsedPayload.ipaOptions))) throw new Error('B1 cần "word" & "ipaOptions".');
-          break;
-        case 'phrase_gaps':
-          if (!(parsedPayload.paragraph && Array.isArray(parsedPayload.gaps))) throw new Error('B2 cần "paragraph" & "gaps".');
-          break;
-        case 'reading_mcq':
-          if (!(parsedPayload.passage && Array.isArray(parsedPayload.questions))) throw new Error('C1 cần "passage" & "questions".');
-          break;
+      parsedPayload = payloadText.trim() ? JSON.parse(payloadText) : {};
+    } catch (e) {
+      Alert.alert(
+        'Payload không hợp lệ',
+        'Vui lòng kiểm tra lại cú pháp JSON (dấu ngoặc, dấu phẩy, dấu ngoặc kép...).'
+      );
+      setBusy(false);
+      return;
+    }
+
+    // Validate cơ bản
+    try {
+      if (Array.isArray(parsedPayload.questions)) {
+        if (!parsedPayload.questions.length) {
+          throw new Error('Payload cần ít nhất 1 câu hỏi trong mảng "questions".');
+        }
+      } else {
+        // fallback: validate dạng cũ theo exerciseType (nếu bạn còn dùng)
+        switch (exerciseType) {
+          case 'fill_gaps':
+            if (!(parsedPayload.sentence && parsedPayload.answer)) {
+              throw new Error('Bài A1 cần có "sentence" và "answer".');
+            }
+            break;
+          case 'guess_object':
+            if (!(Array.isArray(parsedPayload.options) && Number.isInteger(parsedPayload.correctIndex))) {
+              throw new Error('Bài A2 cần có "options" (mảng) và "correctIndex".');
+            }
+            break;
+          case 'phoneme_choice':
+            if (!(parsedPayload.word && Array.isArray(parsedPayload.ipaOptions))) {
+              throw new Error('Bài B1 cần "word" và "ipaOptions" (mảng).');
+            }
+            break;
+          case 'phrase_gaps':
+            if (!(parsedPayload.paragraph && Array.isArray(parsedPayload.gaps))) {
+              throw new Error('Bài B2 cần "paragraph" và "gaps" (mảng).');
+            }
+            break;
+          case 'reading_mcq':
+            if (!(parsedPayload.passage && Array.isArray(parsedPayload.questions))) {
+              throw new Error('Bài C1 cần "passage" và "questions" (mảng).');
+            }
+            break;
+        }
       }
     } catch (e: any) {
       Alert.alert('Thiếu dữ liệu', e.message);
@@ -395,6 +828,7 @@ export default function ListenCreateScreen() {
     }
 
     try {
+      // xử lý media audio/video
       let finalUrl = urlInput.trim() || original.audioUrl || '';
       let mediaType = original.mediaType ?? null;
 
@@ -410,9 +844,30 @@ export default function ListenCreateScreen() {
         mediaType = mt;
       }
 
-      if (!mediaType && finalUrl) mediaType = inferMediaTypeFromUrl(finalUrl);
+      if (!mediaType && finalUrl) {
+        mediaType = inferMediaTypeFromUrl(finalUrl);
+      }
 
-      const payloadWrite = {
+      // xử lý file tài liệu bài tập
+      let exerciseFileUrl = originalExerciseFile.url ?? null;
+      let exerciseFileName = originalExerciseFile.name ?? null;
+
+      if (exerciseFile?.uri) {
+        const { secure_url } = await uploadRawFileToCloudinary(
+          exerciseFile.uri,
+          'exercise_files',
+          slugify(title),
+          (pct) => setProgress(pct),
+        );
+        exerciseFileUrl = secure_url;
+        exerciseFileName = exerciseFile.name;
+      } else if (exerciseFileRemoved) {
+        // giáo viên xoá file
+        exerciseFileUrl = null;
+        exerciseFileName = null;
+      }
+
+      const basePayload = {
         title: title.trim(),
         transcript: transcript.trim(),
         audioUrl: finalUrl || null,
@@ -420,18 +875,24 @@ export default function ListenCreateScreen() {
         level,
         exerciseType,
         payload: parsedPayload,
-        isPublished: published,
+        exerciseFileUrl,
+        exerciseFileName,
         updatedAt: serverTimestamp(),
       };
 
-      if (editId)
-        await updateDoc(doc(db, 'listens', editId), payloadWrite);
-      else
-        await addDoc(collection(db, 'listens'), { ...payloadWrite, createdAt: serverTimestamp() });
+      if (editId) {
+        await updateDoc(doc(db, 'listens', editId), basePayload);
+      } else {
+        await addDoc(collection(db, 'listens'), {
+          ...basePayload,
+          isPublished: false,
+          createdAt: serverTimestamp(),
+        });
+      }
 
       router.replace('/(admin)/listen/listen-screen');
     } catch (e: any) {
-      Alert.alert('Lỗi', e?.message ?? 'Không thể lưu');
+      Alert.alert('Lỗi', e?.message ?? 'Không thể lưu bài nghe.');
     } finally {
       setBusy(false);
       setProgress(0);
@@ -442,9 +903,16 @@ export default function ListenCreateScreen() {
   const effectiveUrl = (urlInput || original.audioUrl || '').trim();
   const effectiveMediaType =
     (picked?.name
-      ? (isAudioExt(getExt(picked.name)) ? guessAudioMime(getExt(picked.name)) : guessVideoMime(getExt(picked.name)))
+      ? (isAudioExt(getExt(picked.name))
+          ? guessAudioMime(getExt(picked.name))
+          : guessVideoMime(getExt(picked.name)))
       : (original.mediaType ?? null)) ||
     (effectiveUrl ? inferMediaTypeFromUrl(effectiveUrl) : null);
+
+  const saveDisabled =
+    busy ||
+    !title.trim() ||
+    (!picked?.uri && !urlInput.trim() && !original.audioUrl);
 
   const Form = (
     <>
@@ -452,7 +920,9 @@ export default function ListenCreateScreen() {
         <TouchableOpacity onPress={() => router.back()} style={S.backBtn}>
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>{editId ? 'Sửa bài nghe' : 'Tạo bài nghe'}</Text>
+        <Text style={S.headerTitle}>
+          {editId ? 'Sửa bài nghe' : 'Tạo bài nghe'}
+        </Text>
         <View style={CS.headerRightPlaceholder} />
       </View>
 
@@ -467,114 +937,164 @@ export default function ListenCreateScreen() {
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled">
           <View style={CS.screen}>
-            {/* Title */}
-            <Text style={CS.label}>Tiêu đề</Text>
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Unit 1 - Greetings"
-              placeholderTextColor={COLORS.muted}
-              style={CS.input}
-            />
+            {/* SECTION 1: Thông tin bài nghe */}
+            <View style={CS.sectionCard}>
+              <Text style={CS.sectionTitle}>Thông tin bài nghe</Text>
 
-            {/* Transcript */}
-            <Text style={CS.label}>Transcript</Text>
-            <TextInput
-              value={transcript}
-              onChangeText={setTranscript}
-              placeholder="A: Hello! How are you? ..."
-              placeholderTextColor={COLORS.muted}
-              multiline
-              style={[CS.input, CS.inputMultiline]}
-            />
+              {/* Title + Level cùng hàng */}
+              <View style={CS.titleLevelRow}>
+                <View style={CS.titleColumn}>
+                  <Text style={CS.label}>Title</Text>
+                  <TextInput
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="Unit 1 - Greetings"
+                    placeholderTextColor={COLORS.muted}
+                    style={[CS.input, CS.titleInput]}
+                  />
+                </View>
+                <View style={CS.levelColumn}>
+                  <Text style={CS.label}>Level</Text>
+                  <LevelPickerRow value={level} onChange={onChangeLevel} />
+                </View>
+              </View>
 
-            {/* Level */}
-            <Text style={CS.label}>Level</Text>
-            <LevelPickerRow value={level} onChange={onChangeLevel} />
-
-            {/* Published */}
-            <View style={CS.publishedRow}>
-              <Text style={CS.label}>Published</Text>
-              <TouchableOpacity
-                onPress={() => setPublished((v) => !v)}
-                activeOpacity={0.9}
-                style={[
-                  CS.publishToggleBase,
-                  published ? CS.publishToggleOn : CS.publishToggleOff,
-                ]}>
-                <Text style={CS.publishToggleText}>{published ? 'ON' : 'OFF'}</Text>
-              </TouchableOpacity>
+              <Text style={CS.label}>Transcript</Text>
+              <TextInput
+                value={transcript}
+                onChangeText={setTranscript}
+                placeholder="A: Hello! How are you? ..."
+                placeholderTextColor={COLORS.muted}
+                multiline
+                style={[CS.input, CS.inputMultiline]}
+              />
             </View>
 
-            {/* Exercise Type */}
-            <Text style={CS.label}>Exercise Type</Text>
-            <TextInput value={exerciseType} editable={false} style={[CS.input, CS.exerciseTypeInput]} />
+            {/* SECTION 2: Bài tập / Payload */}
+            <View style={CS.sectionCard}>
+              <Text style={CS.sectionTitle}>Bài tập</Text>
 
-            {/* Payload JSON */}
-            <Text style={CS.label}>Payload (JSON theo dạng bài)</Text>
-            <View style={CS.payloadButtonsRow}>
+              <View style={CS.exerciseHeaderRow}>
+                <Text style={CS.label}>Exercise Type</Text>
+                <TouchableOpacity
+                  style={CS.templateBtn}
+                  onPress={applyLevelTemplate}
+                  activeOpacity={0.9}
+                >
+                  <Ionicons
+                    name="flash-outline"
+                    size={14}
+                    color={COLORS.bg}
+                    style={CS.templateBtnIcon}
+                  />
+                  <Text style={CS.templateBtnText}>Áp dụng sườn</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TextInput
+                value={exerciseType}
+                editable={false}
+                style={[CS.input, CS.exerciseTypeInput]}
+              />
+
+              <Text style={CS.label}>Payload</Text>
+              <Text style={CS.payloadHint}>
+                - Nếu dùng sườn: bấm "Áp dụng sườn", sau đó chỉnh lại startSec / endSec, câu hỏi, đáp án.{'\n'}
+                - Có thể thêm / bớt câu bằng cách copy block trong mảng "questions".
+              </Text>
+              <TextInput
+                value={payloadText}
+                onChangeText={setPayloadText}
+                multiline
+                style={[CS.input, CS.inputMultiline, CS.payloadInput]}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
+              {/* Tài liệu kèm theo */}
+              <Text style={CS.label}>Tài liệu (Word / Excel / PDF)</Text>
+              <TouchableOpacity
+                style={[CS.pickBtn, busy && CS.pickBtnDisabled]}
+                activeOpacity={0.85}
+                onPress={pickExerciseFile}
+                disabled={busy}
+              >
+                <Text style={CS.pickBtnText}>
+                  {exerciseFile ? 'Chọn lại file tài liệu' : 'Chọn file tài liệu'}
+                </Text>
+              </TouchableOpacity>
+
+              {(exerciseFile || originalExerciseFile.url) && (
+                <View style={CS.exerciseFileMetaRow}>
+                  <Text style={CS.fileName} numberOfLines={1}>
+                    📎 {exerciseFile?.name ?? originalExerciseFile.name ?? originalExerciseFile.url}
+                  </Text>
+                  <TouchableOpacity onPress={removeExerciseFile} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
+                    <Text style={CS.removeFileText}>Xoá file</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* SECTION 3: Media */}
+            <View style={CS.sectionCard}>
+              <Text style={CS.sectionTitle}>Media</Text>
+
+              <Text style={CS.label}>URL (mp3/mp4/m3u8)</Text>
+              <TextInput
+                value={urlInput}
+                onChangeText={setUrlInput}
+                autoCapitalize="none"
+                placeholder="https://…(.mp3 | .mp4 | .m3u8)"
+                placeholderTextColor={COLORS.muted}
+                style={CS.input}
+              />
+              {!!original.audioUrl && !urlInput && !picked && (
+                <Text style={CS.fileName}>
+                  Giữ nguyên URL cũ: {original.audioUrl}
+                </Text>
+              )}
+
               <TouchableOpacity
                 disabled={busy}
-                onPress={() => {
-                  setPayloadText(JSON.stringify(TEMPLATE_BY_TYPE[exerciseType], null, 2));
-                  setPayloadTouched(true);
-                }}
-                style={[CS.pickBtn, CS.payloadTemplateBtn]}
-                activeOpacity={0.85}>
-                <Text style={CS.pickBtnText}>Dán template</Text>
+                onPress={pickMedia}
+                style={[CS.pickBtn, busy && CS.pickBtnDisabled]}>
+                <Text style={CS.pickBtnText}>
+                  {picked ? 'Chọn lại file (mp3/mp4)' : 'Chọn file từ máy (mp3/mp4)'}
+                </Text>
               </TouchableOpacity>
+
+              {!!picked && (
+                <Text style={CS.fileName} numberOfLines={1}>
+                  📄 {picked.name}
+                </Text>
+              )}
+
+              {!!effectiveUrl && (
+                <MediaPreview uri={effectiveUrl} mediaType={effectiveMediaType} />
+              )}
+
+              {busy && (
+                <Text style={CS.progressText}>
+                  Đang upload… {progress}%
+                </Text>
+              )}
             </View>
-            <TextInput
-              value={payloadText}
-              onChangeText={(t) => {
-                setPayloadText(t);
-                setPayloadTouched(true);
-              }}
-              multiline
-              style={[CS.input, CS.inputMultiline, CS.payloadInput]}
-              autoCapitalize="none"
-            />
-
-            {/* URL */}
-            <Text style={CS.label}>URL (mp3/mp4/m3u8)</Text>
-            <TextInput
-              value={urlInput}
-              onChangeText={setUrlInput}
-              autoCapitalize="none"
-              placeholder="https://…(.mp3 | .mp4 | .m3u8)"
-              placeholderTextColor={COLORS.muted}
-              style={CS.input}
-            />
-            {!!original.audioUrl && !urlInput && !picked && (
-              <Text style={CS.fileName}>Giữ nguyên URL cũ: {original.audioUrl}</Text>
-            )}
-
-            {/* Pick file */}
-            <TouchableOpacity disabled={busy} onPress={pickMedia} style={CS.pickBtn}>
-              <Text style={CS.pickBtnText}>
-                {picked ? 'Chọn lại file (mp3/mp4)' : 'Chọn file từ máy (mp3/mp4)'}
-              </Text>
-            </TouchableOpacity>
-
-            {!!picked && (
-              <Text style={CS.fileName} numberOfLines={1}>
-                📄 {picked.name}
-              </Text>
-            )}
-
-            {/* Preview */}
-            {!!effectiveUrl && <MediaPreview uri={effectiveUrl} mediaType={effectiveMediaType} />}
-
-            {busy && (
-              <Text style={CS.progressText}>Đang upload… {progress}%</Text>
-            )}
 
             {/* Save */}
-            <TouchableOpacity disabled={busy} onPress={onSave} style={CS.saveBtn}>
+            <TouchableOpacity
+              disabled={saveDisabled}
+              onPress={onSave}
+              style={[
+                CS.saveBtn,
+                saveDisabled && CS.saveBtnDisabled,
+              ]}>
               {busy ? (
                 <ActivityIndicator color={COLORS.bg} />
               ) : (
-                <Text style={CS.saveBtnText}>{editId ? 'Cập nhật' : 'Lưu'}</Text>
+                <Text style={CS.saveBtnText}>
+                  {editId ? 'Cập nhật' : 'Lưu'}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -591,13 +1111,16 @@ export default function ListenCreateScreen() {
       </View>
     );
   }
-
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <View style={[S.container, { paddingTop: insets.top }]}>
-        <StatusBar barStyle="light-content" />
-        {Form}
-      </View>
-    </TouchableWithoutFeedback>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={[S.container, { paddingTop: insets.top }]}>
+          <StatusBar barStyle="light-content" />
+          {Form}
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }

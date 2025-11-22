@@ -1,10 +1,13 @@
 // types/premium.ts
 export type PremiumPlanId = 'monthly' | 'yearly' | 'lifetime';
 
-export interface PremiumPlan {
+export type PremiumPlan = {
   id: PremiumPlanId;
-  title: string;
-  priceLabel: string;
+  label: string;
+  description: string;
+  price: number;
+  currency: string;
+  highlight?: boolean;
   badge?: string;
-  description?: string;
-}
+  bestValue?: boolean;
+};
