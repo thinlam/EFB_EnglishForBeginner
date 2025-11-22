@@ -29,7 +29,20 @@ type UserDoc = {
   avatarURL?: string | null;
 };
 
-type AuthProfile = {
+export type AuthProfile = {
+  greetingName: string;
+  level: string;
+  cefrXp: number;
+  isPremium: boolean;
+  photoURL: string | null;
+};
+
+export type UseAuthProfileReturn = {
+  loading: boolean;
+  user: any | null;          // Firebase user
+  profile: AuthProfile | null;
+
+  // để UI xài cho tiện (HomeScreen, v.v.)
   greetingName: string;
   level: string;
   cefrXp: number;
@@ -92,16 +105,14 @@ function deriveIsPremium(docData: UserDoc): boolean {
 }
 
 function derivePhotoURL(docData: UserDoc, user: any): string | null {
-  return (
-    docData?.photoURL ||
-    docData?.avatarURL ||
-    user?.photoURL ||
-    null
-  );
+  return docData?.photoURL || docData?.avatarURL || user?.photoURL || null;
 }
 
-export function useAuthProfile(): AuthProfile {
-  const [state, setState] = useState<AuthProfile>({
+export function useAuthProfile(): UseAuthProfileReturn {
+  const [state, setState] = useState<UseAuthProfileReturn>({
+    loading: true,
+    user: null,
+    profile: null,
     greetingName: 'bạn',
     level: 'A1',
     cefrXp: 0,
@@ -112,32 +123,66 @@ export function useAuthProfile(): AuthProfile {
   useEffect(() => {
     const user = auth.currentUser;
 
-    // nếu chưa đăng nhập thì giữ default
-    if (!user) return;
+    // ❌ chưa login
+    if (!user) {
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        user: null,
+        profile: null,
+        greetingName: 'bạn',
+        level: 'A1',
+        cefrXp: 0,
+        isPremium: false,
+        photoURL: null,
+      }));
+      return;
+    }
 
-    // 1. load cache từ AsyncStorage cho cảm giác “instant”
+    // 1. Load cache để hiển thị nhanh
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
           const cached = JSON.parse(raw) as AuthProfile;
-          setState((prev) => ({ ...prev, ...cached }));
+          setState((prev) => ({
+            ...prev,
+            loading: false,
+            user,
+            profile: cached,
+            greetingName: cached.greetingName,
+            level: cached.level,
+            cefrXp: cached.cefrXp,
+            isPremium: cached.isPremium,
+            photoURL: cached.photoURL,
+          }));
+        } else {
+          setState((prev) => ({ ...prev, loading: true, user }));
         }
       } catch (err) {
         console.log('load auth profile cache error:', err);
+        setState((prev) => ({ ...prev, loading: true, user }));
       }
     })();
 
-    // 2. subscribe Firestore realtime để cập nhật ngay sau khi mua Premium
+    // 2. Subscribe Firestore realtime
     const ref = doc(db, 'users', user.uid);
     const unsub = onSnapshot(
       ref,
       (snap) => {
-        if (!snap.exists()) return;
+        if (!snap.exists()) {
+          setState((prev) => ({
+            ...prev,
+            loading: false,
+            user,
+            profile: null,
+          }));
+          return;
+        }
 
         const data = snap.data() as UserDoc;
 
-        const next: AuthProfile = {
+        const nextProfile: AuthProfile = {
           greetingName: deriveGreetingName(data, user),
           level: deriveLevel(data),
           cefrXp: deriveCefrXp(data),
@@ -145,13 +190,24 @@ export function useAuthProfile(): AuthProfile {
           photoURL: derivePhotoURL(data, user),
         };
 
-        setState(next);
+        setState({
+          loading: false,
+          user,
+          profile: nextProfile,
+          greetingName: nextProfile.greetingName,
+          level: nextProfile.level,
+          cefrXp: nextProfile.cefrXp,
+          isPremium: nextProfile.isPremium,
+          photoURL: nextProfile.photoURL,
+        });
 
-        // lưu cache lại
-        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextProfile)).catch(
+          () => {},
+        );
       },
       (err) => {
         console.log('useAuthProfile listen error:', err);
+        setState((prev) => ({ ...prev, loading: false }));
       },
     );
 

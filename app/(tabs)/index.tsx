@@ -51,34 +51,66 @@ function getCefrFromXp(totalXp: number) {
   return { level, progress };
 }
 
+/** Helper parse date từ Firestore Timestamp / string / number */
+function parseDate(v: any): Date | null {
+  if (!v) return null;
+  if (typeof v?.toDate === 'function') return v.toDate();
+  if (v instanceof Date) return v;
+  if (typeof v === 'string' || typeof v === 'number') return new Date(v);
+  return null;
+}
+
 export default function HomeScreen() {
-  const profile = useAuthProfile();
+  const rawProfile = useAuthProfile() as any;
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const greetingName = (profile as any).greetingName ?? 'bạn';
-  const isPremium = (profile as any).isPremium ?? false;
+  // rawProfile có thể là { profile } hoặc object thẳng
+  const profile =
+    rawProfile?.profile ??
+    rawProfile?.user ??
+    rawProfile?.userData ??
+    rawProfile ??
+    null;
 
-  // Lấy CEFR XP (tổng điểm) từ profile
-  const totalXp: number = (profile as any).cefrXp ?? 0;
+  const greetingName = profile?.greetingName ?? 'bạn';
+
+  // ---- PREMIUM STATE ----
+  const expiresDate = parseDate(profile?.premiumExpiresAt);
+  const now = new Date();
+
+  const hasFutureExpire =
+    expiresDate && !Number.isNaN(expiresDate.getTime())
+      ? expiresDate.getTime() > now.getTime()
+      : false;
+
+  // chỉ cần 1 trong các flag này là coi như premium
+  const isPremium =
+    profile?.role === 'premium' ||
+    profile?.isPremium === true ||
+    profile?.premium === true ||
+    (!!profile?.premiumPlanId && hasFutureExpire);
+
+  // ---- CEFR từ XP ----
+  const totalXp: number = profile?.cefrXp ?? 0;
   const { level, progress: levelProgress } = useMemo(
     () => getCefrFromXp(totalXp),
     [totalXp],
   );
 
   // Avatar URL
-  const hookPhotoURL: string | null = (profile as any).photoURL ?? null;
+  const hookPhotoURL: string | null = profile?.photoURL ?? null;
   const authPhotoURL: string | null = auth.currentUser?.photoURL ?? null;
   const photoURL: string | null = hookPhotoURL || authPhotoURL || null;
 
-  // Ký tự đầu khi không có avatar
+  // Ký tự đầu
   const initial = useMemo(() => {
     const raw = (greetingName || '').trim();
     if (!raw) return 'U';
     return raw[0]!.toUpperCase();
   }, [greetingName]);
 
-  // Lọc card theo level (dùng level đã tính từ XP)
+  // Lọc card theo level
   const filteredData = useMemo(() => {
     if (!FILTER_CARDS_BY_LEVEL) return DATA;
     return DATA.filter((it) => {
@@ -254,22 +286,21 @@ export default function HomeScreen() {
 
       {/* LIST CARD */}
       <FlatList
-  data={filteredData}
-  renderItem={renderItem}
-  keyExtractor={(item) => item.id}
-  numColumns={2}
-  columnWrapperStyle={{ justifyContent: 'space-between', gap: 12 }}
-  contentContainerStyle={{
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: (insets.bottom || 12) + 16,
-  }}
-  showsVerticalScrollIndicator={false}
-  {...(Platform.OS === 'ios'
-    ? { contentInsetAdjustmentBehavior: 'automatic' as const }
-    : {})}
-/>
-
+        data={filteredData}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={{ justifyContent: 'space-between', gap: 12 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 12,
+          paddingBottom: (insets.bottom || 12) + 16,
+        }}
+        showsVerticalScrollIndicator={false}
+        {...(Platform.OS === 'ios'
+          ? { contentInsetAdjustmentBehavior: 'automatic' as const }
+          : {})}
+      />
     </SafeAreaView>
   );
 }
