@@ -45,6 +45,14 @@ function fmtDate(value: any): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+function parseDate(v: any): Date | null {
+  if (!v) return null;
+  if (typeof v?.toDate === 'function') return v.toDate(); // Firestore Timestamp
+  if (v instanceof Date) return v;
+  if (typeof v === 'string' || typeof v === 'number') return new Date(v);
+  return null;
+}
+
 /* ---------- Screen ---------- */
 
 export default function ProfileScreen() {
@@ -75,19 +83,20 @@ export default function ProfileScreen() {
 
   const level = u.level || 'A1';
 
-  // ----- PREMIUM STATE -----
-  const expiresDate =
-    u.premiumExpiresAt ? new Date(u.premiumExpiresAt as string) : null;
+  // ----- PREMIUM STATE (đồng bộ với Home) -----
+  const expiresDate = parseDate(u.premiumExpiresAt);
+  const now = new Date();
 
-  const now = Date.now();
   const hasFutureExpire =
     expiresDate && !Number.isNaN(expiresDate.getTime())
-      ? expiresDate.getTime() > now
+      ? expiresDate.getTime() > now.getTime()
       : false;
 
+  // ưu tiên isPremium, fallback premium/premiumPlanId cho account cũ
   const isPremium = !!(
-    (typeof u.premium === 'boolean' && u.premium) ||
-    u.premiumPlanId ||
+    (u.isPremium === true ||
+      (typeof u.premium === 'boolean' && u.premium) ||
+      !!u.premiumPlanId) &&
     hasFutureExpire
   );
 
@@ -141,7 +150,8 @@ export default function ProfileScreen() {
               />
             </View>
             <Text style={S.progressSub}>
-              {u?.progress?.lessonsDone ?? 0}/{u?.progress?.lessonsTotal ?? '—'} lessons
+              {u?.progress?.lessonsDone ?? 0}/{u?.progress?.lessonsTotal ?? '—'}{' '}
+              lessons
             </Text>
           </View>
         </LinearGradient>
