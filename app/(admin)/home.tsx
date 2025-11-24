@@ -35,7 +35,7 @@ export default function AdminHomeScreen() {
     {
       title: '📚 Tài liệu & Hỗ trợ',
       children: [
-        { title: 'Tài liệu học tập' },
+        { title: 'Tài liệu học tập' ,path: '/(admin)/study-materials'},
         { title: 'Hỗ trợ kỹ thuật', path: '/(admin)/support' },
       ],
     },
