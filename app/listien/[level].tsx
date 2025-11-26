@@ -3,13 +3,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Platform,
-    Pressable,
-    RefreshControl,
-    Text,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -18,17 +18,17 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 /* Firestore */
 import { db } from '@/scripts/firebase';
 import {
-    DocumentData,
-    QueryDocumentSnapshot,
-    Timestamp,
-    collection,
-    getDocs,
-    limit,
-    onSnapshot,
-    orderBy,
-    query,
-    startAfter,
-    where,
+  DocumentData,
+  QueryDocumentSnapshot,
+  Timestamp,
+  collection,
+  getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  startAfter,
+  where,
 } from 'firebase/firestore';
 
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';

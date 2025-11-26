@@ -1,8 +1,8 @@
 // app/(tabs)/profile/EditProfile.tsx
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,26 +14,27 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 /** Firebase */
-import { auth, db } from '@/scripts/firebase';
+import { auth, db, storage } from "@/scripts/firebase";
 import {
   onAuthStateChanged,
   updateProfile,
   type User as FirebaseUser,
-} from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+} from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 /** Styles */
-import { EditProfileStyles as S } from '@/components/style/EditProfile/Styles';
-
-/* ---------- Cloudinary config ---------- */
-const CLOUD_NAME = 'djf9vnngm';                  // change to your own cloud name
-const UPLOAD_PRESET = 'upload_avatars_unsigned'; // unsigned upload preset for avatar
-const CLOUD_FOLDER = 'avatars';                  // folder to store avatars
-const USE_FIXED_PUBLIC_ID = false;               // true = use 'avatar_<uid>'
+import { EditProfileStyles as S } from "@/components/style/EditProfile/Styles";
 
 type UserDoc = {
   name?: string;
@@ -44,32 +45,53 @@ type UserDoc = {
   createdAt?: any;
 };
 
+// =========================================
+// UPLOAD AVATAR TO FIREBASE STORAGE (web + mobile)
+// =========================================
+const uploadAvatarToFirebase = async (uri: string, uid: string) => {
+  const response = await fetch(uri);
+  const blob = await response.blob();
+
+  const avatarRef = ref(
+    storage,
+    `avatars/${uid}/avatar_${Date.now()}.jpg`
+  );
+
+  await uploadBytes(avatarRef, blob);
+  return await getDownloadURL(avatarRef);
+};
+
+// =========================================
+// MAIN SCREEN
+// =========================================
 export default function EditProfileScreen() {
   const router = useRouter();
 
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
 
-  const [name, setName] = useState('');
-  const [bio, setBio] = useState('');
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
   const [email, setEmail] = useState<string | null>(null);
 
-  const [avatar, setAvatar] = useState<string | null>(null); // current avatar (local or url)
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [originalAvatar, setOriginalAvatar] = useState<string | null>(null);
-  const [originalName, setOriginalName] = useState('');
-  const [originalBio, setOriginalBio] = useState('');
+  const [originalName, setOriginalName] = useState("");
+  const [originalBio, setOriginalBio] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  /** Load profile + listen to auth changes */
+  // =========================================
+  // LOAD PROFILE
+  // =========================================
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
 
       if (!u) {
         setLoading(false);
-        Alert.alert('Notice', 'You need to sign in to edit your profile.', [
-          { text: 'OK', onPress: () => router.back() },
+        Alert.alert("Notice", "You must login to edit profile", [
+          { text: "OK", onPress: () => router.back() },
         ]);
         return;
       }
@@ -77,11 +99,11 @@ export default function EditProfileScreen() {
       setEmail(u.email ?? null);
 
       try {
-        const snap = await getDoc(doc(db, 'users', u.uid));
+        const snap = await getDoc(doc(db, "users", u.uid));
         const data = (snap.exists() ? snap.data() : {}) as UserDoc;
 
-        const profileName = data.name ?? u.displayName ?? '';
-        const profileBio = data.bio ?? '';
+        const profileName = data.name ?? u.displayName ?? "";
+        const profileBio = data.bio ?? "";
         const profilePhoto = data.photoURL ?? u.photoURL ?? null;
 
         setName(profileName);
@@ -91,127 +113,86 @@ export default function EditProfileScreen() {
         setOriginalName(profileName);
         setOriginalBio(profileBio);
         setOriginalAvatar(profilePhoto);
-      } catch (e: any) {
-        Alert.alert('Error', e?.message ?? 'Failed to load profile.');
+      } catch (err: any) {
+        Alert.alert("Error", err.message ?? "Failed to load profile.");
       } finally {
         setLoading(false);
       }
     });
 
     return () => unsub();
-  }, [router]);
+  }, []);
 
-  /** Upload avatar to Cloudinary, return secure_url */
-  const uploadAvatarToCloudinary = async (
-    uri: string,
-    publicId?: string
-  ): Promise<string> => {
-    const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
-    const rnFile: any = {
-      uri,
-      name: `avatar.${ext}`,
-      type: 'image/jpeg',
-    };
-
-    const form = new FormData();
-    form.append('file', rnFile as any);
-    form.append('upload_preset', UPLOAD_PRESET);
-    form.append('folder', CLOUD_FOLDER);
-    if (publicId) form.append('public_id', publicId);
-
-    const endpoint = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
-
-    const resp = await fetch(endpoint, {
-      method: 'POST',
-      body: form,
-    });
-
-    if (!resp.ok) {
-      const text = await resp.text();
-      console.log('Cloudinary status:', resp.status);
-      console.log('Cloudinary response:', text);
-      throw new Error('Avatar upload failed, please try again.');
-    }
-
-    const json = await resp.json();
-    return json.secure_url as string;
-  };
-
-  /** Pick avatar (new expo-image-picker API) */
+  // =========================================
+  // PICK AVATAR
+  // =========================================
   const onPickAvatar = async () => {
     try {
-      if (Platform.OS !== 'web') {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permission denied',
-            'We need access to your photo library to pick an avatar.'
+      if (Platform.OS !== "web") {
+        const { status } =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          return Alert.alert(
+            "Permission denied",
+            "Allow access to photos to change avatar."
           );
-          return;
         }
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.9,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
       });
 
       if (!result.canceled && result.assets?.length > 0) {
-        setAvatar(result.assets[0].uri); // local file → upload to Cloudinary on Save
+        setAvatar(result.assets[0].uri);
       }
-    } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Unable to open photo library.');
+    } catch (err: any) {
+      Alert.alert("Error", err.message);
     }
   };
 
-  /** Check if there are unsaved changes */
+  // =========================================
+  // CHECK UNSAVED CHANGES
+  // =========================================
   const hasChanges = useMemo(() => {
     if (!user || loading) return false;
-
-    const n = name.trim();
-    const b = bio.trim();
-    if (!n) return false;
-
     return (
-      n !== (originalName || '') ||
-      b !== (originalBio || '') ||
+      name.trim() !== originalName ||
+      bio.trim() !== originalBio ||
       avatar !== originalAvatar
     );
-  }, [user, loading, name, bio, avatar, originalName, originalBio, originalAvatar]);
+  }, [name, bio, avatar, originalName, originalBio, originalAvatar]);
 
+  // =========================================
+  // SAVE PROFILE
+  // =========================================
   const handleSave = async () => {
     if (!user) return;
-
-    const trimmedName = name.trim();
-    const trimmedBio = bio.trim();
-
-    if (!trimmedName) {
-      Alert.alert('Missing information', 'Please enter a display name.');
-      return;
+    if (!name.trim()) {
+      return Alert.alert("Missing info", "Please enter your name.");
     }
 
     setSaving(true);
     try {
       let finalPhotoURL: string | null = originalAvatar;
 
+      // upload new avatar if changed
       if (avatar) {
-        if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
-          // already a remote / Cloudinary URL → keep as is
-          finalPhotoURL = avatar;
+        const isRemote = avatar.startsWith("http");
+        if (!isRemote) {
+          finalPhotoURL = await uploadAvatarToFirebase(avatar, user.uid);
+          setAvatar(finalPhotoURL);
         } else {
-          // local file → upload to Cloudinary
-          const publicId =
-            USE_FIXED_PUBLIC_ID && user ? `avatar_${user.uid}` : undefined;
-          finalPhotoURL = await uploadAvatarToCloudinary(avatar, publicId);
-          setAvatar(finalPhotoURL); // update UI with remote URL
+          finalPhotoURL = avatar;
         }
       }
 
-      // Update Auth profile
+      // Update Firebase Auth
       await updateProfile(user, {
-        displayName: trimmedName,
+        displayName: name.trim(),
         photoURL: finalPhotoURL ?? undefined,
       });
 
@@ -219,42 +200,48 @@ export default function EditProfileScreen() {
       setUser(auth.currentUser);
 
       // Update Firestore
-      const userRef = doc(db, 'users', user.uid);
+      const refUser = doc(db, "users", user.uid);
       const payload: UserDoc = {
-        name: trimmedName,
-        bio: trimmedBio,
-        photoURL: finalPhotoURL ?? null,
+        name: name.trim(),
+        bio: bio.trim(),
+        photoURL: finalPhotoURL,
+        email: email,
         updatedAt: serverTimestamp(),
-        email: user.email ?? email ?? null,
       };
 
-      const snap = await getDoc(userRef);
+      const snap = await getDoc(refUser);
       if (snap.exists()) {
-        await updateDoc(userRef, payload);
+        await updateDoc(refUser, payload);
       } else {
-        await setDoc(userRef, { ...payload, createdAt: serverTimestamp() });
+        await setDoc(refUser, {
+          ...payload,
+          createdAt: serverTimestamp(),
+        });
       }
 
-      // Sync original state
-      setOriginalName(trimmedName);
-      setOriginalBio(trimmedBio);
-      setOriginalAvatar(finalPhotoURL ?? null);
+      // sync local original values
+      setOriginalName(name);
+      setOriginalBio(bio);
+      setOriginalAvatar(finalPhotoURL);
 
-      Alert.alert('Success', 'Your profile has been updated.');
+      Alert.alert("Success", "Profile updated!");
       router.back();
-    } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Profile update failed.');
+    } catch (err: any) {
+      Alert.alert("Error", err.message ?? "Failed to save.");
     } finally {
       setSaving(false);
     }
   };
 
+  // =========================================
+  // RENDER
+  // =========================================
   if (loading) {
     return (
       <SafeAreaView style={S.container}>
         <View style={[S.body, S.centerContent]}>
           <ActivityIndicator />
-          <Text style={S.mutedText}>Loading profile…</Text>
+          <Text style={S.mutedText}>Loading…</Text>
         </View>
       </SafeAreaView>
     );
@@ -263,38 +250,34 @@ export default function EditProfileScreen() {
   return (
     <SafeAreaView style={S.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={S.body}
       >
-        {/* Header */}
+        {/* HEADER */}
         <View style={S.header}>
           <TouchableOpacity onPress={() => router.back()} style={S.iconBtn}>
             <Ionicons name="chevron-back" size={22} color="#0F172A" />
           </TouchableOpacity>
 
           <View style={S.headerTextWrap}>
-            <Text style={S.headerTitle}>Edit profile</Text>
+            <Text style={S.headerTitle}>Edit Profile</Text>
             <Text style={S.headerSubtitle}>
-              Update how your account looks to others.
+              Update how your account looks.
             </Text>
           </View>
 
-          {/* empty view for layout balance */}
           <View style={S.iconBtn} />
         </View>
 
+        {/* BODY */}
         <ScrollView
           style={S.scroll}
           contentContainerStyle={S.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Avatar */}
+          {/* AVATAR */}
           <View style={S.avatarSection}>
-            <TouchableOpacity
-              onPress={onPickAvatar}
-              style={S.avatarOuter}
-              activeOpacity={0.9}
-            >
+            <TouchableOpacity onPress={onPickAvatar} style={S.avatarOuter}>
               <View style={S.avatarBorder}>
                 {avatar ? (
                   <Image source={{ uri: avatar }} style={S.avatar} />
@@ -306,32 +289,34 @@ export default function EditProfileScreen() {
               </View>
 
               <View style={S.camBadge}>
-                <Ionicons name="pencil" size={14} color="#FFFFFF" />
+                <Ionicons name="pencil" size={14} color="#fff" />
               </View>
             </TouchableOpacity>
 
-            <Text style={S.avatarHint}>Tap to change your profile picture</Text>
+            <Text style={S.avatarHint}>
+              Tap to change your profile picture
+            </Text>
           </View>
 
-          {/* Content card */}
+          {/* FORM */}
           <View style={S.card}>
-            {/* Email (read-only) */}
+            {/* Email */}
             {email && (
-              <View style={S.formGroup}>
+              <>
                 <Text style={S.label}>Email</Text>
-                <View style={[S.input, S.inputReadOnly]} pointerEvents="none">
+                <View style={[S.input, S.inputReadOnly]}>
                   <Text style={S.mutedText}>{email}</Text>
                 </View>
-              </View>
+              </>
             )}
 
-            {/* Display name */}
+            {/* Name */}
             <View style={S.formGroup}>
               <Text style={S.label}>Display name</Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="e.g. Jenny Tran"
+                placeholder="Your name"
                 placeholderTextColor="#9CA3AF"
                 style={S.input}
                 returnKeyType="next"
@@ -340,31 +325,22 @@ export default function EditProfileScreen() {
 
             {/* Bio */}
             <View style={S.formGroup}>
-              <View style={S.labelRow}>
-                <Text style={S.label}>Bio</Text>
-                <Text style={S.labelHelper}>Optional</Text>
-              </View>
+              <Text style={S.label}>Bio</Text>
               <TextInput
                 value={bio}
                 onChangeText={setBio}
-                placeholder="Write a short introduction about yourself…"
+                placeholder="Tell something about yourself…"
                 placeholderTextColor="#9CA3AF"
                 style={[S.input, S.textarea]}
                 multiline
               />
             </View>
-
-            {/* Hint */}
-            <Text style={S.helperText}>
-              A clear profile helps you look more professional and memorable.
-            </Text>
           </View>
 
-          {/* Footer buttons */}
+          {/* FOOTER */}
           <View style={S.footer}>
             <TouchableOpacity
               onPress={() => router.back()}
-              disabled={saving}
               style={[S.secondaryBtn, saving && S.btnDisabled]}
             >
               <Text style={S.secondaryBtnText}>Cancel</Text>
@@ -379,7 +355,7 @@ export default function EditProfileScreen() {
               ]}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={S.primaryBtnText}>Save changes</Text>
               )}

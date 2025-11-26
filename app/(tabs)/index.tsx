@@ -144,6 +144,15 @@ export default function HomeScreen() {
   };
 
   const handlePress = (item: Item) => {
+      if (item.title === 'Reading') {
+    // app/(tabs)/reading/index.tsx
+    router.push('/reading');
+    return;
+  }
+  if(item.title === 'Speaking') {
+    router.push('/speaking');
+    return;
+  }
     if (item.id === '6' || item.title === 'Dịch' || item.title === 'Translate') {
       router.push('/translate');
       return;
