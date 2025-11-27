@@ -1,8 +1,10 @@
+// components/style/admin/speaking/speaking-create-styles.ts
 import { StyleSheet } from 'react-native';
 import { COLORS } from '../AdminColors';
 
-export const ReadingCreateStyles = StyleSheet.create({
+export const SpeakingCreateStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+
   header: {
     height: 52,
     flexDirection: 'row',
@@ -42,10 +44,18 @@ export const ReadingCreateStyles = StyleSheet.create({
   },
   saveText: { fontWeight: '700', fontSize: 13 },
 
-  formWrap: { paddingHorizontal: 16, paddingBottom: 40, gap: 14 },
+  formWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+    gap: 14,
+  },
   formRow: { gap: 6 },
   formGroupRow: { flexDirection: 'row', gap: 10 },
-  formLabel: { color: COLORS.subText, fontSize: 14, fontWeight: '600' },
+  formLabel: {
+    color: COLORS.subText,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   input: {
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
@@ -56,7 +66,10 @@ export const ReadingCreateStyles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 14,
   },
-  textarea: { minHeight: 160, textAlignVertical: 'top' },
+  textarea: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
   picker: {
     flex: 1,
     flexDirection: 'row',
@@ -69,60 +82,49 @@ export const ReadingCreateStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-    /* ───────────────────── Modal Styles ───────────────────── */
+  pickerValue: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
 
-  modalWrap: {
+  // Modal
+  modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 16,
   },
-
   modalBox: {
-    width: '85%',
+    width: 260,
     backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.borderSoft,
+    overflow: 'hidden',
   },
-
+  modalHeader: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 14,
     color: COLORS.text,
-    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
   },
-
   modalItem: {
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingHorizontal: 12,
-    backgroundColor: COLORS.card2,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.borderSoft,
-    marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderSoft,
   },
-
   modalItemText: {
-    fontSize: 15,
-    fontWeight: '600',
     color: COLORS.text,
-  },
-
-  modalClose: {
-    marginTop: 12,
-    alignSelf: 'flex-end',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-  },
-
-  modalCloseText: {
     fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.create,
   },
-
-  pickerValue: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
 });

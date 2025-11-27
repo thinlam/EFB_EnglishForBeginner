@@ -53,7 +53,7 @@ export const ListenCreateStyles = StyleSheet.create({
     flexShrink: 0,
   },
   titleInput: {
-    marginBottom: 0,
+    marginBottom: 0, // đã có margin ở row
   },
 
   /* ---- Section card ---- */
@@ -102,32 +102,9 @@ export const ListenCreateStyles = StyleSheet.create({
 
   fileName: {
     marginTop: 2,
-    marginBottom: 4,
+    marginBottom: 8,
     fontSize: 12,
     color: COLORS.muted,
-    flex: 1,
-  },
-
-  fileActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-
-  clearBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.card2 ?? COLORS.bg,
-  },
-
-  clearBtnText: {
-    fontSize: 11,
-    color: COLORS.muted,
-    fontWeight: '600',
   },
 
   progressText: {
@@ -302,8 +279,45 @@ export const ListenCreateStyles = StyleSheet.create({
   },
 
   helperText: {
-    marginTop: 4,
+    marginTop: 8,
     fontSize: 12,
     color: COLORS.muted,
+  },
+
+  /* ---- Exercise header (Exercise Type + nút sườn) ---- */
+  exerciseHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  templateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: COLORS.create,
+  },
+  templateBtnIcon: {
+    marginRight: 4,
+  },
+  templateBtnText: {
+    color: COLORS.bg,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  /* ---- Exercise file meta + nút xoá ---- */
+  exerciseFileMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  removeFileText: {
+    fontSize: 12,
+    color: '#f97373',
+    fontWeight: '600',
   },
 });

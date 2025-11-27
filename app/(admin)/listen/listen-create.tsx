@@ -53,6 +53,25 @@ const EXERCISE_BY_LEVEL: Record<CEFR, ExerciseType> = {
   C1: 'reading_mcq',
 };
 
+type QuestionKind = 'dictation' | 'fill_blank' | 'mcq' | 'summary';
+
+type ListeningQuestion = {
+  id: string;
+  kind: QuestionKind;
+  startSec: number;
+  endSec: number;
+  prompt: string;
+  answer: string | string[];
+  options?: string[];
+};
+
+type ListeningPayload = {
+  kind: 'listening_template';
+  level: CEFR;
+  note?: string;
+  questions: ListeningQuestion[];
+};
+
 type ListenDoc = {
   title: string;
   transcript: string;
@@ -63,7 +82,7 @@ type ListenDoc = {
   payload?: any;
   isPublished?: boolean;
 
-  // file tài liệu bài tập (Word/PDF/Excel)
+  // file tài liệu bài tập
   exerciseFileUrl?: string | null;
   exerciseFileName?: string | null;
 };
@@ -116,7 +135,7 @@ function guessVideoMime(ext: string) {
   return 'video/mp4';
 }
 
-/* ================= Cloudinary upload (audio/video) ================= */
+/* ================= Cloudinary upload ================= */
 async function uploadMediaToCloudinary(
   localUri: string,
   folder: string,
@@ -183,7 +202,7 @@ async function uploadMediaToCloudinary(
   return { secure_url, public_id, deliveryUrl, mediaType, isAudio };
 }
 
-/* ================= Upload raw file (Word / Excel / PDF) ================= */
+/* Upload raw file (Word / Excel / PDF) */
 async function uploadRawFileToCloudinary(
   localUri: string,
   folder: string,
@@ -227,6 +246,266 @@ async function uploadRawFileToCloudinary(
     secure_url: json.secure_url as string,
     public_id: json.public_id as string,
   };
+}
+
+/* ================= Listening templates theo Level ================= */
+function getDefaultPayloadForLevel(level: CEFR): ListeningPayload {
+  switch (level) {
+    case 'A1':
+      return {
+        kind: 'listening_template',
+        level,
+        note: 'A1 – nghe câu ngắn, điền từ và chọn đáp án đơn giản. Điền startSec/endSec theo audio.',
+        questions: [
+          {
+            id: 'a1_q1',
+            kind: 'dictation',
+            startSec: 0,
+            endSec: 4,
+            prompt: 'Type what you hear.',
+            answer: 'Billy, are you able to send emails?',
+          },
+          {
+            id: 'a1_q2',
+            kind: 'fill_blank',
+            startSec: 5,
+            endSec: 9,
+            prompt: 'I can’t _______ to my account.',
+            answer: 'connect',
+            options: ['connect', 'control', 'continue'],
+          },
+          {
+            id: 'a1_q3',
+            kind: 'mcq',
+            startSec: 10,
+            endSec: 15,
+            prompt: 'What problem does the speaker have?',
+            answer: 'He can’t send emails.',
+            options: [
+              'He can’t send emails.',
+              'He can’t open a file.',
+              'The internet is slow.',
+            ],
+          },
+          {
+            id: 'a1_q4',
+            kind: 'mcq',
+            startSec: 16,
+            endSec: 20,
+            prompt: 'How does the speaker greet the other person?',
+            answer: 'Hello.',
+            options: ['Hello.', 'Goodbye.', 'Thank you.'],
+          },
+        ],
+      };
+
+    case 'A2':
+      return {
+        kind: 'listening_template',
+        level,
+        note: 'A2 – tình huống đơn giản, nghe – điền từ và hỏi ý chính.',
+        questions: [
+          {
+            id: 'a2_q1',
+            kind: 'fill_blank',
+            startSec: 0,
+            endSec: 4,
+            prompt: 'Complete the sentence you hear.',
+            answer: 'I can’t connect to my account.',
+          },
+          {
+            id: 'a2_q2',
+            kind: 'fill_blank',
+            startSec: 5,
+            endSec: 9,
+            prompt: 'I can’t _______ to my account.',
+            answer: 'connect',
+            options: ['connect', 'control', 'continue'],
+          },
+          {
+            id: 'a2_q3',
+            kind: 'mcq',
+            startSec: 10,
+            endSec: 15,
+            prompt: 'What is the main problem?',
+            answer: 'He cannot send emails.',
+            options: [
+              'He cannot send emails.',
+              'He cannot open the browser.',
+              'He cannot print a document.',
+            ],
+          },
+          {
+            id: 'a2_q4',
+            kind: 'mcq',
+            startSec: 16,
+            endSec: 22,
+            prompt: 'Where does this conversation probably take place?',
+            answer: 'In an office.',
+            options: ['In an office.', 'At a restaurant.', 'At a supermarket.'],
+          },
+        ],
+      };
+
+    case 'B1':
+      return {
+        kind: 'listening_template',
+        level,
+        note: 'B1 – hội thoại ngắn, nghe – chép câu và chọn nguyên nhân / giải pháp.',
+        questions: [
+          {
+            id: 'b1_q1',
+            kind: 'dictation',
+            startSec: 0,
+            endSec: 5,
+            prompt: 'Write down the full sentence you hear.',
+            answer: 'An error message keeps popping up that says "Unable to connect".',
+          },
+          {
+            id: 'b1_q2',
+            kind: 'dictation',
+            startSec: 6,
+            endSec: 11,
+            prompt: 'Write down what the speaker says.',
+            answer: 'I just called down to the IT Department.',
+          },
+          {
+            id: 'b1_q3',
+            kind: 'mcq',
+            startSec: 12,
+            endSec: 18,
+            prompt: 'Why did the speaker call the IT Department?',
+            answer: 'To report an email problem.',
+            options: [
+              'To report an email problem.',
+              'To buy new software.',
+              'To ask for a password reset.',
+            ],
+          },
+          {
+            id: 'b1_q4',
+            kind: 'mcq',
+            startSec: 19,
+            endSec: 25,
+            prompt: 'What will probably happen next?',
+            answer: 'The problem will be fixed soon.',
+            options: [
+              'The problem will be fixed soon.',
+              'The system will be turned off permanently.',
+              'The speaker will quit the job.',
+            ],
+          },
+        ],
+      };
+
+    case 'B2':
+      return {
+        kind: 'listening_template',
+        level,
+        note: 'B2 – đoạn dài hơn, nghe – hoàn thành câu và chọn ý đúng nhất.',
+        questions: [
+          {
+            id: 'b2_q1',
+            kind: 'fill_blank',
+            startSec: 0,
+            endSec: 7,
+            prompt: 'Complete the sentence from the audio.',
+            answer: 'The technician explained that sometimes there are outages and they are controlled locally.',
+          },
+          {
+            id: 'b2_q2',
+            kind: 'fill_blank',
+            startSec: 8,
+            endSec: 14,
+            prompt: 'Fill in the missing parts.',
+            answer: [
+              'sometimes there are outages',
+              'they are controlled locally',
+            ],
+          },
+          {
+            id: 'b2_q3',
+            kind: 'mcq',
+            startSec: 15,
+            endSec: 22,
+            prompt: 'What is the technician explaining?',
+            answer: 'The reason for the email outage.',
+            options: [
+              'The reason for the email outage.',
+              'How to install new software.',
+              'How to change the computer.',
+            ],
+          },
+          {
+            id: 'b2_q4',
+            kind: 'mcq',
+            startSec: 23,
+            endSec: 30,
+            prompt: 'What is implied about the problem?',
+            answer: 'It will be solved at the local level.',
+            options: [
+              'It will be solved at the local level.',
+              'It is a global company-wide problem.',
+              'No one is responsible for it.',
+            ],
+          },
+        ],
+      };
+
+    case 'C1':
+    default:
+      return {
+        kind: 'listening_template',
+        level: 'C1',
+        note: 'C1 – nghe đoạn dài, tóm tắt ý chính và trả lời câu hỏi phân tích.',
+        questions: [
+          {
+            id: 'c1_q1',
+            kind: 'summary',
+            startSec: 0,
+            endSec: 20,
+            prompt: 'Summarise the main problem with the email system in one sentence.',
+            answer:
+              'The local control device fails periodically, causing repeated interruptions in the email service.',
+          },
+          {
+            id: 'c1_q2',
+            kind: 'summary',
+            startSec: 21,
+            endSec: 40,
+            prompt: 'Summarise the technician’s explanation in one sentence.',
+            answer:
+              'The technician explains that outages are local and occur during maintenance or hardware failure.',
+          },
+          {
+            id: 'c1_q3',
+            kind: 'mcq',
+            startSec: 41,
+            endSec: 55,
+            prompt: 'According to the audio, what is the biggest risk for the company?',
+            answer: 'Frequent local outages can disrupt critical communication.',
+            options: [
+              'Frequent local outages can disrupt critical communication.',
+              'The company will lose all of its data.',
+              'Employees will stop using email completely.',
+            ],
+          },
+          {
+            id: 'c1_q4',
+            kind: 'mcq',
+            startSec: 56,
+            endSec: 70,
+            prompt: 'What is the most likely long-term solution mentioned?',
+            answer: 'Upgrading the local control system or moving to a more stable platform.',
+            options: [
+              'Upgrading the local control system or moving to a more stable platform.',
+              'Stopping all email communication.',
+              'Asking employees to check email less often.',
+            ],
+          },
+        ],
+      };
+  }
 }
 
 /* ================= Level Picker ================= */
@@ -357,6 +636,7 @@ export default function ListenCreateScreen() {
     useState<{ name: string; uri: string } | null>(null);
   const [originalExerciseFile, setOriginalExerciseFile] =
     useState<{ url?: string | null; name?: string | null }>({});
+  const [exerciseFileRemoved, setExerciseFileRemoved] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number>(0);
@@ -366,10 +646,10 @@ export default function ListenCreateScreen() {
     setLevel(v);
     const t = EXERCISE_BY_LEVEL[v];
     setExerciseType(t);
-    // chỉ đổi level -> exerciseType; nội dung bài tập nằm ở payloadText
+    // Level đổi → dạng bài đổi theo, payload giáo viên tự chọn "Áp dụng sườn"
   };
 
-  /* Load doc khi edit */
+  /* Load doc when editing */
   useEffect(() => {
     let mounted = true;
 
@@ -408,7 +688,6 @@ export default function ListenCreateScreen() {
     };
   }, [editId, router]);
 
-  /* Chọn media file (audio/video) */
   const pickMedia = async () => {
     const r = await DocumentPicker.getDocumentAsync({
       copyToCacheDirectory: true,
@@ -431,7 +710,7 @@ export default function ListenCreateScreen() {
     }
   };
 
-  /* Chọn file Word / Excel / PDF */
+  // chọn file Word / Excel / PDF
   const pickExerciseFile = async () => {
     const r = await DocumentPicker.getDocumentAsync({
       copyToCacheDirectory: true,
@@ -452,6 +731,31 @@ export default function ListenCreateScreen() {
         name: f.name ?? 'exercise-file',
         uri: f.uri,
       });
+      setExerciseFileRemoved(false);
+    }
+  };
+
+  const removeExerciseFile = () => {
+    setExerciseFile(null);
+    setOriginalExerciseFile({ url: null, name: null });
+    setExerciseFileRemoved(true);
+  };
+
+  const applyLevelTemplate = () => {
+    const tpl = getDefaultPayloadForLevel(level);
+    const pretty = JSON.stringify(tpl, null, 2);
+
+    if (payloadText.trim()) {
+      Alert.alert(
+        'Ghi đè payload?',
+        `Payload hiện tại sẽ được thay bằng sườn mẫu cho level ${level}.`,
+        [
+          { text: 'Huỷ', style: 'cancel' },
+          { text: 'Đồng ý', onPress: () => setPayloadText(pretty) },
+        ],
+      );
+    } else {
+      setPayloadText(pretty);
     }
   };
 
@@ -468,7 +772,7 @@ export default function ListenCreateScreen() {
     setBusy(true);
     setProgress(0);
 
-    // Parse payload JSON (admin / giáo viên tự nhập)
+    // Parse payload JSON (admin tự nhập)
     let parsedPayload: any = {};
     try {
       parsedPayload = payloadText.trim() ? JSON.parse(payloadText) : {};
@@ -481,34 +785,41 @@ export default function ListenCreateScreen() {
       return;
     }
 
-    // Validate tối thiểu theo loại bài (tuỳ bạn có thể nới lỏng)
+    // Validate cơ bản
     try {
-      switch (exerciseType) {
-        case 'fill_gaps':
-          if (!(parsedPayload.sentence && parsedPayload.answer)) {
-            throw new Error('Bài A1 (fill_gaps) thường cần có "sentence" và "answer".');
-          }
-          break;
-        case 'guess_object':
-          if (!(Array.isArray(parsedPayload.options) && Number.isInteger(parsedPayload.correctIndex))) {
-            throw new Error('Bài A2 (guess_object) cần "options" (mảng) và "correctIndex".');
-          }
-          break;
-        case 'phoneme_choice':
-          if (!(parsedPayload.word && Array.isArray(parsedPayload.ipaOptions))) {
-            throw new Error('Bài B1 (phoneme_choice) cần "word" và "ipaOptions" (mảng).');
-          }
-          break;
-        case 'phrase_gaps':
-          if (!(parsedPayload.paragraph && Array.isArray(parsedPayload.gaps))) {
-            throw new Error('Bài B2 (phrase_gaps) cần "paragraph" và "gaps" (mảng).');
-          }
-          break;
-        case 'reading_mcq':
-          if (!(parsedPayload.passage && Array.isArray(parsedPayload.questions))) {
-            throw new Error('Bài C1 (reading_mcq) cần "passage" và "questions" (mảng).');
-          }
-          break;
+      if (Array.isArray(parsedPayload.questions)) {
+        if (!parsedPayload.questions.length) {
+          throw new Error('Payload cần ít nhất 1 câu hỏi trong mảng "questions".');
+        }
+      } else {
+        // fallback: validate dạng cũ theo exerciseType (nếu bạn còn dùng)
+        switch (exerciseType) {
+          case 'fill_gaps':
+            if (!(parsedPayload.sentence && parsedPayload.answer)) {
+              throw new Error('Bài A1 cần có "sentence" và "answer".');
+            }
+            break;
+          case 'guess_object':
+            if (!(Array.isArray(parsedPayload.options) && Number.isInteger(parsedPayload.correctIndex))) {
+              throw new Error('Bài A2 cần có "options" (mảng) và "correctIndex".');
+            }
+            break;
+          case 'phoneme_choice':
+            if (!(parsedPayload.word && Array.isArray(parsedPayload.ipaOptions))) {
+              throw new Error('Bài B1 cần "word" và "ipaOptions" (mảng).');
+            }
+            break;
+          case 'phrase_gaps':
+            if (!(parsedPayload.paragraph && Array.isArray(parsedPayload.gaps))) {
+              throw new Error('Bài B2 cần "paragraph" và "gaps" (mảng).');
+            }
+            break;
+          case 'reading_mcq':
+            if (!(parsedPayload.passage && Array.isArray(parsedPayload.questions))) {
+              throw new Error('Bài C1 cần "passage" và "questions" (mảng).');
+            }
+            break;
+        }
       }
     } catch (e: any) {
       Alert.alert('Thiếu dữ liệu', e.message);
@@ -517,7 +828,7 @@ export default function ListenCreateScreen() {
     }
 
     try {
-      // 1) Xử lý media audio/video
+      // xử lý media audio/video
       let finalUrl = urlInput.trim() || original.audioUrl || '';
       let mediaType = original.mediaType ?? null;
 
@@ -537,17 +848,10 @@ export default function ListenCreateScreen() {
         mediaType = inferMediaTypeFromUrl(finalUrl);
       }
 
-      // 2) Xử lý file tài liệu bài tập
-      let exerciseFileUrl = originalExerciseFile.url || null;
-      let exerciseFileName = originalExerciseFile.name || null;
+      // xử lý file tài liệu bài tập
+      let exerciseFileUrl = originalExerciseFile.url ?? null;
+      let exerciseFileName = originalExerciseFile.name ?? null;
 
-      // Nếu user chọn "bỏ file cũ"
-      if (!exerciseFile && !originalExerciseFile.url) {
-        exerciseFileUrl = null;
-        exerciseFileName = null;
-      }
-
-      // Nếu chọn file mới
       if (exerciseFile?.uri) {
         const { secure_url } = await uploadRawFileToCloudinary(
           exerciseFile.uri,
@@ -557,6 +861,10 @@ export default function ListenCreateScreen() {
         );
         exerciseFileUrl = secure_url;
         exerciseFileName = exerciseFile.name;
+      } else if (exerciseFileRemoved) {
+        // giáo viên xoá file
+        exerciseFileUrl = null;
+        exerciseFileName = null;
       }
 
       const basePayload = {
@@ -573,10 +881,8 @@ export default function ListenCreateScreen() {
       };
 
       if (editId) {
-        // Không đụng isPublished khi sửa: list-screen chịu trách nhiệm bật/tắt
         await updateDoc(doc(db, 'listens', editId), basePayload);
       } else {
-        // Bài mới tạo luôn Unpublished, admin bật ở list-screen
         await addDoc(collection(db, 'listens'), {
           ...basePayload,
           isPublished: false,
@@ -653,7 +959,6 @@ export default function ListenCreateScreen() {
                 </View>
               </View>
 
-              {/* Transcript phía dưới */}
               <Text style={CS.label}>Transcript</Text>
               <TextInput
                 value={transcript}
@@ -665,18 +970,38 @@ export default function ListenCreateScreen() {
               />
             </View>
 
-            {/* SECTION 2: Bài tập / Payload + file tài liệu */}
+            {/* SECTION 2: Bài tập / Payload */}
             <View style={CS.sectionCard}>
               <Text style={CS.sectionTitle}>Bài tập</Text>
 
-              <Text style={CS.label}>Exercise Type (auto theo Level)</Text>
+              <View style={CS.exerciseHeaderRow}>
+                <Text style={CS.label}>Exercise Type</Text>
+                <TouchableOpacity
+                  style={CS.templateBtn}
+                  onPress={applyLevelTemplate}
+                  activeOpacity={0.9}
+                >
+                  <Ionicons
+                    name="flash-outline"
+                    size={14}
+                    color={COLORS.bg}
+                    style={CS.templateBtnIcon}
+                  />
+                  <Text style={CS.templateBtnText}>Áp dụng sườn</Text>
+                </TouchableOpacity>
+              </View>
+
               <TextInput
                 value={exerciseType}
                 editable={false}
                 style={[CS.input, CS.exerciseTypeInput]}
               />
 
-              <Text style={CS.label}>Payload (JSON cho bài tập)</Text>
+              <Text style={CS.label}>Payload</Text>
+              <Text style={CS.payloadHint}>
+                - Nếu dùng sườn: bấm "Áp dụng sườn", sau đó chỉnh lại startSec / endSec, câu hỏi, đáp án.{'\n'}
+                - Có thể thêm / bớt câu bằng cách copy block trong mảng "questions".
+              </Text>
               <TextInput
                 value={payloadText}
                 onChangeText={setPayloadText}
@@ -686,12 +1011,8 @@ export default function ListenCreateScreen() {
                 autoCorrect={false}
               />
 
-
               {/* Tài liệu kèm theo */}
-              <Text style={[CS.label, { marginTop: 12 }]}>
-                Tài liệu tham khảo (Word / Excel / PDF)
-              </Text>
-
+              <Text style={CS.label}>Tài liệu (Word / Excel / PDF)</Text>
               <TouchableOpacity
                 style={[CS.pickBtn, busy && CS.pickBtnDisabled]}
                 activeOpacity={0.85}
@@ -703,32 +1024,13 @@ export default function ListenCreateScreen() {
                 </Text>
               </TouchableOpacity>
 
-              {!!exerciseFile && (
-                <View style={CS.fileActionRow}>
+              {(exerciseFile || originalExerciseFile.url) && (
+                <View style={CS.exerciseFileMetaRow}>
                   <Text style={CS.fileName} numberOfLines={1}>
-                    📎 {exerciseFile.name}
+                    📎 {exerciseFile?.name ?? originalExerciseFile.name ?? originalExerciseFile.url}
                   </Text>
-                  <TouchableOpacity
-                    style={CS.clearBtn}
-                    onPress={() => setExerciseFile(null)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={CS.clearBtnText}>Xóa</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {!!originalExerciseFile.url && !exerciseFile && (
-                <View style={CS.fileActionRow}>
-                  <Text style={CS.fileName} numberOfLines={1}>
-                    Đang dùng file cũ: {originalExerciseFile.name || originalExerciseFile.url}
-                  </Text>
-                  <TouchableOpacity
-                    style={CS.clearBtn}
-                    onPress={() => setOriginalExerciseFile({})}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={CS.clearBtnText}>Bỏ</Text>
+                  <TouchableOpacity onPress={removeExerciseFile} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
+                    <Text style={CS.removeFileText}>Xoá file</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -748,18 +1050,9 @@ export default function ListenCreateScreen() {
                 style={CS.input}
               />
               {!!original.audioUrl && !urlInput && !picked && (
-                <View style={CS.fileActionRow}>
-                  <Text style={CS.fileName}>
-                    Giữ nguyên URL cũ: {original.audioUrl}
-                  </Text>
-                  <TouchableOpacity
-                    style={CS.clearBtn}
-                    onPress={() => setOriginal({})}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={CS.clearBtnText}>Bỏ</Text>
-                  </TouchableOpacity>
-                </View>
+                <Text style={CS.fileName}>
+                  Giữ nguyên URL cũ: {original.audioUrl}
+                </Text>
               )}
 
               <TouchableOpacity
@@ -772,18 +1065,9 @@ export default function ListenCreateScreen() {
               </TouchableOpacity>
 
               {!!picked && (
-                <View style={CS.fileActionRow}>
-                  <Text style={CS.fileName} numberOfLines={1}>
-                    📄 {picked.name}
-                  </Text>
-                  <TouchableOpacity
-                    style={CS.clearBtn}
-                    onPress={() => setPicked(null)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={CS.clearBtnText}>Xóa</Text>
-                  </TouchableOpacity>
-                </View>
+                <Text style={CS.fileName} numberOfLines={1}>
+                  📄 {picked.name}
+                </Text>
               )}
 
               {!!effectiveUrl && (

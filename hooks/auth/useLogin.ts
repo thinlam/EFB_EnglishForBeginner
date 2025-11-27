@@ -1,7 +1,7 @@
 // hooks/auth/useLogin.ts
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import Toast from 'react-native-toast-message';
 
 import { auth } from '@/scripts/firebase';
 import { useGoogleLogin } from '@/scripts/googleAuth';
@@ -27,19 +27,19 @@ export function useLogin({ router }: Opts) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Google OAuth (already configured externally)
   const { promptAsync, response } = useGoogleLogin();
 
-  // ==== Handle Google response ====
+  // ==== Google OAuth Response Handler ====
   useEffect(() => {
     (async () => {
       if (response?.type !== 'success') return;
       setLoading(true);
+
       try {
         const idToken = response.authentication?.idToken;
         if (!idToken) throw new Error('Missing idToken');
-        const credential = GoogleAuthProvider.credential(idToken);
 
+        const credential = GoogleAuthProvider.credential(idToken);
         const result = await signInWithCredential(auth, credential);
         const user = result.user;
 
@@ -51,49 +51,97 @@ export function useLogin({ router }: Opts) {
         const level = profile.level ?? null;
         const startMode = profile.startMode ?? null;
 
-        await saveSession({ uid: user.uid, email: user.email ?? null, role });
+        await saveSession({
+          uid: user.uid,
+          email: user.email ?? null,
+          role,
+        });
 
-        Alert.alert('Success', 'Signed in with Google successfully!');
+        Toast.show({
+          type: 'success',
+          position: 'top',
+          text1: 'Login successful',
+          text2: 'You signed in with Google.',
+          visibilityTime: 8000,
+          autoHide: true,
+          topOffset: 60,
+        });
+
         navigateByRole(role, startMode, level, router);
       } catch (err: any) {
         console.error('Google login error:', err?.code ?? err?.message ?? err);
-        Alert.alert('Error', 'Cannot sign in with Google.');
+
+        Toast.show({
+          type: 'error',
+          position: 'top',
+          text1: 'Google login failed',
+          text2: 'Please try again later.',
+          visibilityTime: 8000,
+          autoHide: true,
+          topOffset: 60,
+        });
       } finally {
         setLoading(false);
       }
     })();
   }, [response, router]);
 
-  // ==== Email/Username + Password ====
+  // ==== Email / Username + Password Login ====
   const handleLogin = async () => {
     const idTrim = identifier.trim();
     const pw = password.trim();
 
     if (!idTrim || !pw) {
-      Alert.alert('Error', 'Please enter both email/username and password.');
+      Toast.show({
+        type: 'error',
+        position: 'top',
+        text1: 'Missing information',
+        text2: 'Please enter your email/username and password.',
+        visibilityTime: 8000,
+        autoHide: true,
+        topOffset: 60,
+      });
       return;
     }
 
     setLoading(true);
+
     try {
       const loginEmail = idTrim.includes('@')
         ? normalizeEmail(idTrim)
-        : await resolveEmailFromUsername(idTrim); // will throw an error with .code if it fails
+        : await resolveEmailFromUsername(idTrim);
 
       const cred = await signInWithEmailAndPassword(auth, loginEmail, pw);
       const user = cred.user;
 
-      const profile = await ensureUserProfile(user.uid, user.email ?? loginEmail);
+      const profile = await ensureUserProfile(
+        user.uid,
+        user.email ?? loginEmail
+      );
+
       const role: Role = (profile.role as Role) || 'user';
       const level = profile.level ?? null;
       const startMode = profile.startMode ?? null;
 
-      await saveSession({ uid: user.uid, email: user.email ?? loginEmail, role });
+      await saveSession({
+        uid: user.uid,
+        email: user.email ?? loginEmail,
+        role,
+      });
 
-      Alert.alert(
-        'Success',
-        `Congratulations ${role === 'admin' ? 'Administrator' : 'user'}!`
-      );
+      Toast.show({
+        type: 'success',
+        position: 'top',
+        text1: 'Login successful',
+        text2:
+          role === 'admin'
+            ? 'Welcome back, Administrator.'
+            : 'Welcome back to EFB!',
+        visibilityTime: 8000,
+        autoHide: true,
+        topOffset: 60,
+      });
+
       navigateByRole(role, startMode, level, router);
     } catch (error: any) {
       const code = error?.code ?? null;
@@ -101,46 +149,58 @@ export function useLogin({ router }: Opts) {
 
       console.log('Firebase login error:', code, msg);
 
-      let message = 'Login failed.';
+      let message = 'Login failed. Please try again.';
+
       switch (code) {
-        // Firebase codes
         case 'auth/invalid-email':
-          message = 'Invalid email.';
+          message = 'Invalid email format.';
           break;
+
         case 'auth/user-not-found':
           message = 'Account not found.';
           break;
+
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
           message = 'Incorrect password.';
           break;
+
         case 'auth/too-many-requests':
           message = 'Too many attempts. Please try again later.';
           break;
+
         case 'auth/user-disabled':
           message = 'This account has been disabled.';
           break;
+
         case 'auth/network-request-failed':
-          message = 'Network error. Please check your connection.';
+          message = 'Network error. Check your Internet connection.';
           break;
 
-        // App-defined codes (from resolveEmailFromUsername)
         case 'USERNAME_NOT_FOUND':
-          message = 'Username does not exist or usernameLower is not set.';
+          message = 'Username does not exist. Please check again.';
           break;
+
         case 'USERNAME_HAS_NO_EMAIL':
-          message = 'This account has no email bound to the username.';
+          message = 'This username is not linked to any email.';
           break;
 
         default:
-          // fallback using message (in case code is missing)
-          if (msg === 'USERNAME_NOT_FOUND') {
-            message = 'Username does not exist or usernameLower is not set.';
-          } else if (msg === 'USERNAME_HAS_NO_EMAIL') {
-            message = 'This account has no email bound to the username.';
-          }
+          if (msg === 'USERNAME_NOT_FOUND')
+            message = 'Username does not exist. Please check again.';
+          if (msg === 'USERNAME_HAS_NO_EMAIL')
+            message = 'This username is not linked to any email.';
       }
-      Alert.alert('Error', message);
+
+      Toast.show({
+        type: 'error',
+        position: 'top',
+        text1: 'Login failed',
+        text2: message,
+        visibilityTime: 8000,
+        autoHide: true,
+        topOffset: 60,
+      });
     } finally {
       setLoading(false);
     }
@@ -152,11 +212,9 @@ export function useLogin({ router }: Opts) {
 
   const handleForgotPassword = () => {
     const email = identifier.includes('@') ? identifier.trim() : undefined;
-    if (email) {
+    if (email)
       router.push({ pathname: '/ForgotPassword', params: { email } });
-    } else {
-      router.push('/ForgotPassword');
-    }
+    else router.push('/ForgotPassword');
   };
 
   return {
@@ -173,7 +231,7 @@ export function useLogin({ router }: Opts) {
   };
 }
 
-/* ===== navigation helper ===== */
+/* ===== Navigation Helper ===== */
 function navigateByRole(
   role: Role,
   startMode: string | null,
@@ -181,7 +239,7 @@ function navigateByRole(
   router: ReturnType<typeof useRouter>
 ) {
   if (role === 'admin') router.replace('/(admin)/home');
-  else if (role === 'premium') router.replace('/'); // premium user → home (up to you)
+  else if (role === 'premium') router.replace('/');
   else {
     if (startMode || level !== null) router.replace('/(tabs)');
     else router.replace('/(onboarding)/SelectLevel');

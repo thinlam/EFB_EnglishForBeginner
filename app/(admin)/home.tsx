@@ -18,7 +18,7 @@ export default function AdminHomeScreen() {
       title: '🎓 Quản lý nội dung học',
       children: [
         { title: 'Luyện nghe',path: '/(admin)/listen/listen-screen' },
-        { title: 'Luyện nói' },
+        { title: 'Luyện nói', path: '/(admin)/speaking/speaking-screen' },
         { title: 'Luyện đọc', path: '/(admin)/reading/reading-screen'},
         { title: 'Luyện viết' },
       { title: 'Bài kiểm tra', path: '/(admin)/testList' },
@@ -42,7 +42,6 @@ export default function AdminHomeScreen() {
     {
   title: '💰 Điểm & Thưởng',
   children: [
-    { title: 'Trò chơi' },
     { title: 'Quản lý coin', path: '/(admin)/coin' },
     { title: 'Phần thưởng / Xếp hạng', path: '/(admin)/rewards' },
   ],
