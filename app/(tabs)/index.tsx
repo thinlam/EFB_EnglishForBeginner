@@ -149,7 +149,7 @@ export default function HomeScreen() {
       return;
     }
     if (item.id === '1' || item.title === 'Listening') {
-      router.push('/listen');
+      router.push('/(User)/listen/listen');
       return;
     }
     if (

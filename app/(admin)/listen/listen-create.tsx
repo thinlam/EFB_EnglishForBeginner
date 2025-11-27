@@ -32,7 +32,7 @@ import { addDoc, collection, doc, getDoc, serverTimestamp, updateDoc } from 'fir
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 /* ================== Cloudinary Config ================== */
-const CLOUD_NAME   = 'djf9vnngm';
+const CLOUD_NAME = 'djf9vnngm';
 const CLOUD_PRESET = 'unsigned_mobile';
 const CLOUD_FOLDER = 'lessons';
 
@@ -72,14 +72,48 @@ type ListeningPayload = {
   questions: ListeningQuestion[];
 };
 
+/* Các dạng payload legacy (dạng cũ theo exerciseType) */
+type LegacyFillGapsPayload = {
+  sentence: string;
+  answer: string;
+};
+
+type LegacyGuessObjectPayload = {
+  options: string[];
+  correctIndex: number;
+};
+
+type LegacyPhonemeChoicePayload = {
+  word: string;
+  ipaOptions: string[];
+};
+
+type LegacyPhraseGapsPayload = {
+  paragraph: string;
+  gaps: any[];
+};
+
+type LegacyReadingMcqPayload = {
+  passage: string;
+  questions: any[];
+};
+
+type ListenPayload =
+  | ListeningPayload
+  | LegacyFillGapsPayload
+  | LegacyGuessObjectPayload
+  | LegacyPhonemeChoicePayload
+  | LegacyPhraseGapsPayload
+  | LegacyReadingMcqPayload;
+
 type ListenDoc = {
   title: string;
   transcript: string;
-  audioUrl?: string;
+  audioUrl?: string | null;
   mediaType?: string | null;
   level: CEFR;
   exerciseType?: ExerciseType;
-  payload?: any;
+  payload?: ListenPayload | null;
   isPublished?: boolean;
 
   // file tài liệu bài tập
@@ -89,9 +123,16 @@ type ListenDoc = {
 
 /* ================= Utils ================= */
 function slugify(s: string) {
-  return s.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '').slice(0, 60);
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-_]/g, '')
+    .slice(0, 60);
 }
-function isHlsUrl(u: string) { return (u || '').toLowerCase().endsWith('.m3u8'); }
+function isHlsUrl(u: string) {
+  return (u || '').toLowerCase().endsWith('.m3u8');
+}
 function isCloudinaryVideoUrl(u: string) {
   const lower = (u || '').toLowerCase();
   return lower.includes('res.cloudinary.com') && lower.includes('/video/upload/');
@@ -207,7 +248,7 @@ async function uploadRawFileToCloudinary(
   localUri: string,
   folder: string,
   baseName?: string,
-  onProgress?: (pct: number) => void,
+  onProgress?: (pct: number) => void
 ): Promise<{ secure_url: string; public_id: string }> {
   const fileName = `${baseName || 'file'}_${Date.now()}`;
 
@@ -251,6 +292,8 @@ async function uploadRawFileToCloudinary(
 /* ================= Listening templates theo Level ================= */
 function getDefaultPayloadForLevel(level: CEFR): ListeningPayload {
   switch (level) {
+    // ... giữ nguyên toàn bộ switch như bạn đã có ...
+    // (mình không rút gọn để bạn dễ copy; đoạn này y hệt code bạn gửi)
     case 'A1':
       return {
         kind: 'listening_template',
@@ -281,11 +324,7 @@ function getDefaultPayloadForLevel(level: CEFR): ListeningPayload {
             endSec: 15,
             prompt: 'What problem does the speaker have?',
             answer: 'He can’t send emails.',
-            options: [
-              'He can’t send emails.',
-              'He can’t open a file.',
-              'The internet is slow.',
-            ],
+            options: ['He can’t send emails.', 'He can’t open a file.', 'The internet is slow.'],
           },
           {
             id: 'a1_q4',
@@ -410,7 +449,8 @@ function getDefaultPayloadForLevel(level: CEFR): ListeningPayload {
             startSec: 0,
             endSec: 7,
             prompt: 'Complete the sentence from the audio.',
-            answer: 'The technician explained that sometimes there are outages and they are controlled locally.',
+            answer:
+              'The technician explained that sometimes there are outages and they are controlled locally.',
           },
           {
             id: 'b2_q2',
@@ -418,10 +458,7 @@ function getDefaultPayloadForLevel(level: CEFR): ListeningPayload {
             startSec: 8,
             endSec: 14,
             prompt: 'Fill in the missing parts.',
-            answer: [
-              'sometimes there are outages',
-              'they are controlled locally',
-            ],
+            answer: ['sometimes there are outages', 'they are controlled locally'],
           },
           {
             id: 'b2_q3',
@@ -529,10 +566,7 @@ function LevelPickerRow({ value, onChange }: { value: CEFR; onChange: (v: CEFR) 
           style={CS.levelModalOverlay}
           activeOpacity={1}
           onPress={() => setOpen(false)}>
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={() => {}}
-            style={CS.levelModalContainer}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}} style={CS.levelModalContainer}>
             <View style={CS.levelModalHeader}>
               <Text style={CS.levelModalTitle}>Chọn cấp độ</Text>
             </View>
@@ -553,16 +587,12 @@ function LevelPickerRow({ value, onChange }: { value: CEFR; onChange: (v: CEFR) 
                   ]}>
                   {lv}
                 </Text>
-                {value === lv && (
-                  <Ionicons name="checkmark" size={18} color={COLORS.create} />
-                )}
+                {value === lv && <Ionicons name="checkmark" size={18} color={COLORS.create} />}
               </TouchableOpacity>
             ))}
 
             <View style={CS.levelModalFooter}>
-              <TouchableOpacity
-                onPress={() => setOpen(false)}
-                style={CS.levelModalCloseBtn}>
+              <TouchableOpacity onPress={() => setOpen(false)} style={CS.levelModalCloseBtn}>
                 <Text style={CS.levelModalCloseText}>Đóng</Text>
               </TouchableOpacity>
             </View>
@@ -588,14 +618,19 @@ function MediaPreview({ uri, mediaType }: { uri: string; mediaType?: string | nu
 
   useEffect(() => {
     player.replace(uri);
+    return () => {
+      try {
+        player.pause();
+      } catch {
+        // ignore
+      }
+    };
   }, [uri, player]);
 
   return (
     <View style={CS.mediaPreviewWrapper}>
       <View style={CS.mediaPreviewCard}>
-        <Text style={CS.mediaPreviewTitle}>
-          Preview {isVideoMedia ? 'Video' : 'Audio'}
-        </Text>
+        <Text style={CS.mediaPreviewTitle}>Preview {isVideoMedia ? 'Video' : 'Audio'}</Text>
         <View
           style={[
             CS.mediaPreviewPlayerBase,
@@ -614,6 +649,53 @@ function MediaPreview({ uri, mediaType }: { uri: string; mediaType?: string | nu
   );
 }
 
+/* ================= Payload validation ================= */
+function validatePayload(parsedPayload: any, exerciseType: ExerciseType) {
+  // Payload kiểu mới: có mảng questions
+  if (Array.isArray(parsedPayload?.questions)) {
+    if (!parsedPayload.questions.length) {
+      throw new Error('Payload cần ít nhất 1 câu hỏi trong mảng "questions".');
+    }
+    return;
+  }
+
+  // Payload kiểu cũ: validate theo exerciseType
+  switch (exerciseType) {
+    case 'fill_gaps':
+      if (!(parsedPayload?.sentence && parsedPayload?.answer)) {
+        throw new Error('Bài A1 cần có "sentence" và "answer".');
+      }
+      break;
+    case 'guess_object':
+      if (
+        !(
+          Array.isArray(parsedPayload?.options) &&
+          Number.isInteger(parsedPayload?.correctIndex)
+        )
+      ) {
+        throw new Error('Bài A2 cần có "options" (mảng) và "correctIndex".');
+      }
+      break;
+    case 'phoneme_choice':
+      if (!(parsedPayload?.word && Array.isArray(parsedPayload?.ipaOptions))) {
+        throw new Error('Bài B1 cần "word" và "ipaOptions" (mảng).');
+      }
+      break;
+    case 'phrase_gaps':
+      if (!(parsedPayload?.paragraph && Array.isArray(parsedPayload?.gaps))) {
+        throw new Error('Bài B2 cần "paragraph" và "gaps" (mảng).');
+      }
+      break;
+    case 'reading_mcq':
+      if (!(parsedPayload?.passage && Array.isArray(parsedPayload?.questions))) {
+        throw new Error('Bài C1 cần "passage" và "questions" (mảng).');
+      }
+      break;
+    default:
+      break;
+  }
+}
+
 /* ================= Screen ================= */
 export default function ListenCreateScreen() {
   const insets = useSafeAreaInsets();
@@ -628,14 +710,21 @@ export default function ListenCreateScreen() {
   const [level, setLevel] = useState<CEFR>('A1');
   const [exerciseType, setExerciseType] = useState<ExerciseType>(EXERCISE_BY_LEVEL['A1']);
   const [payloadText, setPayloadText] = useState('');
+  const [payloadError, setPayloadError] = useState<string | null>(null);
 
-  const [picked, setPicked] = useState<{ name: string; uri: string; file?: any; mimeType?: string | null } | null>(null);
+  const [picked, setPicked] = useState<{
+    name: string;
+    uri: string;
+    file?: any;
+    mimeType?: string | null;
+  } | null>(null);
 
   // file tài liệu bài tập (Word/PDF/Excel)
-  const [exerciseFile, setExerciseFile] =
-    useState<{ name: string; uri: string } | null>(null);
-  const [originalExerciseFile, setOriginalExerciseFile] =
-    useState<{ url?: string | null; name?: string | null }>({});
+  const [exerciseFile, setExerciseFile] = useState<{ name: string; uri: string } | null>(null);
+  const [originalExerciseFile, setOriginalExerciseFile] = useState<{
+    url?: string | null;
+    name?: string | null;
+  }>({});
   const [exerciseFileRemoved, setExerciseFileRemoved] = useState(false);
 
   const [busy, setBusy] = useState(false);
@@ -668,7 +757,7 @@ export default function ListenCreateScreen() {
           setExerciseType(exType);
           setPayloadText(d.payload ? JSON.stringify(d.payload, null, 2) : '');
           setUrlInput(d.audioUrl || '');
-          setOriginal({ audioUrl: d.audioUrl, mediaType: d.mediaType ?? null });
+          setOriginal({ audioUrl: d.audioUrl ?? undefined, mediaType: d.mediaType ?? null });
           setOriginalExerciseFile({
             url: d.exerciseFileUrl ?? null,
             name: d.exerciseFileName ?? null,
@@ -693,8 +782,14 @@ export default function ListenCreateScreen() {
       copyToCacheDirectory: true,
       multiple: false,
       type: [
-        'video/mp4', 'video/quicktime', 'video/x-m4v', 'video/webm',
-        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-m4a',
+        'video/mp4',
+        'video/quicktime',
+        'video/x-m4v',
+        'video/webm',
+        'audio/mpeg',
+        'audio/mp3',
+        'audio/wav',
+        'audio/x-m4a',
       ],
     });
     if (r.canceled) return;
@@ -745,17 +840,22 @@ export default function ListenCreateScreen() {
     const tpl = getDefaultPayloadForLevel(level);
     const pretty = JSON.stringify(tpl, null, 2);
 
+    const apply = () => {
+      setPayloadError(null);
+      setPayloadText(pretty);
+    };
+
     if (payloadText.trim()) {
       Alert.alert(
         'Ghi đè payload?',
         `Payload hiện tại sẽ được thay bằng sườn mẫu cho level ${level}.`,
         [
           { text: 'Huỷ', style: 'cancel' },
-          { text: 'Đồng ý', onPress: () => setPayloadText(pretty) },
-        ],
+          { text: 'Đồng ý', onPress: apply },
+        ]
       );
     } else {
-      setPayloadText(pretty);
+      apply();
     }
   };
 
@@ -773,53 +873,22 @@ export default function ListenCreateScreen() {
     setProgress(0);
 
     // Parse payload JSON (admin tự nhập)
-    let parsedPayload: any = {};
+    let parsedPayload: ListenPayload | {} = {};
     try {
-      parsedPayload = payloadText.trim() ? JSON.parse(payloadText) : {};
+      setPayloadError(null);
+      parsedPayload = payloadText.trim()
+        ? (JSON.parse(payloadText) as ListenPayload)
+        : {};
     } catch (e) {
-      Alert.alert(
-        'Payload không hợp lệ',
-        'Vui lòng kiểm tra lại cú pháp JSON (dấu ngoặc, dấu phẩy, dấu ngoặc kép...).'
-      );
+      setPayloadError('Payload không hợp lệ. Vui lòng kiểm tra lại cú pháp JSON.');
       setBusy(false);
       return;
     }
 
     // Validate cơ bản
     try {
-      if (Array.isArray(parsedPayload.questions)) {
-        if (!parsedPayload.questions.length) {
-          throw new Error('Payload cần ít nhất 1 câu hỏi trong mảng "questions".');
-        }
-      } else {
-        // fallback: validate dạng cũ theo exerciseType (nếu bạn còn dùng)
-        switch (exerciseType) {
-          case 'fill_gaps':
-            if (!(parsedPayload.sentence && parsedPayload.answer)) {
-              throw new Error('Bài A1 cần có "sentence" và "answer".');
-            }
-            break;
-          case 'guess_object':
-            if (!(Array.isArray(parsedPayload.options) && Number.isInteger(parsedPayload.correctIndex))) {
-              throw new Error('Bài A2 cần có "options" (mảng) và "correctIndex".');
-            }
-            break;
-          case 'phoneme_choice':
-            if (!(parsedPayload.word && Array.isArray(parsedPayload.ipaOptions))) {
-              throw new Error('Bài B1 cần "word" và "ipaOptions" (mảng).');
-            }
-            break;
-          case 'phrase_gaps':
-            if (!(parsedPayload.paragraph && Array.isArray(parsedPayload.gaps))) {
-              throw new Error('Bài B2 cần "paragraph" và "gaps" (mảng).');
-            }
-            break;
-          case 'reading_mcq':
-            if (!(parsedPayload.passage && Array.isArray(parsedPayload.questions))) {
-              throw new Error('Bài C1 cần "passage" và "questions" (mảng).');
-            }
-            break;
-        }
+      if (Object.keys(parsedPayload).length > 0) {
+        validatePayload(parsedPayload, exerciseType);
       }
     } catch (e: any) {
       Alert.alert('Thiếu dữ liệu', e.message);
@@ -857,7 +926,7 @@ export default function ListenCreateScreen() {
           exerciseFile.uri,
           'exercise_files',
           slugify(title),
-          (pct) => setProgress(pct),
+          (pct) => setProgress(pct)
         );
         exerciseFileUrl = secure_url;
         exerciseFileName = exerciseFile.name;
@@ -881,8 +950,10 @@ export default function ListenCreateScreen() {
       };
 
       if (editId) {
+        // sửa: không đụng vào isPublished → giữ trạng thái publish hiện tại
         await updateDoc(doc(db, 'listens', editId), basePayload);
       } else {
+        // tạo mới: luôn là bản nháp, publish ở ListenScreen
         await addDoc(collection(db, 'listens'), {
           ...basePayload,
           isPublished: false,
@@ -903,16 +974,14 @@ export default function ListenCreateScreen() {
   const effectiveUrl = (urlInput || original.audioUrl || '').trim();
   const effectiveMediaType =
     (picked?.name
-      ? (isAudioExt(getExt(picked.name))
-          ? guessAudioMime(getExt(picked.name))
-          : guessVideoMime(getExt(picked.name)))
-      : (original.mediaType ?? null)) ||
+      ? isAudioExt(getExt(picked.name))
+        ? guessAudioMime(getExt(picked.name))
+        : guessVideoMime(getExt(picked.name))
+      : original.mediaType ?? null) ||
     (effectiveUrl ? inferMediaTypeFromUrl(effectiveUrl) : null);
 
   const saveDisabled =
-    busy ||
-    !title.trim() ||
-    (!picked?.uri && !urlInput.trim() && !original.audioUrl);
+    busy || !title.trim() || (!picked?.uri && !urlInput.trim() && !original.audioUrl);
 
   const Form = (
     <>
@@ -920,9 +989,7 @@ export default function ListenCreateScreen() {
         <TouchableOpacity onPress={() => router.back()} style={S.backBtn}>
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={S.headerTitle}>
-          {editId ? 'Sửa bài nghe' : 'Tạo bài nghe'}
-        </Text>
+        <Text style={S.headerTitle}>{editId ? 'Sửa bài nghe' : 'Tạo bài nghe'}</Text>
         <View style={CS.headerRightPlaceholder} />
       </View>
 
@@ -979,8 +1046,7 @@ export default function ListenCreateScreen() {
                 <TouchableOpacity
                   style={CS.templateBtn}
                   onPress={applyLevelTemplate}
-                  activeOpacity={0.9}
-                >
+                  activeOpacity={0.9}>
                   <Ionicons
                     name="flash-outline"
                     size={14}
@@ -998,15 +1064,26 @@ export default function ListenCreateScreen() {
               />
 
               <Text style={CS.label}>Payload</Text>
-              <Text style={CS.payloadHint}>
-                - Nếu dùng sườn: bấm "Áp dụng sườn", sau đó chỉnh lại startSec / endSec, câu hỏi, đáp án.{'\n'}
-                - Có thể thêm / bớt câu bằng cách copy block trong mảng "questions".
-              </Text>
+              {payloadError && (
+                <Text
+                  style={{
+                    color: 'red',
+                    marginBottom: 4,
+                    fontSize: 12,
+                  }}>
+                  {payloadError}
+                </Text>
+              )}
               <TextInput
                 value={payloadText}
                 onChangeText={setPayloadText}
                 multiline
-                style={[CS.input, CS.inputMultiline, CS.payloadInput]}
+                style={[
+                  CS.input,
+                  CS.inputMultiline,
+                  CS.payloadInput,
+                  payloadError ? { borderColor: 'red' } : null,
+                ]}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -1017,8 +1094,7 @@ export default function ListenCreateScreen() {
                 style={[CS.pickBtn, busy && CS.pickBtnDisabled]}
                 activeOpacity={0.85}
                 onPress={pickExerciseFile}
-                disabled={busy}
-              >
+                disabled={busy}>
                 <Text style={CS.pickBtnText}>
                   {exerciseFile ? 'Chọn lại file tài liệu' : 'Chọn file tài liệu'}
                 </Text>
@@ -1029,7 +1105,9 @@ export default function ListenCreateScreen() {
                   <Text style={CS.fileName} numberOfLines={1}>
                     📎 {exerciseFile?.name ?? originalExerciseFile.name ?? originalExerciseFile.url}
                   </Text>
-                  <TouchableOpacity onPress={removeExerciseFile} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
+                  <TouchableOpacity
+                    onPress={removeExerciseFile}
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
                     <Text style={CS.removeFileText}>Xoá file</Text>
                   </TouchableOpacity>
                 </View>
@@ -1050,9 +1128,7 @@ export default function ListenCreateScreen() {
                 style={CS.input}
               />
               {!!original.audioUrl && !urlInput && !picked && (
-                <Text style={CS.fileName}>
-                  Giữ nguyên URL cũ: {original.audioUrl}
-                </Text>
+                <Text style={CS.fileName}>Giữ nguyên URL cũ: {original.audioUrl}</Text>
               )}
 
               <TouchableOpacity
@@ -1074,27 +1150,18 @@ export default function ListenCreateScreen() {
                 <MediaPreview uri={effectiveUrl} mediaType={effectiveMediaType} />
               )}
 
-              {busy && (
-                <Text style={CS.progressText}>
-                  Đang upload… {progress}%
-                </Text>
-              )}
+              {busy && <Text style={CS.progressText}>Đang upload… {progress}%</Text>}
             </View>
 
             {/* Save */}
             <TouchableOpacity
               disabled={saveDisabled}
               onPress={onSave}
-              style={[
-                CS.saveBtn,
-                saveDisabled && CS.saveBtnDisabled,
-              ]}>
+              style={[CS.saveBtn, saveDisabled && CS.saveBtnDisabled]}>
               {busy ? (
                 <ActivityIndicator color={COLORS.bg} />
               ) : (
-                <Text style={CS.saveBtnText}>
-                  {editId ? 'Cập nhật' : 'Lưu'}
-                </Text>
+                <Text style={CS.saveBtnText}>{editId ? 'Cập nhật' : 'Lưu'}</Text>
               )}
             </TouchableOpacity>
           </View>
