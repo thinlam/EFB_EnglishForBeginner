@@ -5,6 +5,7 @@ import { db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+
 import {
   collection,
   deleteDoc,
@@ -12,10 +13,9 @@ import {
   getDocs,
   orderBy,
   query,
-  serverTimestamp,
-  Timestamp,
-  updateDoc,
+  Timestamp
 } from 'firebase/firestore';
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,6 +23,7 @@ import {
   FlatList,
   Keyboard,
   Linking,
+  Modal,
   RefreshControl,
   StatusBar,
   Text,
@@ -32,6 +33,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+
+// ======================= TYPES ==========================
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
 type SpeakingType = 'repeat' | 'qa' | 'dialogue' | 'monologue';
 type Topic =
@@ -48,19 +51,21 @@ type Topic =
 type SpeakingLesson = {
   id: string;
   title: string;
-  prompt?: string;        // Đề bài / câu hỏi / câu cần nói
-  sampleAnswer?: string;  // Gợi ý câu trả lời / script mẫu
-  audioUrl?: string;      // File audio mẫu (Cloudinary / Firebase)
+  prompt?: string;
+  sampleAnswer?: string;
+  audioUrl?: string;
   level?: CEFR;
   topic?: Topic;
   type?: SpeakingType;
   bandMin?: number;
   bandMax?: number;
-  tasksCount?: number;    // số câu / số lượt nói trong bài
+  tasksCount?: number;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 };
 
+
+// ======================= CONSTANTS ==========================
 const LEVELS: ('ALL' | CEFR)[] = ['ALL', 'A1', 'A2', 'B1', 'B2', 'C1'];
 const TOPICS: ('ALL' | Topic)[] = [
   'ALL',
@@ -75,28 +80,21 @@ const TOPICS: ('ALL' | Topic)[] = [
   'Business',
 ];
 
+
+// ======================= HELPERS ==========================
 function formatDate(d?: Date | null) {
   if (!d) return '';
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
 function colorForLevel(l?: string) {
   switch (l) {
-    case 'A1':
-      return '#22c55e';
-    case 'A2':
-      return '#10b981';
-    case 'B1':
-      return '#06b6d4';
-    case 'B2':
-      return '#60a5fa';
-    case 'C1':
-      return '#a78bfa';
-    default:
-      return '#9ca3af';
+    case 'A1': return '#22c55e';
+    case 'A2': return '#10b981';
+    case 'B1': return '#06b6d4';
+    case 'B2': return '#60a5fa';
+    case 'C1': return '#a78bfa';
+    default: return '#9ca3af';
   }
 }
 
@@ -115,34 +113,32 @@ function normalizeUrl(raw?: string) {
 async function openInApp(url?: string) {
   if (!url) return;
   const safe = normalizeUrl(url);
+
   try {
     await WebBrowser.openBrowserAsync(safe, {
-      enableBarCollapsing: true,
       showTitle: true,
+      enableBarCollapsing: true,
       enableDefaultShareMenuItem: false,
       presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
     });
   } catch {
-    const can = await Linking.canOpenURL(safe);
-    if (can) await Linking.openURL(safe);
+    if (await Linking.canOpenURL(safe)) Linking.openURL(safe);
     else Alert.alert('Không mở được liên kết', safe);
   }
 }
 
 function snippet(s?: string, max = 64) {
   if (!s) return '';
-  const oneLine = s.replace(/\s+/g, ' ').trim();
-  return oneLine.length > max ? oneLine.slice(0, max) + '…' : oneLine;
+  const one = s.replace(/\s+/g, ' ').trim();
+  return one.length > max ? one.slice(0, max) + '…' : one;
 }
 
 function wordsCount(s?: string) {
-  if (!s) return 0;
-  return s
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean).length;
+  return s ? s.trim().split(/\s+/).filter(Boolean).length : 0;
 }
 
+
+// ======================= MAIN SCREEN ==========================
 export default function SpeakingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -155,34 +151,18 @@ export default function SpeakingScreen() {
   const [filterLevel, setFilterLevel] = useState<'ALL' | CEFR>('ALL');
   const [filterTopic, setFilterTopic] = useState<'ALL' | Topic>('ALL');
 
-  const [scriptModal, setScriptModal] = useState<{
-    visible: boolean;
-    id?: string;
-    title: string;
-    prompt: string;
-    sampleAnswer: string;
-    editing: boolean;
-  }>({
-    visible: false,
-    id: undefined,
-    title: '',
-    prompt: '',
-    sampleAnswer: '',
-    editing: false,
-  });
-
   const [levelCenter, setLevelCenter] = useState(false);
   const [topicCenter, setTopicCenter] = useState(false);
 
+
+  // ============== LOAD DATA ==============
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const q = query(
-        collection(db, 'speaking_lessons'),
-        orderBy('createdAt', 'desc')
-      );
+      const q = query(collection(db, 'speaking_lessons'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
-      const data: SpeakingLesson[] = snap.docs.map((d) => {
+
+      const data = snap.docs.map((d) => {
         const raw = d.data() as any;
         return {
           id: d.id,
@@ -193,40 +173,26 @@ export default function SpeakingScreen() {
           level: (raw.level as CEFR) ?? 'A1',
           topic: (raw.topic as Topic) ?? 'Daily Life',
           type: (raw.type as SpeakingType) ?? 'repeat',
-          bandMin:
-            typeof raw.bandMin === 'number' ? raw.bandMin : undefined,
-          bandMax:
-            typeof raw.bandMax === 'number' ? raw.bandMax : undefined,
-          tasksCount:
-            typeof raw.tasksCount === 'number' ? raw.tasksCount : undefined,
-          createdAt:
-            raw.createdAt instanceof Timestamp
-              ? raw.createdAt.toDate()
-              : null,
-          updatedAt:
-            raw.updatedAt instanceof Timestamp
-              ? raw.updatedAt.toDate()
-              : null,
+          bandMin: raw.bandMin ?? undefined,
+          bandMax: raw.bandMax ?? undefined,
+          tasksCount: raw.tasksCount ?? undefined,
+          createdAt: raw.createdAt instanceof Timestamp ? raw.createdAt.toDate() : null,
+          updatedAt: raw.updatedAt instanceof Timestamp ? raw.updatedAt.toDate() : null,
         };
       });
+
       setItems(data);
     } catch (e: any) {
-      console.error(e);
-      Alert.alert('Lỗi', e?.message ?? 'Không tải được danh sách Speaking');
+      Alert.alert('Lỗi tải dữ liệu', e?.message || 'Không lấy được danh sách Speaking');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -234,50 +200,50 @@ export default function SpeakingScreen() {
     setRefreshing(false);
   };
 
+
+  // ============== FILTER ITEMS ==============
   const filteredItems = useMemo(() => {
-    const text = searchText.trim().toLowerCase();
+    const t = searchText.trim().toLowerCase();
+
     return items.filter((it) => {
-      const matchText =
-        !text ||
-        it.title.toLowerCase().includes(text) ||
-        (it.prompt ?? '').toLowerCase().includes(text) ||
-        (it.sampleAnswer ?? '').toLowerCase().includes(text) ||
-        (it.audioUrl ?? '').toLowerCase().includes(text) ||
-        (it.topic ?? '').toLowerCase().includes(text);
+      const byText =
+        !t ||
+        it.title.toLowerCase().includes(t) ||
+        it.prompt?.toLowerCase().includes(t) ||
+        it.sampleAnswer?.toLowerCase().includes(t) ||
+        it.audioUrl?.toLowerCase().includes(t) ||
+        it.topic?.toLowerCase().includes(t);
 
-      const matchLevel =
-        filterLevel === 'ALL' ? true : it.level === filterLevel;
-      const matchTopic =
-        filterTopic === 'ALL' ? true : it.topic === filterTopic;
+      const byLevel = filterLevel === 'ALL' || it.level === filterLevel;
+      const byTopic = filterTopic === 'ALL' || it.topic === filterTopic;
 
-      return matchText && matchLevel && matchTopic;
+      return byText && byLevel && byTopic;
     });
   }, [items, searchText, filterLevel, filterTopic]);
 
+
+
+  // ============== ACTIONS ==============
   const onEdit = (id: string) => {
-    router.push({
-      pathname: '/(admin)/speaking/speaking-create',
-      params: { id },
-    });
+    router.push({ pathname: '/(admin)/speaking/speaking-create', params: { id } });
   };
 
   const onDelete = (id: string) => {
     Alert.alert(
-      'Bạn muốn làm gì?',
-      'Sửa bài nói hay xoá hẳn bài Speaking này?',
+      'Xoá bài Speaking?',
+      'Bạn có chắc muốn xoá bài này vĩnh viễn không?',
       [
         { text: 'Huỷ', style: 'cancel' },
         { text: 'Sửa', onPress: () => onEdit(id) },
         {
-          text: 'Xoá hẳn',
+          text: 'Xoá',
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteDoc(doc(db, 'speaking_lessons', id));
-              setItems((prev) => prev.filter((i) => i.id !== id));
+              setItems((prev) => prev.filter((x) => x.id !== id));
             } catch (e: any) {
-              console.error(e);
-              Alert.alert('Lỗi', e?.message ?? 'Không xoá được');
+              Alert.alert('Lỗi xoá', e?.message || 'Không xoá được');
             }
           },
         },
@@ -286,106 +252,56 @@ export default function SpeakingScreen() {
   };
 
   const openScript = (item: SpeakingLesson) => {
-    const prompt = (item.prompt || '').trim();
-    const sample = (item.sampleAnswer || '').trim();
+    const prompt = item.prompt?.trim();
+    const sample = item.sampleAnswer?.trim();
+
     if (!prompt && !sample) {
-      Alert.alert('Chưa có nội dung script Speaking');
+      Alert.alert('Bài này chưa có script.');
       return;
     }
-    setScriptModal({
-      visible: true,
-      id: item.id,
-      title: item.title || 'Bài Speaking',
-      prompt,
-      sampleAnswer: sample,
-      editing: false,
-    });
+
+    Alert.alert(item.title, `${prompt}\n\n---\n${sample}`);
   };
 
-  const saveScript = async () => {
-    if (!scriptModal.id) return;
-    try {
-      await updateDoc(doc(db, 'speaking_lessons', scriptModal.id), {
-        prompt: scriptModal.prompt.trim(),
-        sampleAnswer: scriptModal.sampleAnswer.trim(),
-        updatedAt: serverTimestamp(),
-      });
-      setItems((prev) =>
-        prev.map((it) =>
-          it.id === scriptModal.id
-            ? {
-                ...it,
-                prompt: scriptModal.prompt,
-                sampleAnswer: scriptModal.sampleAnswer,
-              }
-            : it
-        )
-      );
-      setScriptModal((p) => ({ ...p, editing: false }));
-      Alert.alert('Đã lưu', 'Cập nhật script Speaking thành công.');
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert('Lỗi', e?.message ?? 'Không thể lưu script');
-    }
-  };
 
+  // ============== RENDER ITEM ==============
   const renderItem = ({ item }: { item: SpeakingLesson }) => {
     const wcPrompt = wordsCount(item.prompt);
     const wcSample = wordsCount(item.sampleAnswer);
 
     return (
       <View style={S.card}>
+
+        {/* HEADER */}
         <View style={S.cardHeader}>
           <View style={{ flex: 1 }}>
             <View style={S.rowLine}>
-              <Ionicons
-                name="mic-outline"
-                size={16}
-                color={COLORS.subText}
-              />
+              <Ionicons name="mic-outline" size={16} color={COLORS.subText} />
               <Text style={S.rowLabel}>Bài Speaking:</Text>
-              <Text style={S.cardTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
+              <Text style={S.cardTitle} numberOfLines={2}>{item.title}</Text>
             </View>
 
             <View style={[S.rowLine, { marginTop: 4 }]}>
-              <Ionicons
-                name="albums-outline"
-                size={16}
-                color={COLORS.subText}
-              />
+              <Ionicons name="albums-outline" size={16} color={COLORS.subText} />
               <Text style={S.rowLabel}>Chủ đề:</Text>
-              <Text style={S.rowText}>{item.topic ?? '—'}</Text>
-              {!!item.type && (
+              <Text style={S.rowText}>{item.topic}</Text>
+
+              {item.type && (
                 <>
-                  <Text
-                    style={[S.rowLabel, { marginLeft: 8 }]}
-                  >
-                    Loại:
-                  </Text>
+                  <Text style={[S.rowLabel, { marginLeft: 8 }]}>Loại:</Text>
                   <Text style={S.rowText}>{item.type}</Text>
                 </>
               )}
             </View>
 
             <View style={[S.rowLine, { marginTop: 4 }]}>
-              <Ionicons
-                name="speedometer-outline"
-                size={16}
-                color={COLORS.subText}
-              />
+              <Ionicons name="speedometer-outline" size={16} color={COLORS.subText} />
               <Text style={S.rowLabel}>Band:</Text>
-              <Text style={S.rowText}>
-                {bandLabel(item.bandMin, item.bandMax)}
-              </Text>
-              {!!item.tasksCount && (
+              <Text style={S.rowText}>{bandLabel(item.bandMin, item.bandMax)}</Text>
+
+              {item.tasksCount && (
                 <>
-                  <Text
-                    style={[S.rowLabel, { marginLeft: 8 }]}
-                  >
-                    Số lượt nói:
-                  </Text>
+                  <Text style={[S.rowLabel, { marginLeft: 8 }]}>Số lượt:</Text>
                   <Text style={S.rowText}>{item.tasksCount}</Text>
                 </>
               )}
@@ -393,206 +309,112 @@ export default function SpeakingScreen() {
 
             {(item.updatedAt || item.createdAt) && (
               <View style={[S.rowLine, { marginTop: 4 }]}>
-                <Ionicons
-                  name="calendar-clear-outline"
-                  size={16}
-                  color={COLORS.subText}
-                />
+                <Ionicons name="calendar-clear-outline" size={16} color={COLORS.subText} />
                 <Text style={S.rowLabel}>Cập nhật:</Text>
-                <Text style={S.rowText}>
-                  {formatDate(item.updatedAt || item.createdAt)}
-                </Text>
+                <Text style={S.rowText}>{formatDate(item.updatedAt || item.createdAt)}</Text>
               </View>
             )}
           </View>
 
-          <View
-            style={[
-              S.badge,
-              { backgroundColor: colorForLevel(item.level) },
-            ]}
-          >
-            <Text style={S.badgeText}>{item.level ?? '—'}</Text>
+          <View style={[S.badge, { backgroundColor: colorForLevel(item.level) }]}>
+            <Text style={S.badgeText}>{item.level}</Text>
           </View>
         </View>
 
+
+        {/* PROMPT */}
         {!!item.prompt?.trim() && (
           <View style={S.rowLine}>
-            <Ionicons
-              name="chatbox-ellipses-outline"
-              size={16}
-              color={COLORS.link}
-            />
+            <Ionicons name="chatbox-ellipses-outline" size={16} color={COLORS.link} />
             <Text style={S.rowLabel}>Prompt:</Text>
-            <TouchableOpacity
-              onPress={() => openScript(item)}
-              activeOpacity={0.7}
-              style={{ flex: 1 }}
-            >
+            <TouchableOpacity onPress={() => openScript(item)} style={{ flex: 1 }}>
               <Text style={S.rowTextLink} numberOfLines={1}>
-                {snippet(item.prompt)}{' '}
-                {wcPrompt ? `• ${wcPrompt} từ` : ''}
+                {snippet(item.prompt)} {wcPrompt ? `• ${wcPrompt} từ` : ''}
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
+        {/* SAMPLE */}
         {!!item.sampleAnswer?.trim() && (
           <View style={S.rowLine}>
-            <Ionicons
-              name="checkmark-done-outline"
-              size={16}
-              color={COLORS.subText}
-            />
+            <Ionicons name="checkmark-done-outline" size={16} color={COLORS.subText} />
             <Text style={S.rowLabel}>Sample:</Text>
-            <TouchableOpacity
-              onPress={() => openScript(item)}
-              activeOpacity={0.7}
-              style={{ flex: 1 }}
-            >
+            <TouchableOpacity onPress={() => openScript(item)} style={{ flex: 1 }}>
               <Text style={S.rowText} numberOfLines={1}>
-                {snippet(item.sampleAnswer)}{' '}
-                {wcSample ? `• ${wcSample} từ` : ''}
+                {snippet(item.sampleAnswer)} {wcSample ? `• ${wcSample} từ` : ''}
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
+        {/* AUDIO */}
         {!!item.audioUrl?.trim() && (
           <View style={S.rowLine}>
-            <Ionicons
-              name="musical-notes-outline"
-              size={16}
-              color={COLORS.link}
-            />
-            <Text style={S.rowLabel}>Audio mẫu:</Text>
-            <TouchableOpacity
-              onPress={() => openInApp(item.audioUrl)}
-              activeOpacity={0.7}
-              style={{ flex: 1 }}
-            >
-              <Text style={S.rowTextLink} numberOfLines={1}>
-                {item.audioUrl}
-              </Text>
+            <Ionicons name="musical-notes-outline" size={16} color={COLORS.link} />
+            <Text style={S.rowLabel}>Audio:</Text>
+            <TouchableOpacity onPress={() => openInApp(item.audioUrl)} style={{ flex: 1 }}>
+              <Text style={S.rowTextLink} numberOfLines={1}>{item.audioUrl}</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        <View
-          style={[
-            S.cardActions,
-            {
-              flexWrap: 'nowrap',
-              justifyContent: 'flex-start',
-              gap: 12,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={S.iconBtn}
-            onPress={() => openScript(item)}
-          >
-            <Ionicons
-              name="eye-outline"
-              size={20}
-              color={COLORS.text}
-            />
+
+        {/* ACTIONS */}
+        <View style={[S.cardActions, { marginTop: 14 }]}>
+          <TouchableOpacity style={S.iconBtn} onPress={() => openScript(item)}>
+            <Ionicons name="eye-outline" size={20} color={COLORS.text} />
             <Text style={S.iconBtnText}>Xem script</Text>
           </TouchableOpacity>
 
           {!!item.audioUrl?.trim() && (
-            <TouchableOpacity
-              style={S.iconBtn}
-              onPress={() => openInApp(item.audioUrl)}
-            >
-              <Ionicons
-                name="play-circle-outline"
-                size={20}
-                color={COLORS.text}
-              />
+            <TouchableOpacity style={S.iconBtn} onPress={() => openInApp(item.audioUrl)}>
+              <Ionicons name="play-circle-outline" size={20} color={COLORS.text} />
               <Text style={S.iconBtnText}>Nghe mẫu</Text>
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            style={S.iconBtn}
-            onPress={() => onEdit(item.id)}
-          >
-            <Ionicons
-              name="create-outline"
-              size={20}
-              color={COLORS.edit}
-            />
-            <Text
-              style={[S.iconBtnText, { color: COLORS.edit }]}
-            >
-              Sửa
-            </Text>
+          <TouchableOpacity style={S.iconBtn} onPress={() => onEdit(item.id)}>
+            <Ionicons name="create-outline" size={20} color={COLORS.edit} />
+            <Text style={[S.iconBtnText, { color: COLORS.edit }]}>Sửa</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={S.iconBtn}
-            onPress={() => onDelete(item.id)}
-          >
-            <Ionicons
-              name="trash-outline"
-              size={20}
-              color={COLORS.del}
-            />
-            <Text
-              style={[S.iconBtnText, { color: COLORS.del }]}
-            >
-              Xoá
-            </Text>
+          <TouchableOpacity style={S.iconBtn} onPress={() => onDelete(item.id)}>
+            <Ionicons name="trash-outline" size={20} color={COLORS.del} />
+            <Text style={[S.iconBtnText, { color: COLORS.del }]}>Xoá</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
+
+  // ======================= UI ==========================
   return (
     <View style={[S.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
 
       {/* HEADER */}
       <View style={S.header}>
-        <TouchableOpacity
-          onPress={() => router.push('/(admin)/home')}
-          style={S.backBtn}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="arrow-back-outline"
-            size={22}
-            color={COLORS.text}
-          />
+        <TouchableOpacity onPress={() => router.push('/(admin)/home')} style={S.backBtn}>
+          <Ionicons name="arrow-back-outline" size={22} color={COLORS.text} />
         </TouchableOpacity>
 
         <Text style={S.headerTitle}>Quản lý Speaking</Text>
 
-        {/* Nút chuyển sang màn LIST bài nói học viên */}
         <TouchableOpacity
           onPress={() => router.push('/(admin)/speaking/attempts')}
           style={S.backBtn}
-          activeOpacity={0.7}
         >
-          <Ionicons
-            name="list-circle-outline"
-            size={22}
-            color={COLORS.text}
-          />
+          <Ionicons name="list-circle-outline" size={22} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
-      {/* SEARCH ROW */}
+
+      {/* SEARCH */}
       <View style={[S.filterRow, { gap: 8 }]}>
         <View style={[S.searchBox, { flex: 1 }]}>
-          <Ionicons
-            name="search-outline"
-            size={18}
-            color={COLORS.muted}
-            style={{ marginRight: 6 }}
-          />
+          <Ionicons name="search-outline" size={18} color={COLORS.muted} style={{ marginRight: 6 }} />
           <TextInput
             placeholder="Tìm theo tiêu đề, prompt, sample, audio…"
             placeholderTextColor={COLORS.muted}
@@ -601,104 +423,123 @@ export default function SpeakingScreen() {
             style={S.searchInput}
             returnKeyType="search"
             onSubmitEditing={Keyboard.dismiss}
-            autoCapitalize="none"
           />
         </View>
       </View>
 
-      {/* FILTER ROW: Level + Topic */}
+
+      {/* FILTER ROW */}
       <View style={[S.filterRow, { gap: 8 }]}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setLevelCenter(true)}
-          style={[S.filterPicker, { flex: 1 }]}
-        >
+        {/* LEVEL */}
+        <TouchableOpacity onPress={() => setLevelCenter(true)} style={[S.filterPicker, { flex: 1 }]}>
           <Text style={S.filterValueText}>
-            {filterLevel === 'ALL'
-              ? 'Level: All'
-              : `Level: ${filterLevel}`}
+            {filterLevel === 'ALL' ? 'Level: All' : `Level: ${filterLevel}`}
           </Text>
-          <Ionicons
-            name="chevron-down"
-            size={16}
-            color={COLORS.muted}
-            style={S.filterChevron}
-          />
+          <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setTopicCenter(true)}
-          style={[S.filterPicker, { flex: 1 }]}
-        >
+        {/* TOPIC */}
+        <TouchableOpacity onPress={() => setTopicCenter(true)} style={[S.filterPicker, { flex: 1 }]}>
           <Text style={S.filterValueText}>
-            {filterTopic === 'ALL'
-              ? 'Topic: All'
-              : `Topic: ${filterTopic}`}
+            {filterTopic === 'ALL' ? 'Topic: All' : `Topic: ${filterTopic}`}
           </Text>
-          <Ionicons
-            name="chevron-down"
-            size={16}
-            color={COLORS.muted}
-            style={S.filterChevron}
-          />
+          <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
         </TouchableOpacity>
       </View>
 
+
+      {/* LIST */}
       {loading ? (
-        <ActivityIndicator
-          style={{ marginTop: 40 }}
-          color={COLORS.create}
-        />
+        <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.create} />
       ) : (
         <FlatList
           data={filteredItems}
           keyExtractor={(item) => item.id}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-            />
-          }
-          contentContainerStyle={{
-            paddingBottom: insets.bottom + 24,
-          }}
+          renderItem={renderItem}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 70 }}
           ListEmptyComponent={
             <View style={S.emptyWrap}>
               <Text style={S.emptyTitle}>Chưa có bài Speaking</Text>
               <Text style={S.emptyText}>
-                Bấm <Text style={S.emptyEm}>+</Text> để tạo bài
-                Speaking đầu tiên.
+                Bấm <Text style={S.emptyEm}>+</Text> để tạo bài đầu tiên.
               </Text>
             </View>
-          }
-          renderItem={renderItem}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          ListFooterComponent={
-            <View style={{ height: 84 + insets.bottom }} />
           }
         />
       )}
 
-      {/* FAB */}
+
+      {/* CREATE FAB */}
       <TouchableOpacity
+        onPress={() => router.push('/(admin)/speaking/speaking-create')}
         style={[S.fab, { bottom: 24 + insets.bottom }]}
-        onPress={() =>
-          router.push('/(admin)/speaking/speaking-create')
-        }
-        activeOpacity={0.85}
       >
         <Ionicons name="add-outline" size={28} color={COLORS.bg} />
       </TouchableOpacity>
 
-      {/* SCRIPT MODAL */}
-      {/* ... phần modal script, level picker, topic picker giữ nguyên như em đang có ... */}
-      {/* (đã nằm ngay dưới đây trong file của em, anh không cắt đi) */}
 
-      {/* LEVEL PICKER */}
-      {/* (code modal levelCenter & topicCenter giữ nguyên như em paste ở trên) */}
-      {/* Anh chỉ sửa mỗi header, còn lại y chang. */}
+      {/* ========== MODAL CHỌN LEVEL ========== */}
+      <Modal visible={levelCenter} transparent animationType="fade">
+        <View style={S.overlayDim}>
+          <View style={S.levelDialog}>
+            <View style={S.levelHeader}>
+              <Text style={S.levelTitle}>Chọn Level</Text>
+              <TouchableOpacity onPress={() => setLevelCenter(false)}>
+                <Ionicons name="close" size={20} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+
+            {LEVELS.map((lv) => {
+              const selected = lv === filterLevel;
+              return (
+                <TouchableOpacity
+                  key={lv}
+                  style={S.levelItemRow}
+                  onPress={() => { setFilterLevel(lv); setLevelCenter(false); }}
+                >
+                  <Text style={[S.levelItemText, selected && S.levelItemTextSelected]}>
+                    {lv === 'ALL' ? 'All' : lv}
+                  </Text>
+                  {selected && <Ionicons name="checkmark" size={18} color={COLORS.create} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
+
+
+      {/* ========== MODAL CHỌN TOPIC ========== */}
+      <Modal visible={topicCenter} transparent animationType="fade">
+        <View style={S.overlayDim}>
+          <View style={S.levelDialog}>
+            <View style={S.levelHeader}>
+              <Text style={S.levelTitle}>Chọn Topic</Text>
+              <TouchableOpacity onPress={() => setTopicCenter(false)}>
+                <Ionicons name="close" size={20} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+
+            {TOPICS.map((tp) => {
+              const selected = tp === filterTopic;
+              return (
+                <TouchableOpacity
+                  key={tp}
+                  style={S.levelItemRow}
+                  onPress={() => { setFilterTopic(tp); setTopicCenter(false); }}
+                >
+                  <Text style={[S.levelItemText, selected && S.levelItemTextSelected]}>
+                    {tp === 'ALL' ? 'All' : tp}
+                  </Text>
+                  {selected && <Ionicons name="checkmark" size={18} color={COLORS.create} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
