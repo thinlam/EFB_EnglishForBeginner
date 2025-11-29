@@ -174,7 +174,12 @@ export default function TabLayout() {
           href: null,
         }}
       />
-      
+      <Tabs.Screen
+        name="study/[id]"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

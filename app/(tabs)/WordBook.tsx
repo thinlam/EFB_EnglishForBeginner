@@ -37,11 +37,11 @@ type StudyDoc = {
 
 export default function WordBookScreen() {
   const router = useRouter();
-  const { level } = useAuthProfile(); // "1", "2", "3"...
+  const { level } = useAuthProfile(); // user level
 
   const [tab, setTab] = useState<'voc' | 'gra' | 'study'>('voc');
 
-  /* ------------------- MAPPING LEVEL ------------------- */
+  /* ------------------- MAP LEVEL (1→A1, 2→A2...) ------------------- */
   const mapLevel = (lv: string | number): string => {
     const s = String(lv).trim();
     switch (s) {
@@ -55,9 +55,8 @@ export default function WordBookScreen() {
   };
 
   const finalLevel = mapLevel(level);
-  console.log("🔥 USER LEVEL =", level, "→ mapped =", finalLevel);
 
-  /* ====================== VOCAB ====================== */
+  /* ============================== VOCAB ============================== */
   const { vocab, topics, cefrLevel } = getVocabByLevel(level);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
 
@@ -102,7 +101,7 @@ export default function WordBookScreen() {
     </TouchableOpacity>
   );
 
-  /* ====================== GRAMMAR ====================== */
+  /* ============================== GRAMMAR ============================== */
   const { items: grammarItems } = getGrammarByLevel(level);
 
   const renderGrammarItem = ({ item }: { item: GrammarPoint }) => (
@@ -127,7 +126,7 @@ export default function WordBookScreen() {
     </TouchableOpacity>
   );
 
-  /* ====================== STUDY MATERIAL ====================== */
+  /* ============================== STUDY MATERIAL ============================== */
   const [materials, setMaterials] = useState<StudyDoc[]>([]);
   const [loadingStudy, setLoadingStudy] = useState(false);
 
@@ -136,7 +135,6 @@ export default function WordBookScreen() {
       try {
         setLoadingStudy(true);
 
-        // Lấy toàn bộ rồi filter — tránh mismatch query Firestore
         const snap = await getDocs(collection(db, "studyMaterials"));
 
         const list: StudyDoc[] = snap.docs
@@ -145,11 +143,9 @@ export default function WordBookScreen() {
             String(doc.level).trim().toUpperCase() === finalLevel
           );
 
-        console.log("🔥 MATERIALS FILTERED =", list);
-
         setMaterials(list);
       } catch (e) {
-        console.log('🔥 Lỗi lấy tài liệu:', e);
+        console.log("🔥 Lỗi lấy tài liệu:", e);
       } finally {
         setLoadingStudy(false);
       }
@@ -158,20 +154,91 @@ export default function WordBookScreen() {
     fetchMaterials();
   }, [level]);
 
-  const renderStudyItem = ({ item }: { item: StudyDoc }) => (
-    <TouchableOpacity
-      style={styles.wordCard}
-      onPress={() => router.push(`/study/${item.id}`)}
-    >
-      <View style={styles.wordLeft}>
-        <Text style={styles.wordText}>{item.title}</Text>
-        <Text style={styles.wordPhonetic}>{item.type?.toUpperCase()}</Text>
-      </View>
-      <Ionicons name="arrow-forward" size={18} color="#4B5563" />
-    </TouchableOpacity>
-  );
+  /* ⭐⭐⭐ NEW PREMIUM UI FOR STUDY MATERIAL ⭐⭐⭐ */
+  const renderStudyItem = ({ item }: { item: StudyDoc }) => {
+    const fileIcon =
+      item.type === "pdf"
+        ? "document-text-outline"
+        : item.type === "word"
+        ? "document-outline"
+        : "folder-outline";
 
-  /* ====================== TAB UI ====================== */
+    return (
+      <TouchableOpacity
+        onPress={() => router.push(`/study/${item.id}`)}
+        style={{
+          backgroundColor: "#FFF",
+          padding: 16,
+          borderRadius: 14,
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 14,
+          borderWidth: 1,
+          borderColor: "#E5E7EB",
+          shadowColor: "#000",
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 2 },
+        }}
+      >
+        {/* Icon */}
+        <View
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            backgroundColor: "#EEF2FF",
+            alignItems: "center",
+            justifyContent: "center",
+            marginRight: 16,
+          }}
+        >
+          <Ionicons name={fileIcon} size={26} color="#4F46E5" />
+        </View>
+
+        {/* Title + info */}
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: "#111", marginBottom: 4 }}>
+            {item.title}
+          </Text>
+
+          {/* Tags */}
+          <View style={{ flexDirection: "row", marginTop: 2 }}>
+            <View
+              style={{
+                backgroundColor: "#E0E7FF",
+                paddingVertical: 3,
+                paddingHorizontal: 8,
+                borderRadius: 6,
+                marginRight: 6,
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "600", color: "#4F46E5" }}>
+                {item.type?.toUpperCase()}
+              </Text>
+            </View>
+
+            <View
+              style={{
+                backgroundColor: "#F3F4F6",
+                paddingVertical: 3,
+                paddingHorizontal: 8,
+                borderRadius: 6,
+              }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "600", color: "#6B7280" }}>
+                Level {item.level}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+      </TouchableOpacity>
+    );
+  };
+
+  /* ============================== TAB RENDER ============================== */
   const renderTab = () => (
     <View style={styles.tabWrap}>
       <TouchableOpacity
@@ -203,13 +270,13 @@ export default function WordBookScreen() {
     </View>
   );
 
-  /* ====================== MAIN RENDER ====================== */
+  /* ============================== MAIN ============================== */
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {renderTab()}
 
-        {/* ================= VOCAB ================= */}
+        {/* VOCAB */}
         {tab === 'voc' && (
           <>
             <View style={styles.header}>
@@ -243,7 +310,7 @@ export default function WordBookScreen() {
           </>
         )}
 
-        {/* ================= GRAMMAR ================= */}
+        {/* GRAMMAR */}
         {tab === 'gra' && (
           <>
             <View style={styles.header}>
@@ -259,13 +326,13 @@ export default function WordBookScreen() {
           </>
         )}
 
-        {/* ================= STUDY ================= */}
+        {/* STUDY */}
         {tab === 'study' && (
           <>
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Tài liệu học</Text>
               <Text style={styles.headerSubtitle}>
-                Dành cho Level {finalLevel}.
+                Dành cho Level {finalLevel}
               </Text>
             </View>
 
