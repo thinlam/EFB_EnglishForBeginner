@@ -7,29 +7,29 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  Timestamp
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    Timestamp
 } from 'firebase/firestore';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Keyboard,
-  Linking,
-  Modal,
-  RefreshControl,
-  StatusBar,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Keyboard,
+    Linking,
+    Modal,
+    RefreshControl,
+    StatusBar,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -320,8 +320,6 @@ export default function SpeakingScreen() {
             <Text style={S.badgeText}>{item.level}</Text>
           </View>
         </View>
-
-
         {/* PROMPT */}
         {!!item.prompt?.trim() && (
           <View style={S.rowLine}>
@@ -358,8 +356,6 @@ export default function SpeakingScreen() {
             </TouchableOpacity>
           </View>
         )}
-
-
         {/* ACTIONS */}
         <View style={[S.cardActions, { marginTop: 14 }]}>
           <TouchableOpacity style={S.iconBtn} onPress={() => openScript(item)}>
@@ -387,8 +383,6 @@ export default function SpeakingScreen() {
       </View>
     );
   };
-
-
   // ======================= UI ==========================
   return (
     <View style={[S.container, { paddingTop: insets.top }]}>
@@ -409,8 +403,6 @@ export default function SpeakingScreen() {
           <Ionicons name="list-circle-outline" size={22} color={COLORS.text} />
         </TouchableOpacity>
       </View>
-
-
       {/* SEARCH */}
       <View style={[S.filterRow, { gap: 8 }]}>
         <View style={[S.searchBox, { flex: 1 }]}>
@@ -426,8 +418,6 @@ export default function SpeakingScreen() {
           />
         </View>
       </View>
-
-
       {/* FILTER ROW */}
       <View style={[S.filterRow, { gap: 8 }]}>
         {/* LEVEL */}
@@ -446,8 +436,6 @@ export default function SpeakingScreen() {
           <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
         </TouchableOpacity>
       </View>
-
-
       {/* LIST */}
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.create} />
@@ -468,8 +456,6 @@ export default function SpeakingScreen() {
           }
         />
       )}
-
-
       {/* CREATE FAB */}
       <TouchableOpacity
         onPress={() => router.push('/(admin)/speaking/speaking-create')}
@@ -477,8 +463,6 @@ export default function SpeakingScreen() {
       >
         <Ionicons name="add-outline" size={28} color={COLORS.bg} />
       </TouchableOpacity>
-
-
       {/* ========== MODAL CHỌN LEVEL ========== */}
       <Modal visible={levelCenter} transparent animationType="fade">
         <View style={S.overlayDim}>
@@ -508,8 +492,6 @@ export default function SpeakingScreen() {
           </View>
         </View>
       </Modal>
-
-
       {/* ========== MODAL CHỌN TOPIC ========== */}
       <Modal visible={topicCenter} transparent animationType="fade">
         <View style={S.overlayDim}>
@@ -520,7 +502,6 @@ export default function SpeakingScreen() {
                 <Ionicons name="close" size={20} color={COLORS.text} />
               </TouchableOpacity>
             </View>
-
             {TOPICS.map((tp) => {
               const selected = tp === filterTopic;
               return (
@@ -539,7 +520,6 @@ export default function SpeakingScreen() {
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }

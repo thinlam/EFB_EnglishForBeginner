@@ -1,29 +1,30 @@
 // app/(admin)/speaking/speaking-create.tsx
-import { COLORS } from '@/components/style/admin/AdminColors';
 import { SpeakingCreateStyles as S } from '@/components/style/admin/speaking/speaking-create-styles';
+import { COLORS } from '@/components/style/colors/AppColors';
 import { db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    serverTimestamp,
-    updateDoc,
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -63,25 +64,26 @@ export default function SpeakingCreate() {
   const [loading, setLoading] = useState<boolean>(!!editingId);
   const [saving, setSaving] = useState(false);
 
-  // form state
+  // ===== FORM STATE =====
   const [title, setTitle] = useState('');
-  const [level, setLevel] = useState<CEFR>('A1');
-  const [topic, setTopic] = useState<Topic>('Daily Life');
-  const [type, setType] = useState<SpeakingType>('repeat');
+  const [level, setLevel] = useState<CEFR | null>(null);
+  const [topic, setTopic] = useState<Topic | null>(null);
+  const [type, setType] = useState<SpeakingType | null>(null);
 
   const [bandMin, setBandMin] = useState<string>('4');
   const [bandMax, setBandMax] = useState<string>('6');
   const [tasksCount, setTasksCount] = useState<string>('1');
 
   const [audioUrl, setAudioUrl] = useState('');
-  const [prompt, setPrompt] = useState('');        // câu hỏi / câu cần nói
-  const [sampleAnswer, setSampleAnswer] = useState(''); // gợi ý trả lời
+  const [prompt, setPrompt] = useState('');
+  const [sampleAnswer, setSampleAnswer] = useState('');
 
   // pickers
   const [levelPicker, setLevelPicker] = useState(false);
   const [topicPicker, setTopicPicker] = useState(false);
   const [typePicker, setTypePicker] = useState(false);
 
+  // ===== LOAD DATA WHEN EDITING =====
   useEffect(() => {
     const fetch = async () => {
       if (!editingId) return;
@@ -93,10 +95,11 @@ export default function SpeakingCreate() {
           return;
         }
         const raw = snap.data() as any;
+
         setTitle(raw.title ?? '');
-        setLevel((raw.level as CEFR) ?? 'A1');
-        setTopic((raw.topic as Topic) ?? 'Daily Life');
-        setType((raw.type as SpeakingType) ?? 'repeat');
+        setLevel((raw.level as CEFR) ?? null);
+        setTopic((raw.topic as Topic) ?? null);
+        setType((raw.type as SpeakingType) ?? null);
 
         setBandMin(String(raw.bandMin ?? 4));
         setBandMax(String(raw.bandMax ?? 6));
@@ -114,21 +117,43 @@ export default function SpeakingCreate() {
       }
     };
     fetch();
-  }, [editingId]);
+  }, [editingId, router]);
 
+  // ===== VALIDATION =====
   const canSave = useMemo(() => {
     if (!title.trim()) return false;
-    if (!prompt.trim()) return false; // bắt buộc phải có prompt
+    if (!prompt.trim()) return false;
+    if (!level || !topic || !type) return false;
+
     const bMin = Number(bandMin);
     const bMax = Number(bandMax);
     if (Number.isNaN(bMin) || Number.isNaN(bMax)) return false;
     if (bMin < 0 || bMax < 0) return false;
     if (bMax && bMin && bMin > bMax) return false;
+
     const tc = Number(tasksCount);
     if (Number.isNaN(tc) || tc < 0) return false;
-    return true;
-  }, [title, prompt, bandMin, bandMax, tasksCount]);
 
+    return true;
+  }, [title, prompt, bandMin, bandMax, tasksCount, level, topic, type]);
+
+  // ===== LABEL CHO TYPE =====
+  const renderTypeLabel = (tp: SpeakingType | null) => {
+    switch (tp) {
+      case 'repeat':
+        return 'Repeat';
+      case 'qa':
+        return 'Q&A';
+      case 'dialogue':
+        return 'Dialogue';
+      case 'monologue':
+        return 'Monologue';
+      default:
+        return 'Select form';
+    }
+  };
+
+  // ===== SAVE =====
   const onSave = async () => {
     if (!canSave || saving) {
       Alert.alert(
@@ -137,12 +162,14 @@ export default function SpeakingCreate() {
       );
       return;
     }
+
     setSaving(true);
+
     const payload = {
       title: title.trim(),
-      level,
-      topic,
-      type,
+      level: level as CEFR,
+      topic: topic as Topic,
+      type: type as SpeakingType,
       bandMin: Number(bandMin),
       bandMax: Number(bandMax),
       tasksCount: Number(tasksCount),
@@ -174,155 +201,315 @@ export default function SpeakingCreate() {
 
   return (
     <View style={[S.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+      {/* HEADER */}
       <View style={S.header}>
-        <TouchableOpacity onPress={() => router.back()} style={S.backBtn}>
-          <Ionicons name="arrow-back-outline" size={22} color={COLORS.text} />
-        </TouchableOpacity>
-        <Text style={S.headerTitle}>
-          {editingId ? 'Sửa Speaking' : 'Tạo Speaking'}
-        </Text>
+        <View style={S.headerLeft}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={S.backBtn}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="arrow-back-outline" size={22} color={COLORS.text} />
+          </TouchableOpacity>
+          <View>
+            <Text style={S.headerTitle}>
+              {editingId ? 'Edit Speaking Lesson' : 'Create Speaking Lesson'}
+            </Text>
+            <Text style={S.headerSubtitle}>
+              {editingId
+                ? 'Update an existing speaking task'
+                : 'Add a new speaking task to the system'}
+            </Text>
+          </View>
+        </View>
+
         <TouchableOpacity
           onPress={onSave}
           disabled={!canSave || saving || loading}
           style={[
             S.saveBtn,
-            { backgroundColor: canSave ? COLORS.create : COLORS.card2 },
+            {
+              opacity: !canSave || saving || loading ? 0.6 : 1,
+              backgroundColor: canSave ? COLORS.create : COLORS.card2,
+            },
           ]}
+          activeOpacity={0.9}
         >
-          <Ionicons
-            name="save-outline"
-            size={18}
-            color={canSave ? COLORS.bg : COLORS.text}
-          />
-          <Text
-            style={[
-              S.saveText,
-              { color: canSave ? COLORS.bg : COLORS.text },
-            ]}
-          >
-            {saving ? 'Đang lưu…' : 'Lưu'}
-          </Text>
+          {saving ? (
+            <ActivityIndicator size="small" color={COLORS.bg} />
+          ) : (
+            <>
+              <Ionicons
+                name="save-outline"
+                size={18}
+                color={canSave ? COLORS.bg : COLORS.text}
+              />
+              <Text
+                style={[
+                  S.saveText,
+                  { color: canSave ? COLORS.bg : COLORS.text },
+                ]}
+              >
+                Save
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
 
+      {/* BODY */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           contentContainerStyle={S.formWrap}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Tiêu đề */}
-          <View style={S.formRow}>
-            <Text style={S.formLabel}>Tiêu đề</Text>
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Nhập tiêu đề bài Speaking"
-              placeholderTextColor={COLORS.muted}
-              style={S.input}
-            />
+          {/* SPEAKING INFO */}
+          <View style={S.sectionCard}>
+            <View style={S.sectionHeader}>
+              <Text style={S.sectionTitle}>Speaking lesson info</Text>
+            </View>
+
+            {/* Title */}
+            <View style={S.formRow}>
+              <Text style={S.formLabel}>Title (*)</Text>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="E.g., Daily routine – Morning activities"
+                placeholderTextColor={COLORS.muted}
+                style={S.input}
+                editable={!loading}
+              />
+            </View>
+
+            {/* Level / Topic / Type */}
+            <View style={S.formRow}>
+              <Text style={S.formLabel}>Level, Topic & speaking form</Text>
+              <View style={S.formGroupRow}>
+                {/* Level */}
+                <TouchableOpacity
+                  style={S.picker}
+                  onPress={() => !loading && setLevelPicker(true)}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={S.pickerLabel}>Level</Text>
+                    <Text
+                      style={[
+                        S.pickerValue,
+                        !level && S.pickerPlaceholder,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {level ?? 'Select level'}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={COLORS.muted}
+                  />
+                </TouchableOpacity>
+
+                {/* Topic */}
+                <TouchableOpacity
+                  style={S.picker}
+                  onPress={() => !loading && setTopicPicker(true)}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={S.pickerLabel}>Topic</Text>
+                    <Text
+                      style={[
+                        S.pickerValue,
+                        !topic && S.pickerPlaceholder,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {topic ?? 'Select topic'}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={COLORS.muted}
+                  />
+                </TouchableOpacity>
+
+                {/* Speaking form */}
+                <TouchableOpacity
+                  style={S.picker}
+                  onPress={() => !loading && setTypePicker(true)}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={S.pickerLabel}>Form</Text>
+                    <Text
+                      style={[
+                        S.pickerValue,
+                        !type && S.pickerPlaceholder,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {type ? renderTypeLabel(type) : 'Select form'}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={COLORS.muted}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
 
-          {/* Level / Topic / Type */}
-          <View style={S.formGroupRow}>
-            <TouchableOpacity
-              style={S.picker}
-              onPress={() => setLevelPicker(true)}
-            >
-              <Text style={S.pickerValue}>Level: {level}</Text>
-              <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
-            </TouchableOpacity>
+          {/* EVALUATION CONFIG */}
+          <View style={S.sectionCard}>
+            <View style={S.sectionHeader}>
+              <Text style={S.sectionTitle}>Evaluation settings</Text>
+            </View>
 
-            <TouchableOpacity
-              style={S.picker}
-              onPress={() => setTopicPicker(true)}
-            >
-              <Text style={S.pickerValue} numberOfLines={1}>
-                Topic: {topic}
+            <View style={S.formGroupRow}>
+              <View style={S.smallField}>
+                <Text style={S.formLabel}>Band min</Text>
+                <TextInput
+                  value={bandMin}
+                  onChangeText={setBandMin}
+                  keyboardType="numeric"
+                  placeholder="4"
+                  placeholderTextColor={COLORS.muted}
+                  style={S.input}
+                  editable={!loading}
+                />
+              </View>
+              <View style={S.smallField}>
+                <Text style={S.formLabel}>Band max</Text>
+                <TextInput
+                  value={bandMax}
+                  onChangeText={setBandMax}
+                  keyboardType="numeric"
+                  placeholder="6"
+                  placeholderTextColor={COLORS.muted}
+                  style={S.input}
+                  editable={!loading}
+                />
+              </View>
+              <View style={S.smallField}>
+                <Text style={S.formLabel}>Number of turns</Text>
+                <TextInput
+                  value={tasksCount}
+                  onChangeText={setTasksCount}
+                  keyboardType="numeric"
+                  placeholder="1"
+                  placeholderTextColor={COLORS.muted}
+                  style={S.input}
+                  editable={!loading}
+                />
+              </View>
+            </View>
+
+            <View style={S.badgeRow}>
+              <View style={S.badge}>
+                <Ionicons
+                  name="analytics-outline"
+                  size={14}
+                  color={COLORS.create}
+                />
+                <Text style={S.badgeText}>
+                  Band {bandMin || '?'} – {bandMax || '?'}
+                </Text>
+              </View>
+              <View style={S.badge}>
+                <Ionicons
+                  name="mic-outline"
+                  size={14}
+                  color={COLORS.create}
+                />
+                <Text style={S.badgeText}>
+                  Turns: {tasksCount || '0'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* CONTENT SECTION */}
+          <View style={S.sectionCard}>
+            <View style={S.sectionHeader}>
+              <Text style={S.sectionTitle}>Speaking content</Text>
+              <Text style={S.sectionSubtitle}>
+                Optional audio, prompt and sample answer
               </Text>
-              <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
-            </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              style={S.picker}
-              onPress={() => setTypePicker(true)}
-            >
-              <Text style={S.pickerValue}>Type: {type}</Text>
-              <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
-            </TouchableOpacity>
+            {/* Audio URL */}
+            <View style={S.formRow}>
+              <Text style={S.formLabel}>Audio sample (URL)</Text>
+              <TextInput
+                value={audioUrl}
+                onChangeText={setAudioUrl}
+                placeholder="https://... (optional)"
+                style={S.input}
+                autoCapitalize="none"
+                placeholderTextColor={COLORS.muted}
+                editable={!loading}
+              />
+              <Text style={S.inlineHelpText}>
+                Can be a link from Firebase Storage, Cloudflare R2 or any CDN.
+              </Text>
+            </View>
+
+            {/* Prompt */}
+            <View style={S.formRow}>
+              <Text style={S.formLabel}>Prompt / Question *</Text>
+              <TextInput
+                value={prompt}
+                onChangeText={setPrompt}
+                multiline
+                placeholder="E.g., Talk about your daily morning routine."
+                style={[S.input, S.textarea]}
+                placeholderTextColor={COLORS.muted}
+                editable={!loading}
+              />
+              <Text style={S.inlineHelpText}>
+                This is the main content learners will see and answer.
+              </Text>
+            </View>
+
+            {/* Sample answer */}
+            <View style={S.formRow}>
+              <Text style={S.formLabel}>Sample answer (optional)</Text>
+              <TextInput
+                value={sampleAnswer}
+                onChangeText={setSampleAnswer}
+                multiline
+                placeholder="E.g., I usually get up at 6 a.m. First, I brush my teeth..."
+                style={[S.input, S.textarea]}
+                placeholderTextColor={COLORS.muted}
+                editable={!loading}
+              />
+              <Text style={S.inlineHelpText}>
+                Use this to show a model answer / band sample for learners.
+              </Text>
+            </View>
           </View>
 
-          {/* Band / Tasks */}
-          <View style={S.formGroupRow}>
-            <TextInput
-              value={bandMin}
-              onChangeText={setBandMin}
-              keyboardType="numeric"
-              placeholder="Band min (ví dụ 4)"
-              style={S.input}
-              placeholderTextColor={COLORS.muted}
-            />
-            <TextInput
-              value={bandMax}
-              onChangeText={setBandMax}
-              keyboardType="numeric"
-              placeholder="Band max (ví dụ 6)"
-              style={S.input}
-              placeholderTextColor={COLORS.muted}
-            />
-            <TextInput
-              value={tasksCount}
-              onChangeText={setTasksCount}
-              keyboardType="numeric"
-              placeholder="Số lượt nói"
-              style={S.input}
-              placeholderTextColor={COLORS.muted}
-            />
-          </View>
-
-          {/* Audio mẫu */}
-          <View style={S.formRow}>
-            <Text style={S.formLabel}>Audio mẫu (URL)</Text>
-            <TextInput
-              value={audioUrl}
-              onChangeText={setAudioUrl}
-              placeholder="https://... (tuỳ chọn)"
-              style={S.input}
-              autoCapitalize="none"
-              placeholderTextColor={COLORS.muted}
-            />
-          </View>
-
-          {/* Prompt */}
-          <View style={S.formRow}>
-            <Text style={S.formLabel}>Prompt / Câu hỏi / Câu cần nói *</Text>
-            <TextInput
-              value={prompt}
-              onChangeText={setPrompt}
-              multiline
-              placeholder="Ví dụ: Talk about your daily routine in the morning."
-              style={[S.input, S.textarea]}
-              placeholderTextColor={COLORS.muted}
-            />
-          </View>
-
-          {/* Sample answer */}
-          <View style={S.formRow}>
-            <Text style={S.formLabel}>Sample answer (gợi ý trả lời)</Text>
-            <TextInput
-              value={sampleAnswer}
-              onChangeText={setSampleAnswer}
-              multiline
-              placeholder="Ví dụ: I usually get up at 6 a.m. First, I brush my teeth..."
-              style={[S.input, S.textarea]}
-              placeholderTextColor={COLORS.muted}
-            />
-          </View>
+          <View style={{ height: 32 }} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* LOADING OVERLAY */}
+      {loading && (
+        <View style={S.loadingOverlay}>
+          <View style={S.loadingBox}>
+            <ActivityIndicator size="small" color={COLORS.create} />
+            <Text style={S.loadingText}>Đang tải dữ liệu bài Speaking…</Text>
+          </View>
+        </View>
+      )}
 
       {/* LEVEL PICKER */}
       <Modal
@@ -336,7 +523,7 @@ export default function SpeakingCreate() {
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={S.modalBox}>
                 <View style={S.modalHeader}>
-                  <Text style={S.modalTitle}>Chọn Level</Text>
+                  <Text style={S.modalTitle}>Select level</Text>
                 </View>
                 {LEVELS.map((lv) => {
                   const selected = level === lv;
@@ -384,9 +571,9 @@ export default function SpeakingCreate() {
         <TouchableWithoutFeedback onPress={() => setTopicPicker(false)}>
           <View style={S.modalOverlay}>
             <TouchableWithoutFeedback onPress={() => {}}>
-              <View style={[S.modalBox, { width: 300 }]}>
+              <View style={[S.modalBox, { width: 320 }]}>
                 <View style={S.modalHeader}>
-                  <Text style={S.modalTitle}>Chọn Topic</Text>
+                  <Text style={S.modalTitle}>Select topic</Text>
                 </View>
                 {TOPICS.map((tp) => {
                   const selected = topic === tp;
@@ -437,7 +624,7 @@ export default function SpeakingCreate() {
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={S.modalBox}>
                 <View style={S.modalHeader}>
-                  <Text style={S.modalTitle}>Chọn dạng Speaking</Text>
+                  <Text style={S.modalTitle}>Select speaking form</Text>
                 </View>
                 {TYPES.map((tp) => {
                   const selected = type === tp;
@@ -457,7 +644,7 @@ export default function SpeakingCreate() {
                           { fontWeight: selected ? '700' : '500' },
                         ]}
                       >
-                        {tp}
+                        {renderTypeLabel(tp as SpeakingType)}
                       </Text>
                       {selected && (
                         <Ionicons
