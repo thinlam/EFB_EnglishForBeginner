@@ -17,7 +17,7 @@ const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyCkzWTb7SS_qN0YzDWZnP-02W4rpc3MSMk",
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "efb-app-77bd0.firebaseapp.com",
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "efb-app-77bd0",
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "efb-app-77bd0.appspot.com",
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "efb-app-77bd0.firebasestorage.app",
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "10598642218",
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:10598642218:web:d0d85b71a367edcd5ec953",
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-JVH99Q8K1F",

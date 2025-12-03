@@ -1,130 +1,315 @@
 // components/style/admin/speaking/speaking-create-styles.ts
+import { COLORS } from '@/components/style/colors/AppColors';
 import { StyleSheet } from 'react-native';
-import { COLORS } from '../AdminColors';
 
 export const SpeakingCreateStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  /* ===== MAIN CONTAINER ===== */
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.bgScreen, // nền xám nhẹ, card nổi hơn
+  },
 
+  /* ===== HEADER ===== */
   header: {
-    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
+    backgroundColor: COLORS.bg, // header khác nền card 1 chút
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.card,
   },
+
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+
   backBtn: {
-    width: 40,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    backgroundColor: COLORS.card, // trắng, nổi trên header
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.card2,
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
   },
+
   headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: COLORS.text,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
+    color: COLORS.text,
   },
+
+  headerSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 34,
-    borderWidth: 1,
-    borderColor: COLORS.borderSoft,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
   },
-  saveText: { fontWeight: '700', fontSize: 13 },
 
-  formWrap: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
-    gap: 14,
-  },
-  formRow: { gap: 6 },
-  formGroupRow: { flexDirection: 'row', gap: 10 },
-  formLabel: {
-    color: COLORS.subText,
+  saveText: {
     fontSize: 14,
     fontWeight: '600',
   },
+
+  /* ===== FORM (SCROLL CONTENT) ===== */
+  formWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 32,
+  },
+
+  /* ===== SECTION CARD ===== */
+  sectionCard: {
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000', // iOS / Android
+    shadowOpacity: 0.03,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 5,
+    elevation: 1,
+    marginBottom: 16,
+  },
+
+  sectionHeader: {
+    marginBottom: 8,
+  },
+
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+
+  sectionSubtitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+
+  /* ===== FORM INPUTS ===== */
+  formRow: {
+    marginTop: 10,
+  },
+
+  formLabel: {
+    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+
   input: {
     borderWidth: 1,
-    borderColor: COLORS.borderSoft,
-    backgroundColor: COLORS.card2,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    color: COLORS.text,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card2, // xám nhẹ, đỡ chói
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     fontSize: 14,
+    color: COLORS.text,
   },
+
   textarea: {
-    minHeight: 120,
+    minHeight: 96,
     textAlignVertical: 'top',
   },
+
+  inlineHelpText: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginTop: 4,
+  },
+
+  formGroupRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+
+  smallField: {
+    flex: 1,
+  },
+
+  /* ===== PICKER BUTTON ===== */
   picker: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.borderSoft,
-    backgroundColor: COLORS.card2,
+    borderColor: COLORS.border,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
+    backgroundColor: COLORS.card2,
   },
+
+  pickerLabel: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+
   pickerValue: {
-    color: COLORS.text,
     fontSize: 14,
+    color: COLORS.text,
+    marginTop: 1,
+    fontWeight: '500',
+  },
+
+  // dùng để tô màu placeholder "Select …"
+  pickerPlaceholder: {
+    color: COLORS.textSoft,
+    fontWeight: '400',
+  },
+
+  /* ===== TYPE CHIP (hiện giờ không dùng, để sẵn nếu sau này đổi UI) ===== */
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+
+  chip: {
+    minWidth: '48%', // 2 nút / 1 hàng
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  chipActive: {
+    backgroundColor: COLORS.create,
+    borderColor: COLORS.create,
+  },
+
+  chipLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.text,
+  },
+
+  chipLabelActive: {
+    color: COLORS.bg,
     fontWeight: '600',
   },
 
-  // Modal
+  /* ===== BADGES ===== */
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: COLORS.bg,
+    borderColor: COLORS.border,
+    borderWidth: 1,
+  },
+
+  badgeText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+
+  /* ===== MODAL ===== */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
-    padding: 16,
+    justifyContent: 'center',
+    padding: 24,
   },
+
   modalBox: {
-    width: 260,
+    width: '100%',
+    maxWidth: 340,
     backgroundColor: COLORS.card,
     borderRadius: 16,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: COLORS.borderSoft,
-    overflow: 'hidden',
+    borderColor: COLORS.border,
   },
+
   modalHeader: {
-    padding: 14,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    marginBottom: 4,
   },
+
   modalTitle: {
+    fontSize: 15,
+    fontWeight: '600',
     color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '700',
   },
+
   modalItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderSoft,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
+
   modalItemText: {
+    fontSize: 14,
     color: COLORS.text,
-    fontSize: 15,
+  },
+
+  /* ===== LOADING OVERLAY ===== */
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  loadingBox: {
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+
+  loadingText: {
+    fontSize: 13,
+    color: COLORS.text,
   },
 });

@@ -144,12 +144,26 @@ export default function HomeScreen() {
   };
 
   const handlePress = (item: Item) => {
+      if (item.title === 'Reading') {
+    // app/(tabs)/reading/index.tsx
+    router.push('/reading');
+    return;
+  }
+  if(item.title === 'Speaking') {
+    router.push('/speaking');
+    return;
+  }
     if (item.id === '6' || item.title === 'Dịch' || item.title === 'Translate') {
       router.push('/translate');
       return;
     }
     if (item.id === '1' || item.title === 'Listening') {
+<<<<<<< HEAD
       router.push('/(User)/listen/listen');
+=======
+      router.push({pathname: '/listen/listen',
+});
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
       return;
     }
     if (

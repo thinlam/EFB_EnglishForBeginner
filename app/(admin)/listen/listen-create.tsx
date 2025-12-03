@@ -1,4 +1,7 @@
-// app/(admin)/listen-create.tsx
+// ===============================
+// SCREEN: Create Listen (Firebase Storage Version)
+// ===============================
+
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -8,7 +11,6 @@ import {
   Alert,
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -16,35 +18,36 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/* Styles (đã tách) */
+/* Styles */
 import { ListenCreateStyles as CS } from '@/components/style/admin/listen/listen-create-styles';
 import { COLORS, ListenStyles as S } from '@/components/style/admin/listen/listen-screen-styles';
 
-/* Firestore */
-import { db } from '@/scripts/firebase';
-import { addDoc, collection, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+/* Firebase */
+import { db, storage } from "@/scripts/firebase";
+import { addDoc, collection, doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 
 /* expo-video */
 import { VideoView, useVideoPlayer } from 'expo-video';
 
+<<<<<<< HEAD
 /* ================== Cloudinary Config ================== */
 const CLOUD_NAME = 'djf9vnngm';
 const CLOUD_PRESET = 'unsigned_mobile';
 const CLOUD_FOLDER = 'lessons';
+=======
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
 
-/* ================= Types ================= */
+// ======================
+// UTILS
+// ======================
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
-type ExerciseType =
-  | 'fill_gaps'
-  | 'guess_object'
-  | 'phoneme_choice'
-  | 'phrase_gaps'
-  | 'reading_mcq';
 
+<<<<<<< HEAD
 const EXERCISE_BY_LEVEL: Record<CEFR, ExerciseType> = {
   A1: 'fill_gaps',
   A2: 'guess_object',
@@ -122,6 +125,8 @@ type ListenDoc = {
 };
 
 /* ================= Utils ================= */
+=======
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
 function slugify(s: string) {
   return s
     .toLowerCase()
@@ -133,6 +138,7 @@ function slugify(s: string) {
 function isHlsUrl(u: string) {
   return (u || '').toLowerCase().endsWith('.m3u8');
 }
+<<<<<<< HEAD
 function isCloudinaryVideoUrl(u: string) {
   const lower = (u || '').toLowerCase();
   return lower.includes('res.cloudinary.com') && lower.includes('/video/upload/');
@@ -174,62 +180,32 @@ function guessVideoMime(ext: string) {
   if (ext === 'm4v') return 'video/x-m4v';
   if (ext === 'webm') return 'video/webm';
   return 'video/mp4';
+=======
+
+function inferMediaType(url: string) {
+  const l = url.toLowerCase();
+  if (l.endsWith(".mp3")) return "audio/mpeg";
+  if (l.endsWith(".wav")) return "audio/wav";
+  if (l.endsWith(".m4a")) return "audio/x-m4a";
+  if (l.endsWith(".mp4")) return "video/mp4";
+  if (l.endsWith(".mov")) return "video/quicktime";
+  return "audio/mpeg";
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
 }
 
-/* ================= Cloudinary upload ================= */
-async function uploadMediaToCloudinary(
-  localUri: string,
-  folder: string,
-  baseName?: string,
-  onProgress?: (pct: number) => void,
-  opts?: { forceAudioMp3?: boolean; videoDelivery?: 'mp4' | 'hls' }
-): Promise<{ secure_url: string; public_id: string; deliveryUrl: string; mediaType: string; isAudio: boolean }> {
-  const ext = getExt(localUri);
-  const isAudio = isAudioExt(ext);
-  const mime = isAudio ? guessAudioMime(ext) : guessVideoMime(ext);
-  const fileName = `${baseName || (isAudio ? 'aud' : 'vid')}_${Date.now()}.${ext}`;
 
-  const form = new FormData();
-  form.append('file', { uri: localUri, name: fileName, type: mime } as any);
-  form.append('upload_preset', CLOUD_PRESET);
-  form.append('folder', `${CLOUD_FOLDER}/${folder}`);
+// ======================
+// MEDIA PREVIEW
+// ======================
+function MediaPreview({ uri, mediaType }: { uri: string | null; mediaType?: string | null }) {
 
-  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`;
-
-  const res = await new Promise<{ status: number; text: string }>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.upload.onprogress = (e) => {
-      if (onProgress && e.lengthComputable) {
-        onProgress(Math.round((e.loaded / Math.max(e.total, 1)) * 100));
-      }
-    };
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === 4) resolve({ status: xhr.status, text: xhr.responseText });
-    };
-    xhr.onerror = (err) => reject(err);
-    xhr.open('POST', url);
-    xhr.send(form);
-  });
-
-  if (res.status < 200 || res.status >= 300) {
-    throw new Error(`Cloudinary upload failed (${res.status}): ${res.text}`);
-  }
-
-  const json = JSON.parse(res.text);
-  const public_id: string = json.public_id;
-  const secure_url: string = json.secure_url;
-
-  const forceAudioMp3 = opts?.forceAudioMp3 ?? true;
-  const videoDelivery = opts?.videoDelivery ?? 'mp4';
-
-  let deliveryUrl = secure_url;
-  let mediaType = mime;
-
-  if (isAudio) {
-    if (forceAudioMp3) {
-      deliveryUrl = `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/f_mp3,q_auto:good/${public_id}.mp3`;
-      mediaType = 'audio/mpeg';
+  // ALWAYS INIT player with a safe source
+  const player = useVideoPlayer(
+    null, // <— MUST be null, NOT undefined
+    (p) => {
+      p.loop = false;
     }
+<<<<<<< HEAD
   } else {
     if (videoDelivery === 'hls') {
       deliveryUrl = `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/sp_auto,q_auto:good/${public_id}.m3u8`;
@@ -600,23 +576,15 @@ function LevelPickerRow({ value, onChange }: { value: CEFR; onChange: (v: CEFR) 
         </TouchableOpacity>
       </Modal>
     </>
+=======
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
   );
-}
 
-/* ================= Media Preview ================= */
-function MediaPreview({ uri, mediaType }: { uri: string; mediaType?: string | null }) {
-  if (!uri) return null;
+  const isVideo = mediaType?.startsWith("video/");
 
-  const isVideoMedia =
-    (mediaType || '').startsWith('video/') ||
-    mediaType === 'application/x-mpegURL' ||
-    isVideoUrl(uri);
-
-  const player = useVideoPlayer(undefined, (p) => {
-    p.loop = false;
-  });
-
+  // Replace source when uri changes
   useEffect(() => {
+<<<<<<< HEAD
     player.replace(uri);
     return () => {
       try {
@@ -644,11 +612,43 @@ function MediaPreview({ uri, mediaType }: { uri: string; mediaType?: string | nu
             contentFit="contain"
           />
         </View>
+=======
+    if (uri) {
+      player.replace({ uri });  // expo-video v2 expects an object
+    }
+  }, [uri]);
+
+
+  // No media → return empty container (NOT null)
+  if (!uri) {
+    return <View style={{ height: 10 }} />;
+  }
+
+  return (
+    <View style={CS.mediaPreviewWrapper}>
+      <Text style={CS.mediaPreviewTitle}>
+        Preview {isVideo ? "Video" : "Audio"}
+      </Text>
+
+      <View
+        style={
+          isVideo
+            ? CS.mediaPreviewPlayerVideo
+            : CS.mediaPreviewPlayerAudio
+        }
+      >
+        <VideoView
+          player={player}
+          style={CS.mediaPreviewVideoView}
+          contentFit="contain"
+        />
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
       </View>
     </View>
   );
 }
 
+<<<<<<< HEAD
 /* ================= Payload validation ================= */
 function validatePayload(parsedPayload: any, exerciseType: ExerciseType) {
   // Payload kiểu mới: có mảng questions
@@ -698,16 +698,25 @@ function validatePayload(parsedPayload: any, exerciseType: ExerciseType) {
 
 /* ================= Screen ================= */
 export default function ListenCreateScreen() {
+=======
+
+
+// ======================
+// MAIN SCREEN
+// ======================
+export default function ListenCreate() {
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
-  const editId = (params?.id as string) || '';
+  const editId = params?.id || '';
 
-  const [loadingDoc, setLoadingDoc] = useState<boolean>(!!editId);
+  const [loadingDoc, setLoadingDoc] = useState(!!editId);
+
   const [title, setTitle] = useState('');
   const [transcript, setTranscript] = useState('');
-  const [urlInput, setUrlInput] = useState('');
   const [level, setLevel] = useState<CEFR>('A1');
+<<<<<<< HEAD
   const [exerciseType, setExerciseType] = useState<ExerciseType>(EXERCISE_BY_LEVEL['A1']);
   const [payloadText, setPayloadText] = useState('');
   const [payloadError, setPayloadError] = useState<string | null>(null);
@@ -726,31 +735,29 @@ export default function ListenCreateScreen() {
     name?: string | null;
   }>({});
   const [exerciseFileRemoved, setExerciseFileRemoved] = useState(false);
+=======
+
+  const [picked, setPicked] = useState<{ name: string; uri: string } | null>(null);
+  const [exerciseFile, setExerciseFile] = useState<{ name: string; uri: string } | null>(null);
+
+  const [originalMedia, setOriginalMedia] = useState<{ url?: string | null; mediaType?: string | null }>({});
+  const [originalExercise, setOriginalExercise] = useState<{ url?: string | null; name?: string | null }>({});
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
 
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [original, setOriginal] = useState<{ audioUrl?: string; mediaType?: string | null }>({});
+  const [progress, setProgress] = useState(0);
 
-  const onChangeLevel = (v: CEFR) => {
-    setLevel(v);
-    const t = EXERCISE_BY_LEVEL[v];
-    setExerciseType(t);
-    // Level đổi → dạng bài đổi theo, payload giáo viên tự chọn "Áp dụng sườn"
-  };
 
-  /* Load doc when editing */
+  // LOAD DOC WHEN EDIT
   useEffect(() => {
-    let mounted = true;
+    if (!editId) return;
 
     (async () => {
-      if (!editId) return;
       try {
-        setLoadingDoc(true);
         const snap = await getDoc(doc(db, 'listens', editId));
-        if (snap.exists() && mounted) {
-          const d = snap.data() as ListenDoc;
-          const exType = d.exerciseType ?? EXERCISE_BY_LEVEL['A1'];
+        if (!snap.exists()) return router.back();
 
+<<<<<<< HEAD
           setTitle(d.title || '');
           setTranscript(d.transcript || '');
           setLevel(d.level || 'A1');
@@ -767,19 +774,38 @@ export default function ListenCreateScreen() {
         }
       } catch (e: any) {
         Alert.alert('Lỗi', e?.message ?? 'Không tải được dữ liệu.');
+=======
+        const d = snap.data() as any;
+
+        setTitle(d.title || '');
+        setTranscript(d.transcript || '');
+        setLevel(d.level || 'A1');
+
+        setOriginalMedia({
+          url: d.audioUrl,
+          mediaType: d.mediaType || null,
+        });
+
+        setOriginalExercise({
+          url: d.exerciseFileUrl,
+          name: d.exerciseFileName
+        });
+
+      } catch (err) {
+        Alert.alert("Lỗi", "Không tải được dữ liệu");
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
       } finally {
-        if (mounted) setLoadingDoc(false);
+        setLoadingDoc(false);
       }
     })();
+  }, []);
 
-    return () => {
-      mounted = false;
-    };
-  }, [editId, router]);
-
+  // PICK MEDIA
   const pickMedia = async () => {
     const r = await DocumentPicker.getDocumentAsync({
+      type: ["audio/*", "video/*"],
       copyToCacheDirectory: true,
+<<<<<<< HEAD
       multiple: false,
       type: [
         'video/mp4',
@@ -791,55 +817,48 @@ export default function ListenCreateScreen() {
         'audio/wav',
         'audio/x-m4a',
       ],
+=======
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
     });
-    if (r.canceled) return;
 
+    if (r.canceled) return;
     const f = r.assets?.[0];
     if (f?.uri) {
       setPicked({
-        name: f.name ?? 'media',
+        name: f.name ?? "media",
         uri: f.uri,
-        file: (f as any)?.file ?? null,
-        mimeType: (f as any)?.mimeType ?? null,
       });
     }
   };
 
-  // chọn file Word / Excel / PDF
-  const pickExerciseFile = async () => {
+  // PICK EXERCISE FILE
+  const pickExercise = async () => {
     const r = await DocumentPicker.getDocumentAsync({
-      copyToCacheDirectory: true,
-      multiple: false,
       type: [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       ],
+      copyToCacheDirectory: true,
     });
-    if (r.canceled) return;
 
+    if (r.canceled) return;
     const f = r.assets?.[0];
     if (f?.uri) {
       setExerciseFile({
-        name: f.name ?? 'exercise-file',
-        uri: f.uri,
+        name: f.name!,
+        uri: f.uri
       });
-      setExerciseFileRemoved(false);
     }
   };
 
-  const removeExerciseFile = () => {
-    setExerciseFile(null);
-    setOriginalExerciseFile({ url: null, name: null });
-    setExerciseFileRemoved(true);
-  };
 
-  const applyLevelTemplate = () => {
-    const tpl = getDefaultPayloadForLevel(level);
-    const pretty = JSON.stringify(tpl, null, 2);
+  // FIREBASE UPLOAD
+  async function uploadToFirebase(localUri: string, path: string, onProgress: (p: number) => void) {
+    const response = await fetch(localUri);
+    const blob = await response.blob();
 
+<<<<<<< HEAD
     const apply = () => {
       setPayloadError(null);
       setPayloadText(pretty);
@@ -858,20 +877,40 @@ export default function ListenCreateScreen() {
       apply();
     }
   };
+=======
+    const storageRef = ref(storage, path);
+    const uploadTask = uploadBytesResumable(storageRef, blob);
 
+    return new Promise<string>((resolve, reject) => {
+      uploadTask.on(
+        "state_changed",
+        (snap) => {
+          const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+          onProgress(pct);
+        },
+        (err) => reject(err),
+        async () => {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(url);
+        }
+      );
+    });
+  }
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
+
+
+  // SAVE
   const onSave = async () => {
     Keyboard.dismiss();
 
-    if (!title.trim()) {
-      return Alert.alert('Thiếu Title', 'Vui lòng nhập Title.');
-    }
-    if (!picked?.uri && !urlInput.trim() && !original.audioUrl) {
-      return Alert.alert('Thiếu nội dung', 'Vui lòng chọn file hoặc nhập URL media.');
-    }
+    if (!title.trim()) return Alert.alert("Thiếu Title");
+    if (!picked?.uri && !originalMedia.url)
+      return Alert.alert("Thiếu file media");
 
     setBusy(true);
     setProgress(0);
 
+<<<<<<< HEAD
     // Parse payload JSON (admin tự nhập)
     let parsedPayload: ListenPayload | {} = {};
     try {
@@ -900,28 +939,28 @@ export default function ListenCreateScreen() {
       // xử lý media audio/video
       let finalUrl = urlInput.trim() || original.audioUrl || '';
       let mediaType = original.mediaType ?? null;
+=======
+    try {
+      //-- Upload media
+      let finalUrl = originalMedia.url || null;
+      let mediaType = originalMedia.mediaType || null;
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
 
       if (picked?.uri) {
-        const { deliveryUrl, mediaType: mt } = await uploadMediaToCloudinary(
-          picked.uri,
-          'units',
-          slugify(title),
-          (pct) => setProgress(pct),
-          { forceAudioMp3: true, videoDelivery: 'mp4' }
-        );
-        finalUrl = deliveryUrl;
-        mediaType = mt;
+        const ext = picked.name.toLowerCase().split('.').pop();
+        const baseName = slugify(title);
+
+        const path = `listen/${baseName}_${Date.now()}.${ext}`;
+        finalUrl = await uploadToFirebase(picked.uri, path, setProgress);
+        mediaType = inferMediaType(finalUrl);
       }
 
-      if (!mediaType && finalUrl) {
-        mediaType = inferMediaTypeFromUrl(finalUrl);
-      }
-
-      // xử lý file tài liệu bài tập
-      let exerciseFileUrl = originalExerciseFile.url ?? null;
-      let exerciseFileName = originalExerciseFile.name ?? null;
+      //-- Upload exercise file
+      let exerciseFileUrl = originalExercise.url ?? null;
+      let exerciseFileName = originalExercise.name ?? null;
 
       if (exerciseFile?.uri) {
+<<<<<<< HEAD
         const { secure_url } = await uploadRawFileToCloudinary(
           exerciseFile.uri,
           'exercise_files',
@@ -929,47 +968,57 @@ export default function ListenCreateScreen() {
           (pct) => setProgress(pct)
         );
         exerciseFileUrl = secure_url;
+=======
+        const ext = exerciseFile.name.split('.').pop();
+        const path = `listen/files/${slugify(title)}_${Date.now()}.${ext}`;
+
+        exerciseFileUrl = await uploadToFirebase(exerciseFile.uri, path, setProgress);
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
         exerciseFileName = exerciseFile.name;
-      } else if (exerciseFileRemoved) {
-        // giáo viên xoá file
-        exerciseFileUrl = null;
-        exerciseFileName = null;
       }
 
-      const basePayload = {
+      //-- SAVE FIRESTORE
+      const payload = {
         title: title.trim(),
         transcript: transcript.trim(),
-        audioUrl: finalUrl || null,
-        mediaType,
         level,
-        exerciseType,
-        payload: parsedPayload,
+        audioUrl: finalUrl!,
+        mediaType,
         exerciseFileUrl,
         exerciseFileName,
         updatedAt: serverTimestamp(),
       };
 
       if (editId) {
+<<<<<<< HEAD
         // sửa: không đụng vào isPublished → giữ trạng thái publish hiện tại
         await updateDoc(doc(db, 'listens', editId), basePayload);
       } else {
         // tạo mới: luôn là bản nháp, publish ở ListenScreen
         await addDoc(collection(db, 'listens'), {
           ...basePayload,
+=======
+        await updateDoc(doc(db, "listens", editId), payload);
+      } else {
+        await addDoc(collection(db, "listens"), {
+          ...payload,
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
           isPublished: false,
           createdAt: serverTimestamp(),
         });
       }
 
-      router.replace('/(admin)/listen/listen-screen');
-    } catch (e: any) {
-      Alert.alert('Lỗi', e?.message ?? 'Không thể lưu bài nghe.');
+      router.replace("/(admin)/listen/listen-screen");
+
+    } catch (err: any) {
+      Alert.alert("Lỗi", err.message ?? "Không thể lưu");
     } finally {
       setBusy(false);
       setProgress(0);
     }
   };
 
+<<<<<<< HEAD
   /* ---------- UI ---------- */
   const effectiveUrl = (urlInput || original.audioUrl || '').trim();
   const effectiveMediaType =
@@ -982,15 +1031,30 @@ export default function ListenCreateScreen() {
 
   const saveDisabled =
     busy || !title.trim() || (!picked?.uri && !urlInput.trim() && !original.audioUrl);
+=======
 
+  // PREVIEW
+  const effectiveUrl = picked?.uri || originalMedia.url || null;
+  const effectiveMediaType = picked
+    ? inferMediaType(picked.name)
+    : originalMedia.mediaType;
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
+
+
+  // UI
   const Form = (
     <>
       <View style={S.header}>
         <TouchableOpacity onPress={() => router.back()} style={S.backBtn}>
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
+<<<<<<< HEAD
         <Text style={S.headerTitle}>{editId ? 'Sửa bài nghe' : 'Tạo bài nghe'}</Text>
         <View style={CS.headerRightPlaceholder} />
+=======
+        <Text style={S.headerTitle}>{editId ? "Sửa bài nghe" : "Tạo bài nghe"}</Text>
+        <View />
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
       </View>
 
       {loadingDoc ? (
@@ -1000,47 +1064,42 @@ export default function ListenCreateScreen() {
       ) : (
         <ScrollView
           style={CS.scroll}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 28 }}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled">
+          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        >
           <View style={CS.screen}>
-            {/* SECTION 1: Thông tin bài nghe */}
+            {/* INFO */}
             <View style={CS.sectionCard}>
-              <Text style={CS.sectionTitle}>Thông tin bài nghe</Text>
+              <Text style={CS.sectionTitle}>Thông tin</Text>
 
-              {/* Title + Level cùng hàng */}
-              <View style={CS.titleLevelRow}>
-                <View style={CS.titleColumn}>
-                  <Text style={CS.label}>Title</Text>
-                  <TextInput
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder="Unit 1 - Greetings"
-                    placeholderTextColor={COLORS.muted}
-                    style={[CS.input, CS.titleInput]}
-                  />
-                </View>
-                <View style={CS.levelColumn}>
-                  <Text style={CS.label}>Level</Text>
-                  <LevelPickerRow value={level} onChange={onChangeLevel} />
-                </View>
-              </View>
+              <Text style={CS.label}>Title</Text>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                style={CS.input}
+                placeholder="Unit 1 - Greetings"
+                placeholderTextColor={COLORS.muted}
+              />
+
+              <Text style={CS.label}>Level</Text>
+              <TextInput
+                value={level}
+                editable={false}
+                style={CS.input}
+              />
 
               <Text style={CS.label}>Transcript</Text>
               <TextInput
                 value={transcript}
                 onChangeText={setTranscript}
-                placeholder="A: Hello! How are you? ..."
-                placeholderTextColor={COLORS.muted}
                 multiline
                 style={[CS.input, CS.inputMultiline]}
+                placeholder="A: Hello! How are you?"
+                placeholderTextColor={COLORS.muted}
               />
             </View>
 
-            {/* SECTION 2: Bài tập / Payload */}
-            <View style={CS.sectionCard}>
-              <Text style={CS.sectionTitle}>Bài tập</Text>
 
+<<<<<<< HEAD
               <View style={CS.exerciseHeaderRow}>
                 <Text style={CS.label}>Exercise Type</Text>
                 <TouchableOpacity
@@ -1131,37 +1190,76 @@ export default function ListenCreateScreen() {
                 <Text style={CS.fileName}>Giữ nguyên URL cũ: {original.audioUrl}</Text>
               )}
 
+=======
+            {/* MEDIA */}
+            <View style={CS.sectionCard}>
+              <Text style={CS.sectionTitle}>Media</Text>
+
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
               <TouchableOpacity
-                disabled={busy}
                 onPress={pickMedia}
-                style={[CS.pickBtn, busy && CS.pickBtnDisabled]}>
+                style={CS.pickBtn}
+              >
                 <Text style={CS.pickBtnText}>
-                  {picked ? 'Chọn lại file (mp3/mp4)' : 'Chọn file từ máy (mp3/mp4)'}
+                  {picked ? "Chọn lại file" : "Chọn file từ máy"}
                 </Text>
               </TouchableOpacity>
 
-              {!!picked && (
-                <Text style={CS.fileName} numberOfLines={1}>
-                  📄 {picked.name}
-                </Text>
+              {picked && (
+                <Text style={CS.fileName}>📄 {picked.name}</Text>
               )}
 
-              {!!effectiveUrl && (
+              {effectiveUrl && (
                 <MediaPreview uri={effectiveUrl} mediaType={effectiveMediaType} />
               )}
 
+<<<<<<< HEAD
               {busy && <Text style={CS.progressText}>Đang upload… {progress}%</Text>}
+=======
+              {busy && (
+                <Text style={CS.progressText}>Đang upload… {progress}%</Text>
+              )}
             </View>
 
-            {/* Save */}
+
+            {/* EXERCISE FILE */}
+            <View style={CS.sectionCard}>
+              <Text style={CS.sectionTitle}>Tài liệu (Word/PDF)</Text>
+
+              <TouchableOpacity onPress={pickExercise} style={CS.pickBtn}>
+                <Text style={CS.pickBtnText}>Chọn file tài liệu</Text>
+              </TouchableOpacity>
+
+              {(exerciseFile || originalExercise.url) && (
+                <Text style={CS.fileName}>
+                  📎 {exerciseFile?.name || originalExercise.name}
+                </Text>
+              )}
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
+            </View>
+
+
+            {/* SAVE */}
             <TouchableOpacity
-              disabled={saveDisabled}
+              disabled={busy || !title || !effectiveUrl}
               onPress={onSave}
+<<<<<<< HEAD
               style={[CS.saveBtn, saveDisabled && CS.saveBtnDisabled]}>
+=======
+              style={[
+                CS.saveBtn,
+                (busy || !title || !effectiveUrl) && CS.saveBtnDisabled,
+              ]}
+            >
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
               {busy ? (
-                <ActivityIndicator color={COLORS.bg} />
+                <ActivityIndicator color="#fff" />
               ) : (
+<<<<<<< HEAD
                 <Text style={CS.saveBtnText}>{editId ? 'Cập nhật' : 'Lưu'}</Text>
+=======
+                <Text style={CS.saveBtnText}>{editId ? "Cập nhật" : "Lưu"}</Text>
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
               )}
             </TouchableOpacity>
           </View>
@@ -1170,7 +1268,8 @@ export default function ListenCreateScreen() {
     </>
   );
 
-  if (Platform.OS === 'web') {
+
+  if (Platform.OS === "web") {
     return (
       <View style={[S.container, { paddingTop: insets.top }]}>
         <StatusBar barStyle="light-content" />
@@ -1178,11 +1277,10 @@ export default function ListenCreateScreen() {
       </View>
     );
   }
+
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={[S.container, { paddingTop: insets.top }]}>
           <StatusBar barStyle="light-content" />
           {Form}
