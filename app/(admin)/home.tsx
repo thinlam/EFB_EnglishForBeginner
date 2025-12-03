@@ -57,7 +57,7 @@ export default function AdminHomeScreen() {
     {
   title: '💎 Giao dịch & Nâng cấp',
   children: [
-
+    { title: 'Quản lý gói học', path: '/(admin)/plans' },
     { title: 'Giao dịch & Nâng cấp', path: '/(admin)/transactions' },
   ],
 },
