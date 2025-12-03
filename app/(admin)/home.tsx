@@ -55,9 +55,10 @@ export default function AdminHomeScreen() {
       ],
     },
     {
-  title: '💎 Giao dịch & Nâng cấp',
+  title: '💎 Quản lý - Giao dịch - Nâng cấp',
   children: [
-    { title: 'Quản lý gói học', path: '/(admin)/plans' },
+    { title: 'Quản lý gói Premium', path: '/(admin)/premium' },
+
     { title: 'Giao dịch & Nâng cấp', path: '/(admin)/transactions' },
   ],
 },

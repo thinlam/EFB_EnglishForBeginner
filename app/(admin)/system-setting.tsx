@@ -44,7 +44,7 @@ export default function SystemSettingScreen() {
 
        <>
             <SettingItem icon="👥" label="Quản lý vai trò" onPress={() => router.push('/admin/manage-roles')} />
-            <SettingItem icon="📚" label="Quản lý bài học" onPress={() => router.push('/admin/manage-content')} />
+            <SettingItem icon="💎" label="Quản lý premium" onPress={() => router.push('/(admin)/premium')} />
             <SettingItem icon="🗃️" label="Log hệ thống" onPress={() => router.push('/admin/system-log')} />
           </>
 

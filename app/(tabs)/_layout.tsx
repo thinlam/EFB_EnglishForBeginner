@@ -180,6 +180,18 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="notifications/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications/[id]"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
