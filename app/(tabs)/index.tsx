@@ -158,8 +158,12 @@ export default function HomeScreen() {
       return;
     }
     if (item.id === '1' || item.title === 'Listening') {
+<<<<<<< HEAD
+      router.push('/(User)/listen/listen');
+=======
       router.push({pathname: '/listen/listen',
 });
+>>>>>>> 253bdbd98d032668c29675d1b9e5a08adf107f07
       return;
     }
     if (
