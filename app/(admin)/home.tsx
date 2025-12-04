@@ -20,7 +20,7 @@ export default function AdminHomeScreen() {
         { title: 'Luyện nghe',path: '/(admin)/listen/listen-screen' },
         { title: 'Luyện nói', path: '/(admin)/speaking/speaking-screen' },
         { title: 'Luyện đọc', path: '/(admin)/reading/reading-screen'},
-        { title: 'Luyện viết' },
+        { title: 'Luyện viết', path: '/(admin)/writing/writing-screen' },
       { title: 'Bài kiểm tra', path: '/(admin)/testList' },
 
       ],
@@ -61,8 +61,6 @@ export default function AdminHomeScreen() {
     { title: 'Giao dịch & Nâng cấp', path: '/(admin)/transactions' },
   ],
 },
-
-
     {
       title: '👥 Người dùng & Hệ thống',
       children: [
