@@ -56,6 +56,14 @@ export default function AdminHomeScreen() {
         { title: 'Gửi thông báo', path: '/(admin)/notifications' },
       ],
     },
+    {
+  title: '💎 Quản lý - Giao dịch - Nâng cấp',
+  children: [
+    { title: 'Quản lý gói Premium', path: '/(admin)/premium' },
+
+    { title: 'Giao dịch & Nâng cấp', path: '/(admin)/transactions' },
+  ],
+},
 
     {
       title: '💎 Gói học & Nâng cấp',

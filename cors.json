@@ -7,7 +7,7 @@
       "Access-Control-Allow-Origin",
       "Access-Control-Allow-Headers",
       "Authorization"
-    ],
+    ],    
     "maxAgeSeconds": 3600
   }
 ]

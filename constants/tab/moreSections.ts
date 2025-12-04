@@ -11,7 +11,7 @@ export const sections: { heading: string; items: Item[] }[] = [
   {
     heading: 'Gói dịch vụ',
     items: [
-      { icon: 'crown', title: 'Nâng cấp Premium', sub: 'Bài nâng cao, không quảng cáo', path: '/premium' },
+      { icon: 'crown', title: 'Nâng cấp Premium', sub: 'Bài nâng cao, không quảng cáo', path: '/Premium' },
       { icon: 'receipt', title: 'Quản lý gói', sub: 'Gia hạn, lịch sử thanh toán', path: '/subscription' },
     ],
   },
