@@ -4,12 +4,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
 import {
-    FlatList,
-    Image,
-    Platform,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -150,7 +150,7 @@ export default function HomeScreen() {
     return;
   }
   if (item.title === 'Test') {
-  router.push("/test/A1/result");
+  router.push("/test/A1");
 
   return;
 }

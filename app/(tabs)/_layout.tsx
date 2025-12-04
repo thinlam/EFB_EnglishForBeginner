@@ -192,6 +192,30 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name='test'
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name='listen/listen'
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name='listen/[id]'
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name='listen/questions/[id]'
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
