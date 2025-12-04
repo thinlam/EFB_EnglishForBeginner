@@ -1,9 +1,13 @@
+// ===============================
+// LISTEN MANAGEMENT SCREEN – CLEAN VERSION 2025 + QUESTIONS BUTTON
+// ===============================
 
 import { COLORS, ListenStyles as S } from '@/components/style/admin/listen/listen-screen-styles';
 import { db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+
 import {
     collection,
     deleteDoc,
@@ -15,6 +19,7 @@ import {
     Timestamp,
     updateDoc
 } from 'firebase/firestore';
+
 import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -31,9 +36,15 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+
+// =========================
+// TYPES
+// =========================
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
+
 type Listen = {
   id: string;
   title: string;
@@ -41,6 +52,8 @@ type Listen = {
   transcript?: string;
   mediaType?: string | null;
   level?: CEFR;
+  exerciseFileUrl?: string | null;
+  exerciseFileName?: string | null;
   isPublished?: boolean;
   createdAt?: Date | null;
   updatedAt?: Date | null;
@@ -48,6 +61,10 @@ type Listen = {
 
 const LEVELS: ('ALL' | CEFR)[] = ['ALL', 'A1', 'A2', 'B1', 'B2', 'C1'];
 
+
+// =========================
+// UTILS
+// =========================
 function formatDate(d?: Date | null) {
   if (!d) return '';
   const dd = String(d.getDate()).padStart(2, '0');
@@ -63,7 +80,7 @@ function colorForLevel(l?: string) {
     case 'B1': return '#06b6d4';
     case 'B2': return '#60a5fa';
     case 'C1': return '#a78bfa';
-    default:   return '#9ca3af';
+    default: return '#9ca3af';
   }
 }
 
@@ -76,25 +93,23 @@ async function openInApp(url?: string) {
   if (!url) return;
   const safe = normalizeUrl(url);
   try {
-    await WebBrowser.openBrowserAsync(safe, {
-      enableBarCollapsing: true,
-      showTitle: true,
-      enableDefaultShareMenuItem: false,
-      presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-    });
+    await WebBrowser.openBrowserAsync(safe);
   } catch {
     const can = await Linking.canOpenURL(safe);
     if (can) await Linking.openURL(safe);
-    else Alert.alert('Không mở được liên kết', safe);
   }
 }
 
 function transcriptSnippet(s?: string, max = 48) {
   if (!s) return '';
-  const oneLine = s.replace(/\s+/g, ' ').trim();
-  return oneLine.length > max ? oneLine.slice(0, max) + '…' : oneLine;
+  const t = s.replace(/\s+/g, ' ').trim();
+  return t.length > max ? t.slice(0, max) + '…' : t;
 }
 
+
+// ===============================
+// MAIN SCREEN
+// ===============================
 export default function ListenScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -105,123 +120,112 @@ export default function ListenScreen() {
   const [searchText, setSearchText] = useState('');
   const [filterLevel, setFilterLevel] = useState<'ALL' | CEFR>('ALL');
 
-  // Modal transcript
-  const [docModal, setDocModal] = useState<{
-    visible: boolean;
-    id?: string;
-    title: string;
-    content: string;
-    editing: boolean;
-  }>({ visible: false, id: undefined, title: '', content: '', editing: false });
+  // Transcript modal
+  const [modal, setModal] = useState({
+    visible: false,
+    id: '',
+    title: '',
+    content: '',
+    editing: false,
+  });
 
-  // Modal chọn cấp độ
-  const [levelCenter, setLevelCenter] = useState(false);
+  // Level modal
+  const [modalLevel, setModalLevel] = useState(false);
 
+  // =========================
+  // LOAD DATA
+  // =========================
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
+
       const col = collection(db, 'listens');
       const qy = query(col, orderBy('createdAt', 'desc'));
-      const unsub = onSnapshot(
-        qy,
-        snap => {
-          const next: Listen[] = [];
-          snap.forEach(d => {
-            const raw = d.data() as any;
-            next.push({
-              id: d.id,
-              title: raw.title ?? '(Không tiêu đề)',
-              audioUrl: raw.audioUrl ?? '',
-              transcript: raw.transcript ?? '',
-              mediaType: raw.mediaType ?? null,
-              level: (raw.level as CEFR) ?? 'A1',
-              isPublished: !!raw.isPublished,
-              createdAt: raw.createdAt instanceof Timestamp ? raw.createdAt.toDate() : null,
-              updatedAt: raw.updatedAt instanceof Timestamp ? raw.updatedAt.toDate() : null,
-            });
+
+      const unsub = onSnapshot(qy, (snap) => {
+        const list: Listen[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as any;
+          list.push({
+            id: d.id,
+            title: raw.title ?? '',
+            audioUrl: raw.audioUrl,
+            transcript: raw.transcript,
+            mediaType: raw.mediaType,
+            level: raw.level ?? 'A1',
+            exerciseFileUrl: raw.exerciseFileUrl ?? null,
+            exerciseFileName: raw.exerciseFileName ?? null,
+            isPublished: !!raw.isPublished,
+            createdAt: raw.createdAt instanceof Timestamp ? raw.createdAt.toDate() : null,
+            updatedAt: raw.updatedAt instanceof Timestamp ? raw.updatedAt.toDate() : null,
           });
-          setItems(next);
-          setLoading(false);
-        },
-        err => {
-          console.error(err);
-          Alert.alert('Lỗi', err?.message ?? 'Không tải được danh sách');
-          setLoading(false);
-        }
-      );
+        });
+
+        setItems(list);
+        setLoading(false);
+      });
+
       return () => unsub();
     }, [])
   );
 
-  const onRefresh = async () => {
+  // =========================
+  // REFRESH
+  // =========================
+  const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 400);
   };
 
+
+  // =========================
+  // FILTER + SEARCH
+  // =========================
   const filteredItems = useMemo(() => {
-    const text = searchText.trim().toLowerCase();
-    return items.filter((it) => {
+    const t = searchText.trim().toLowerCase();
+    return items.filter((item) => {
       const matchText =
-        !text ||
-        it.title.toLowerCase().includes(text) ||
-        (it.transcript ?? '').toLowerCase().includes(text) ||
-        (it.audioUrl ?? '').toLowerCase().includes(text);
-      const matchLevel = filterLevel === 'ALL' ? true : it.level === filterLevel;
+        item.title.toLowerCase().includes(t) ||
+        (item.transcript ?? '').toLowerCase().includes(t) ||
+        (item.audioUrl ?? '').toLowerCase().includes(t);
+
+      const matchLevel =
+        filterLevel === 'ALL' ? true : item.level === filterLevel;
+
       return matchText && matchLevel;
     });
   }, [items, searchText, filterLevel]);
 
-  const onEdit = (id: string) => {
+
+  // =========================
+  // ACTIONS
+  // =========================
+  const editListen = (id: string) => {
     router.push({ pathname: '/(admin)/listen/listen-create', params: { id } });
   };
 
-  const onDelete = (id: string) => {
-    Alert.alert('Bạn muốn làm gì?', 'Sửa nội dung hay xoá hẳn bài này?', [
+  const gotoQuestions = (id: string) => {
+    router.push({
+      pathname: '/(admin)/listen/listen-questions/[id]',
+      params: { id },
+    });
+  };
+
+  const deleteListen = (id: string) => {
+    Alert.alert('Xoá bài nghe?', 'Hành động này không thể hoàn tác.', [
       { text: 'Huỷ', style: 'cancel' },
-      { text: 'Sửa', onPress: () => onEdit(id) },
       {
-        text: 'Xoá hẳn',
+        text: 'Xoá',
         style: 'destructive',
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'listens', id));
           } catch (e: any) {
-            console.error(e);
             Alert.alert('Lỗi', e?.message ?? 'Không xoá được');
           }
         },
       },
     ]);
-  };
-
-  const openTranscript = (item: Listen) => {
-    const content = (item.transcript || '').trim();
-    if (!content) {
-      Alert.alert('Chưa có nội dung tài liệu');
-      return;
-    }
-    setDocModal({
-      visible: true,
-      id: item.id,
-      title: item.title || 'Tài liệu',
-      content,
-      editing: false,
-    });
-  };
-
-  const saveTranscript = async () => {
-    if (!docModal.id) return;
-    try {
-      await updateDoc(doc(db, 'listens', docModal.id), {
-        transcript: docModal.content.trim(),
-        updatedAt: serverTimestamp(),
-      });
-      setDocModal((p) => ({ ...p, editing: false }));
-      Alert.alert('Đã lưu', 'Cập nhật tài liệu thành công.');
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert('Lỗi', e?.message ?? 'Không thể lưu tài liệu');
-    }
   };
 
   const togglePublish = async (id: string, next: boolean) => {
@@ -231,70 +235,112 @@ export default function ListenScreen() {
         updatedAt: serverTimestamp(),
       });
     } catch (e: any) {
-      console.error(e);
-      Alert.alert('Lỗi', e?.message ?? 'Không thể cập nhật publish');
+      Alert.alert('Lỗi', e?.message ?? 'Không thể publish');
     }
   };
 
-  const changeLevel = async (id: string, nextLevel: CEFR) => {
+  const changeLevel = async (id: string, next: CEFR) => {
     try {
       await updateDoc(doc(db, 'listens', id), {
-        level: nextLevel,
+        level: next,
         updatedAt: serverTimestamp(),
       });
     } catch (e: any) {
-      console.error(e);
-      Alert.alert('Lỗi', e?.message ?? 'Không thể đổi level');
+      Alert.alert('Lỗi', e?.message ?? 'Không thể đổi cấp độ');
     }
   };
 
+  const openTranscript = (item: Listen) => {
+    if (!item.transcript?.trim()) {
+      Alert.alert('Bài này chưa có transcript.');
+      return;
+    }
+    setModal({
+      visible: true,
+      id: item.id,
+      title: item.title,
+      content: item.transcript,
+      editing: false,
+    });
+  };
+
+  const saveTranscript = async () => {
+    try {
+      await updateDoc(doc(db, 'listens', modal.id), {
+        transcript: modal.content.trim(),
+        updatedAt: serverTimestamp(),
+      });
+      setModal((p) => ({ ...p, editing: false }));
+      Alert.alert('Đã lưu transcript');
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message ?? 'Không lưu được transcript');
+    }
+  };
+
+
+  // =========================
+  // RENDER ITEM
+  // =========================
   const renderItem = ({ item }: { item: Listen }) => {
-    const isVideo = (item.mediaType ?? '').toLowerCase().startsWith('video');
-    const isAudio = (item.mediaType ?? '').toLowerCase().startsWith('audio');
+    const isVideo = (item.mediaType ?? '').startsWith('video');
+    const isAudio = (item.mediaType ?? '').startsWith('audio');
 
     return (
       <View style={S.card}>
-        {/* Header: Chủ đề + CEFR + Publish chip */}
+        {/* Header */}
         <View style={S.cardHeader}>
           <View style={S.flex1}>
-            <View style={S.rowLine}>
-              <Ionicons name="bookmark-outline" size={16} color={COLORS.subText} />
-              <Text style={S.rowLabel}>Chủ đề:</Text>
-              <Text style={S.cardTitle} numberOfLines={2}>{item.title}</Text>
-            </View>
+            <Text style={S.cardTitle}>{item.title}</Text>
           </View>
 
           <View style={S.alignEnd}>
             <View style={[S.badge, { backgroundColor: colorForLevel(item.level) }]}>
-              <Text style={S.badgeText}>{item.level ?? '—'}</Text>
+              <Text style={S.badgeText}>{item.level}</Text>
             </View>
+
             <TouchableOpacity
               onPress={() => togglePublish(item.id, !item.isPublished)}
-              style={[S.badge, S.mt6, { backgroundColor: item.isPublished ? '#16a34a' : '#e5e7eb' }]}
+              style={[
+                S.badge,
+                { marginTop: 6 },
+                { backgroundColor: item.isPublished ? '#16a34a' : '#e5e7eb' },
+              ]}
             >
-              <Text style={[S.badgeText, { color: item.isPublished ? '#fff' : '#111827' }]}>
+              <Text
+                style={{
+                  color: item.isPublished ? '#fff' : '#111827',
+                  fontWeight: '700',
+                }}
+              >
                 {item.isPublished ? 'Published' : 'Unpublished'}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Ngày tạo / cập nhật */}
+        {/* Dates */}
         {(item.createdAt || item.updatedAt) && (
-          <View style={[S.rowLine, S.mt6]}>
+          <View style={[S.rowLine, { marginTop: 6 }]}>
             <Ionicons name="calendar-clear-outline" size={16} color={COLORS.subText} />
             <Text style={S.rowLabel}>Ngày:</Text>
-            {!!item.createdAt && <Text style={S.rowText}>Tạo {formatDate(item.createdAt)}</Text>}
-            {!!item.updatedAt && <Text style={[S.rowText, S.ml8]}>• Sửa {formatDate(item.updatedAt)}</Text>}
+            {!!item.createdAt && (
+              <Text style={S.rowText}>Tạo {formatDate(item.createdAt)}</Text>
+            )}
+            {!!item.updatedAt && (
+              <Text style={[S.rowText, { marginLeft: 8 }]}>
+                • Sửa {formatDate(item.updatedAt)}
+              </Text>
+            )}
           </View>
         )}
 
-        {/* Tài liệu (Transcript) */}
-        {!!item.transcript?.trim() && (
-          <View style={S.rowLine}>
+        {/* Transcript */}
+        {!!item.transcript && (
+          <View style={[S.rowLine, { marginTop: 4 }]}>
             <Ionicons name="document-text-outline" size={16} color={COLORS.link} />
-            <Text style={S.rowLabel}>Tài liệu:</Text>
-            <TouchableOpacity onPress={() => openTranscript(item)} activeOpacity={0.7} style={S.flex1}>
+            <Text style={S.rowLabel}>Transcript:</Text>
+
+            <TouchableOpacity onPress={() => openTranscript(item)} style={S.flex1}>
               <Text style={S.rowTextLink} numberOfLines={1}>
                 {transcriptSnippet(item.transcript)}
               </Text>
@@ -302,34 +348,47 @@ export default function ListenScreen() {
           </View>
         )}
 
-        {/* Link nghe */}
-        {!!item.audioUrl?.trim() && (
-          <View style={S.rowLine}>
-            {isVideo ? (
-              <Ionicons name="film-outline" size={16} color={COLORS.link} />
-            ) : isAudio ? (
-              <Ionicons name="volume-high-outline" size={16} color={COLORS.link} />
-            ) : (
-              <Ionicons name="link-outline" size={16} color={COLORS.link} />
-            )}
-            <Text style={S.rowLabel}>Link nghe:</Text>
-            <TouchableOpacity onPress={() => openInApp(item.audioUrl)} activeOpacity={0.7} style={S.flex1}>
-              <Text style={S.rowTextLink} numberOfLines={1}>{item.audioUrl}</Text>
+        {/* Media */}
+        {!!item.audioUrl && (
+          <View style={[S.rowLine, { marginTop: 4 }]}>
+            <Ionicons
+              name={isVideo ? 'film-outline' : isAudio ? 'volume-high-outline' : 'link-outline'}
+              size={16}
+              color={COLORS.link}
+            />
+            <Text style={S.rowLabel}>Media:</Text>
+            <TouchableOpacity onPress={() => openInApp(item.audioUrl)} style={S.flex1}>
+              <Text style={S.rowTextLink} numberOfLines={1}>
+                {item.audioUrl}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Exercise File */}
+        {!!item.exerciseFileUrl && (
+          <View style={[S.rowLine, { marginTop: 4 }]}>
+            <Ionicons name="document-outline" size={16} color={COLORS.link} />
+            <Text style={S.rowLabel}>File:</Text>
+            <TouchableOpacity onPress={() => openInApp(item.exerciseFileUrl!)} style={S.flex1}>
+              <Text style={S.rowTextLink} numberOfLines={1}>
+                {item.exerciseFileName}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Actions */}
-        <View style={[S.cardActions, S.actionsTight]}>
-          <TouchableOpacity style={S.iconBtn} onPress={() => openTranscript(item)}>
+        <View style={[S.cardActions, { marginTop: 6 }]}>
+          <TouchableOpacity onPress={() => openTranscript(item)} style={S.iconBtn}>
             <Ionicons name="document-outline" size={20} color={COLORS.text} />
             <Text style={S.iconBtnText}>Tài liệu</Text>
           </TouchableOpacity>
 
-          {!!item.audioUrl?.trim() && (
-            <TouchableOpacity style={S.iconBtn} onPress={() => openInApp(item.audioUrl)}>
+          {!!item.audioUrl && (
+            <TouchableOpacity onPress={() => openInApp(item.audioUrl)} style={S.iconBtn}>
               <Ionicons
-                name={(isAudio || isVideo) ? 'play-circle-outline' : 'open-outline'}
+                name={isAudio || isVideo ? 'play-circle-outline' : 'open-outline'}
                 size={20}
                 color={COLORS.text}
               />
@@ -337,28 +396,37 @@ export default function ListenScreen() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={S.iconBtn} onPress={() => onEdit(item.id)}>
+          <TouchableOpacity onPress={() => editListen(item.id)} style={S.iconBtn}>
             <Ionicons name="create-outline" size={20} color={COLORS.edit} />
             <Text style={[S.iconBtnText, S.textEdit]}>Sửa</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={S.iconBtn} onPress={() => onDelete(item.id)}>
+          <TouchableOpacity onPress={() => gotoQuestions(item.id)} style={S.iconBtn}>
+            <Ionicons name="help-circle-outline" size={20} color={COLORS.text} />
+            <Text style={S.iconBtnText}>Câu hỏi</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => deleteListen(item.id)} style={S.iconBtn}>
             <Ionicons name="trash-outline" size={20} color={COLORS.del} />
             <Text style={[S.iconBtnText, S.textDel]}>Xoá</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Quick level picker */}
+        {/* Level Quick Picker */}
         <View style={S.levelRow}>
-          {(['A1','A2','B1','B2','C1'] as CEFR[]).map(lv => {
+          {(['A1','A2','B1','B2','C1'] as CEFR[]).map((lv) => {
             const active = item.level === lv;
             return (
               <TouchableOpacity
                 key={lv}
-                onPress={() => changeLevel(item.id, lv)}
                 style={[S.levelChip, active && S.levelChipActive]}
+                onPress={() => changeLevel(item.id, lv)}
               >
-                <Text style={[S.levelChipText, active && S.levelChipTextActive]}>{lv}</Text>
+                <Text
+                  style={[S.levelChipText, active && S.levelChipTextActive]}
+                >
+                  {lv}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -367,15 +435,23 @@ export default function ListenScreen() {
     );
   };
 
+
+  // =========================
+  // UI RENDER
+  // =========================
   return (
     <View style={[S.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
       <View style={S.header}>
-        <TouchableOpacity onPress={() => router.push('/(admin)/home')} style={S.backBtn} activeOpacity={0.7}>
+        <TouchableOpacity
+          onPress={() => router.push('/(admin)/home')}
+          style={S.backBtn}
+        >
           <Ionicons name="arrow-back-outline" size={22} color={COLORS.text} />
         </TouchableOpacity>
+
         <Text style={S.headerTitle}>Quản lý Listen</Text>
         <View style={S.headerSpacer} />
       </View>
@@ -383,23 +459,23 @@ export default function ListenScreen() {
       {/* Search + Filter */}
       <View style={S.filterRow}>
         <View style={S.searchBox}>
-          <Ionicons name="search-outline" size={18} color={COLORS.muted} style={S.mr6} />
+          <Ionicons name="search-outline" size={18} color={COLORS.muted} />
           <TextInput
             placeholder="Tìm theo tiêu đề, transcript, link…"
             placeholderTextColor={COLORS.muted}
             value={searchText}
             onChangeText={setSearchText}
-            style={S.searchInput}
-            returnKeyType="search"
             onSubmitEditing={Keyboard.dismiss}
+            style={S.searchInput}
             autoCapitalize="none"
           />
         </View>
 
-        {/* Nút mở modal cấp độ */}
-        <TouchableOpacity activeOpacity={0.9} onPress={() => setLevelCenter(true)} style={S.filterPicker}>
-          <Text style={S.filterValueText}>{filterLevel === 'ALL' ? 'All' : filterLevel}</Text>
-          <Ionicons name="chevron-down" size={16} color={COLORS.muted} style={S.filterChevron} />
+        <TouchableOpacity onPress={() => setModalLevel(true)} style={S.filterPicker}>
+          <Text style={S.filterValueText}>
+            {filterLevel === 'ALL' ? 'All' : filterLevel}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
         </TouchableOpacity>
       </View>
 
@@ -409,9 +485,15 @@ export default function ListenScreen() {
       ) : (
         <FlatList
           data={filteredItems}
-          keyExtractor={(item) => item.id}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          contentContainerStyle={[S.listContent, { paddingBottom: insets.bottom + 24 }]}
+          keyExtractor={(it) => it.id}
+          renderItem={renderItem}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          contentContainerStyle={[
+            S.listContent,
+            { paddingBottom: insets.bottom + 24 },
+          ]}
           ListEmptyComponent={
             <View style={S.emptyWrap}>
               <Text style={S.emptyTitle}>Chưa có bài nghe</Text>
@@ -420,10 +502,6 @@ export default function ListenScreen() {
               </Text>
             </View>
           }
-          renderItem={renderItem}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          ListFooterComponent={<View style={{ height: 84 + insets.bottom }} />}
         />
       )}
 
@@ -431,65 +509,59 @@ export default function ListenScreen() {
       <TouchableOpacity
         style={[S.fab, { bottom: 24 + insets.bottom }]}
         onPress={() => router.push('/(admin)/listen/listen-create')}
-        activeOpacity={0.85}
       >
         <Ionicons name="add-outline" size={28} color={COLORS.bg} />
       </TouchableOpacity>
 
-      {/* Modal transcript */}
+      {/* Transcript modal */}
       <Modal
-        visible={docModal.visible}
+        visible={modal.visible}
         transparent
         animationType="fade"
-        onRequestClose={() => setDocModal((p) => ({ ...p, visible: false }))}
+        onRequestClose={() =>
+          setModal((p) => ({ ...p, visible: false }))
+        }
       >
         <View style={S.overlayCenter}>
           <View style={S.dialog}>
-            {/* Close X */}
             <TouchableOpacity
-              onPress={() => setDocModal((p) => ({ ...p, visible: false }))}
+              onPress={() => setModal((p) => ({ ...p, visible: false }))}
               style={S.closeBtn}
-              hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
             >
-              <Ionicons name="close" size={18} color={COLORS.text} />
+              <Ionicons name="close" size={20} color={COLORS.text} />
             </TouchableOpacity>
 
-            <View style={S.modalHeader}>
-              <Text style={S.modalTitle} numberOfLines={2}>
-                {docModal.title || 'Tài liệu'}
-              </Text>
-            </View>
+            <Text style={S.modalTitle}>{modal.title}</Text>
 
-            {docModal.editing ? (
-              <ScrollView style={S.modalBody}>
+            <ScrollView style={S.modalBody}>
+              {modal.editing ? (
                 <TextInput
                   multiline
-                  value={docModal.content}
-                  onChangeText={(t) => setDocModal((p) => ({ ...p, content: t }))}
+                  value={modal.content}
+                  onChangeText={(t) => setModal((p) => ({ ...p, content: t }))}
                   style={S.modalInput}
-                  placeholder="Nhập nội dung tài liệu…"
-                  placeholderTextColor={COLORS.muted}
+                  placeholder="Nhập transcript…"
                 />
-              </ScrollView>
-            ) : (
-              <ScrollView style={S.modalBody}>
-                <Text style={S.modalText}>
-                  {docModal.content}
-                </Text>
-              </ScrollView>
-            )}
+              ) : (
+                <Text style={S.modalText}>{modal.content}</Text>
+              )}
+            </ScrollView>
 
             <View style={S.modalActions}>
-              {!docModal.editing ? (
-                <TouchableOpacity style={[S.iconBtn, S.editBtnBg]} onPress={() => setDocModal((p) => ({ ...p, editing: true }))}>
+              {!modal.editing ? (
+                <TouchableOpacity
+                  onPress={() =>
+                    setModal((p) => ({ ...p, editing: true }))
+                  }
+                  style={[S.iconBtn, S.editBtnBg]}
+                >
                   <Ionicons name="create-outline" size={20} color={COLORS.text} />
-                  <Text style={S.iconBtnText}>Chỉnh sửa</Text>
+                  <Text style={S.iconBtnText}>Sửa</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  style={[S.iconBtn, S.saveBtnBg]}
                   onPress={saveTranscript}
-                  activeOpacity={0.9}
+                  style={[S.iconBtn, S.saveBtnBg]}
                 >
                   <Ionicons name="save-outline" size={20} color={COLORS.bg} />
                   <Text style={[S.iconBtnText, S.saveBtnText]}>Lưu</Text>
@@ -500,39 +572,41 @@ export default function ListenScreen() {
         </View>
       </Modal>
 
-      {/* Modal chọn cấp độ */}
-      <Modal
-        visible={levelCenter}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setLevelCenter(false)}
-      >
-        <View style={S.overlayDim}>
-          <View style={S.levelDialog}>
-            <View style={S.levelHeader}>
-              <Text style={S.levelTitle}>Chọn cấp độ</Text>
-            </View>
+      {/* Level modal */}
+<Modal visible={modalLevel} transparent animationType="fade">
+  <View style={[S.overlayDim, S.modalFixWeb]}>
+    <View style={[S.levelDialog, S.modalInnerFix]}>
+      <Text style={S.levelTitle}>Chọn cấp độ</Text>
 
-            {LEVELS.map((lv) => {
-              const label = lv === 'ALL' ? 'All' : lv;
-              const selected = filterLevel === lv;
-              return (
-                <TouchableOpacity
-                  key={lv}
-                  activeOpacity={0.9}
-                  onPress={() => { setFilterLevel(lv); setLevelCenter(false); }}
-                  style={S.levelItemRow}
-                >
-                  <Text style={[S.levelItemText, selected && S.levelItemTextSelected]}>
-                    {label}
-                  </Text>
-                  {selected && <Ionicons name="checkmark" size={18} color={COLORS.create} />}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      </Modal>
+      {LEVELS.map((lv) => {
+        const active = filterLevel === lv;
+        return (
+          <TouchableOpacity
+            key={lv}
+            onPress={() => {
+              setFilterLevel(lv);
+              setModalLevel(false);
+            }}
+            style={S.levelItemRow}
+          >
+            <Text
+              style={[
+                S.levelItemText,
+                active && S.levelItemTextSelected,
+              ]}
+            >
+              {lv}
+            </Text>
+            {active && (
+              <Ionicons name="checkmark" size={18} color={COLORS.create} />
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  </View>
+</Modal>
+
     </View>
   );
 }

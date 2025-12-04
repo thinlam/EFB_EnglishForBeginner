@@ -149,6 +149,14 @@ export default function HomeScreen() {
     router.push('/reading');
     return;
   }
+  if (item.title === 'Test') {
+  router.push("/test/A1/result");
+
+  return;
+}
+
+
+
   if(item.title === 'Speaking') {
     router.push('/speaking');
     return;
@@ -158,7 +166,8 @@ export default function HomeScreen() {
       return;
     }
     if (item.id === '1' || item.title === 'Listening') {
-      router.push('/');
+      router.push({pathname: '/listen/listen',
+});
       return;
     }
     if (
