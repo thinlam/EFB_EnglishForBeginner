@@ -61,4 +61,18 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  badgeSoon: {
+  marginTop: 6,
+  paddingHorizontal: 8,
+  paddingVertical: 3,
+  backgroundColor: '#facc15',
+  borderRadius: 6,
+  alignSelf: 'flex-start',
+},
+badgeSoonText: {
+  fontSize: 10,
+  fontWeight: '700',
+  color: '#000',
+},
+
 });

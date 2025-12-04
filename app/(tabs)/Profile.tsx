@@ -281,7 +281,9 @@ export default function ProfileScreen() {
             <ListItem
               icon="notifications"
               title="Notifications"
-              onPress={() => Alert.alert('Info', 'TODO: Notifications')}
+              onPress={() => router.push('/notifications')}
+
+
             />
             <ListItem
               icon="lock-closed"

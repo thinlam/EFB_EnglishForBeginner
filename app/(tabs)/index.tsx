@@ -149,6 +149,14 @@ export default function HomeScreen() {
     router.push('/reading');
     return;
   }
+  if (item.title === 'Test') {
+  router.push("/test/A1");
+
+  return;
+}
+
+
+
   if(item.title === 'Speaking') {
     router.push('/speaking');
     return;
