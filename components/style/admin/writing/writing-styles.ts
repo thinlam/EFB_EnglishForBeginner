@@ -100,6 +100,14 @@ export const WritingScreenStyles = StyleSheet.create({
     marginBottom: 12,
   },
 
+  /* ⭐ ADD: cardTitle — missing key fixed */
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 6,
+  },
+
   rowLine: {
     flexDirection: 'row',
     alignItems: 'center',
