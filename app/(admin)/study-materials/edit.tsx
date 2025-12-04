@@ -4,30 +4,30 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as React from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { db, storage } from '@/scripts/firebase';
 import type { CEFR, StudyMaterial, StudyMaterialType } from '@/types/admin/studyMaterial';
 import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    serverTimestamp,
-    updateDoc,
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 
@@ -136,6 +136,7 @@ export default function StudyMaterialEditScreen() {
   };
 
   /* ===== PICK & UPLOAD FILE TO STORAGE ===== */
+  /* ===== PICK & UPLOAD FILE TO STORAGE ===== */
   const handlePickFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -163,16 +164,20 @@ export default function StudyMaterialEditScreen() {
       setUploading(true);
       setUploadProgress(0);
 
-      // chuyển file uri -> blob
+      // uri -> blob
       const resp = await fetch(pf.uri);
       const blob = await resp.blob();
 
-      const extFromName =
-        pf.name.split('.').pop() ||
-        (pf.mimeType === 'application/pdf' ? 'pdf' : 'bin');
+      // ====== ⭐ FIXED: TÁCH PDF / WORD THEO EXTENSION ======
+      const ext = pf.name.split('.').pop()?.toLowerCase() || 'bin';
+
+      let folder = 'others';
+      if (ext === 'pdf') folder = 'pdf';
+      if (ext === 'doc' || ext === 'docx') folder = 'word';
 
       const baseSlug = slugify(form.title || pf.name || 'study-file');
-      const path = `files/${baseSlug}_${Date.now()}.${extFromName}`;
+      const path = `files/${folder}/${baseSlug}_${Date.now()}.${ext}`;
+      // ====== ⭐ END FIX ======
 
       const storageRef = ref(storage, path);
       const uploadTask = uploadBytesResumable(storageRef, blob, {
@@ -185,7 +190,7 @@ export default function StudyMaterialEditScreen() {
           (snap) => {
             if (snap.totalBytes) {
               const pct = Math.round(
-                (snap.bytesTransferred / snap.totalBytes) * 100,
+                (snap.bytesTransferred / snap.totalBytes) * 100
               );
               setUploadProgress(pct);
             }
@@ -212,6 +217,7 @@ export default function StudyMaterialEditScreen() {
       setUploadProgress(0);
     }
   };
+
 
   const handleRemoveFile = () => {
     setPickedFile(null);
