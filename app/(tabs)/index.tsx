@@ -166,8 +166,11 @@ export default function HomeScreen() {
       return;
     }
     if (item.id === '1' || item.title === 'Listening') {
+      router.push('/(User)/listen/listen');
+
       router.push({pathname: '/listen/listen',
 });
+
       return;
     }
     if (

@@ -41,7 +41,15 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
 
 function slugify(s: string) {
-  return s.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '').slice(0, 60);
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-_]/g, '')
+    .slice(0, 60);
+}
+function isHlsUrl(u: string) {
+  return (u || '').toLowerCase().endsWith('.m3u8');
 }
 
 function inferMediaType(url: string) {
