@@ -9,32 +9,32 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 import {
-    collection,
-    deleteDoc,
-    doc,
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
-    Timestamp,
-    updateDoc
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  Timestamp,
+  updateDoc
 } from 'firebase/firestore';
 
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Keyboard,
-    Linking,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    StatusBar,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Keyboard,
+  Linking,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -478,7 +478,6 @@ export default function ListenScreen() {
           <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
         </TouchableOpacity>
       </View>
-
       {/* List */}
       {loading ? (
         <ActivityIndicator style={S.spinner} color={COLORS.create} />
@@ -573,40 +572,39 @@ export default function ListenScreen() {
       </Modal>
 
       {/* Level modal */}
-<Modal visible={modalLevel} transparent animationType="fade">
-  <View style={[S.overlayDim, S.modalFixWeb]}>
-    <View style={[S.levelDialog, S.modalInnerFix]}>
-      <Text style={S.levelTitle}>Chọn cấp độ</Text>
+      <Modal visible={modalLevel} transparent animationType="fade">
+        <View style={S.overlayDim}>
+          <View style={S.levelDialog}>
+            <Text style={S.levelTitle}>Chọn cấp độ</Text>
 
-      {LEVELS.map((lv) => {
-        const active = filterLevel === lv;
-        return (
-          <TouchableOpacity
-            key={lv}
-            onPress={() => {
-              setFilterLevel(lv);
-              setModalLevel(false);
-            }}
-            style={S.levelItemRow}
-          >
-            <Text
-              style={[
-                S.levelItemText,
-                active && S.levelItemTextSelected,
-              ]}
-            >
-              {lv}
-            </Text>
-            {active && (
-              <Ionicons name="checkmark" size={18} color={COLORS.create} />
-            )}
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  </View>
-</Modal>
-
+            {LEVELS.map((lv) => {
+              const active = filterLevel === lv;
+              return (
+                <TouchableOpacity
+                  key={lv}
+                  onPress={() => {
+                    setFilterLevel(lv);
+                    setModalLevel(false);
+                  }}
+                  style={S.levelItemRow}
+                >
+                  <Text
+                    style={[
+                      S.levelItemText,
+                      active && S.levelItemTextSelected,
+                    ]}
+                  >
+                    {lv}
+                  </Text>
+                  {active && (
+                    <Ionicons name="checkmark" size={18} color={COLORS.create} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
