@@ -91,6 +91,8 @@ export default function TabLayout() {
       {/* ====== 5 TAB CHÍNH ====== */}
       <Tabs.Screen name="index" />
       <Tabs.Screen name="WordBook" />
+      
+
       <Tabs.Screen name="Premium" />
       <Tabs.Screen name="Profile" />
       <Tabs.Screen name="more" />
@@ -192,6 +194,10 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+  name="test"
+  options={{ href: null }}
+/>
       </Tabs>
   );
 }
