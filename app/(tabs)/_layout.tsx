@@ -216,6 +216,24 @@ export default function TabLayout() {
           href: null,
         }}
       />
+     <Tabs.Screen
+      name="writing/index"
+      options={{
+        href: null,
+      }}
+    />
+  <Tabs.Screen
+    name="writing/detail"
+    options={{
+      href: null,
+    }}
+  />
+  <Tabs.Screen
+    name="writing/editor"
+    options={{
+      href: null,
+    }}
+  />
     </Tabs>
   );
 }
