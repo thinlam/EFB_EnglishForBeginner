@@ -24,9 +24,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthProfile } from "@/hooks/tab/useAuthProfile";
 import { db } from "@/scripts/firebase";
 
-// ⭐ ĐÚNG đường dẫn
 import { WritingListStyles as S } from "@/components/style/user/writing/WritingListStyles";
 
+// ===== TYPES =====
 type CEFR = "A1" | "A2" | "B1" | "B2" | "C1";
 type Topic =
   | "Work & Office"
@@ -53,11 +53,14 @@ type Writing = {
 
 export default function WritingListScreen() {
   const router = useRouter();
-  const { level: userLevel } = useAuthProfile();
+  const { level: userLevelRaw } = useAuthProfile(); // user profile
+
+  const userLevel = userLevelRaw?.toUpperCase?.() ?? null; // tránh lỗi null hoặc a1 → A1
 
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<Writing[]>([]);
 
+  // ================= LOAD DATA ==================
   useEffect(() => {
     const qBase = query(
       collection(db, "writing_lessons"),
@@ -67,20 +70,23 @@ export default function WritingListScreen() {
     const unsub = onSnapshot(qBase, (snap) => {
       const data = snap.docs.map((d) => {
         const raw = d.data();
+
         return {
           id: d.id,
           title: raw.title ?? "",
           prompt: raw.prompt ?? "",
           imageUrl: raw.imageUrl ?? "",
           topic: raw.topic,
-          level: raw.level,
+          level: raw.level?.toUpperCase?.() ?? null,
           wordMin: raw.wordMin,
           wordMax: raw.wordMax,
           createdAt:
             raw.createdAt instanceof Timestamp
               ? raw.createdAt.toDate()
+              : raw.createdAt
+              ? new Date(raw.createdAt)
               : null,
-        };
+        } as Writing;
       });
 
       setItems(data);
@@ -90,11 +96,15 @@ export default function WritingListScreen() {
     return () => unsub();
   }, []);
 
+  // ================= FILTER ==================
   const filtered = useMemo(() => {
+    // nếu user chưa set level → hiển thị tất cả
     if (!userLevel) return items;
-    return items.filter((it) => it.level === userLevel);
+
+    return items.filter((item) => item.level === userLevel);
   }, [items, userLevel]);
 
+  // ================= CARD ==================
   const Card = ({ item }: { item: Writing }) => (
     <Pressable
       style={S.card}
@@ -105,6 +115,7 @@ export default function WritingListScreen() {
         })
       }
     >
+      {/* Thumbnail */}
       {item.imageUrl ? (
         <View style={S.thumbWrap}>
           <Image source={{ uri: item.imageUrl }} style={S.thumb} />
@@ -115,17 +126,21 @@ export default function WritingListScreen() {
         </View>
       )}
 
+      {/* Title */}
       <Text style={S.title} numberOfLines={2}>
         {item.title}
       </Text>
 
+      {/* Topic + Level */}
       <View style={S.row}>
         <Text style={S.topic}>{item.topic || "General"}</Text>
+
         <View style={S.levelBadge}>
           <Text style={S.levelText}>{item.level}</Text>
         </View>
       </View>
 
+      {/* Word count */}
       {item.wordMin && (
         <Text style={S.words}>
           {item.wordMin} – {item.wordMax} từ
@@ -134,10 +149,13 @@ export default function WritingListScreen() {
     </Pressable>
   );
 
+  // ================= RENDER ==================
   return (
     <SafeAreaView style={S.screen}>
       <View style={S.header}>
-        <Text style={S.headerTitle}>WRITING • {userLevel ?? "All"}</Text>
+        <Text style={S.headerTitle}>
+          WRITING • {userLevel ?? "All"}
+        </Text>
       </View>
 
       {loading ? (
