@@ -54,14 +54,18 @@ export default function TestA1List() {
       style={{
         flex: 1,
         backgroundColor: "#fff",
-        paddingTop: insets.top, // tránh tai thỏ iPhone
       }}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingBottom: insets.bottom + 40, // tránh giọt nước Android
+
+          // ⭐ Nằm ngay dưới tai thỏ, không sát quá cũng không tụt quá
+          paddingTop: insets.top + 8,
+
+          // ⭐ Tránh giọt nước Android, và chân màn hình iPhone
+          paddingBottom: insets.bottom + 20,
         }}
       >
         <Text style={{ fontSize: 26, fontWeight: "bold", marginBottom: 20 }}>
