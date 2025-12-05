@@ -174,7 +174,66 @@ export default function TabLayout() {
           href: null,
         }}
       />
-      
+      <Tabs.Screen
+        name="study/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications/index"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name='test'
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name='listen/listen'
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name='listen/[id]'
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name='listen/questions/[id]'
+        options={{
+          href: null,
+        }}
+      />
+     <Tabs.Screen
+      name="writing/index"
+      options={{
+        href: null,
+      }}
+    />
+  <Tabs.Screen
+    name="writing/detail"
+    options={{
+      href: null,
+    }}
+  />
+  <Tabs.Screen
+    name="writing/editor"
+    options={{
+      href: null,
+    }}
+  />
     </Tabs>
   );
 }

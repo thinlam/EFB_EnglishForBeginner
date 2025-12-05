@@ -3,30 +3,30 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    RefreshControl,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { db } from '@/scripts/firebase';
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    limit,
-    orderBy,
-    query,
-    QueryDocumentSnapshot,
-    startAfter,
-    where,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  QueryDocumentSnapshot,
+  startAfter,
+  where,
 } from 'firebase/firestore';
 
 import type { CEFR, StudyMaterial, StudyMaterialType } from '@/types/admin/studyMaterial';

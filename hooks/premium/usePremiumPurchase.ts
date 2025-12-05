@@ -1,28 +1,25 @@
 // hooks/premium/usePremiumPurchase.ts
+
 import {
   addDoc,
   collection,
   doc,
+  getDoc,
   serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
-import { PREMIUM_PLANS } from '@/constants/Premium/premium';
 import { auth, db } from '@/scripts/firebase';
-import type { PremiumPlanId } from '@/types/Premium/premium';
+import type { PremiumPlan } from '@/types/Premium/premium';
 
-/** Tính ngày hết hạn theo gói */
-function calcExpireDate(planId: PremiumPlanId): Date {
+/** Tính ngày hết hạn dựa trên "duration" (số ngày) từ Firestore */
+function calcExpireDate(duration?: number): Date | null {
+  if (!duration || duration <= 0) return null;
+
   const d = new Date();
-
-  if (planId === 'monthly') {
-    d.setMonth(d.getMonth() + 1);
-  } else if (planId === 'yearly') {
-    d.setFullYear(d.getFullYear() + 1);
-  }
-
+  d.setDate(d.getDate() + duration);
   return d;
 }
 
@@ -33,63 +30,69 @@ type PurchaseOptions = {
 export function usePremiumPurchase() {
   const [loading, setLoading] = useState(false);
 
-  const purchasePremium = async (
-    planId: PremiumPlanId,
-    options?: PurchaseOptions
-  ) => {
+  /**
+   * Hàm mua Premium
+   * @param planId - ID document Firestore
+   */
+  const purchasePremium = async (planId: string, options?: PurchaseOptions) => {
     if (loading) return;
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert('Sign in required', 'Please sign in to purchase Premium.');
-      return;
-    }
-
-    const plan = PREMIUM_PLANS.find((p) => p.id === planId);
-    if (!plan) {
-      Alert.alert('Error', 'Plan not found.');
+      Alert.alert('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để nâng cấp Premium.');
       return;
     }
 
     try {
       setLoading(true);
 
-      const userRef = doc(db, 'users', user.uid);
-      const expireAt = calcExpireDate(planId);
+      // 🔥 Lấy dữ liệu gói Premium từ Firestore
+      const planSnap = await getDoc(doc(db, 'premium_plans', planId));
+      if (!planSnap.exists()) {
+        Alert.alert('Lỗi', 'Gói Premium không tồn tại.');
+        return;
+      }
 
-      // ✅ Ghi trực tiếp premium vào user doc
+      const plan = planSnap.data() as PremiumPlan;
+
+      const expireAt = calcExpireDate(plan.duration);
+
+      const userRef = doc(db, 'users', user.uid);
+
+      // 🔥 Cập nhật Premium vào user document
       await setDoc(
         userRef,
         {
           premium: true,
           isPremium: true,
           role: 'premium',
-          premiumPlanId: plan.id,
+          premiumPlanId: planId,
           premiumPlanLabel: plan.label,
           premiumPrice: plan.price,
           premiumCurrency: plan.currency,
-          premiumUpdatedAt: serverTimestamp(), // thời điểm nâng cấp
-          premiumExpiresAt: expireAt,          // thời điểm hết hạn
+          premiumUpdatedAt: serverTimestamp(),
+          premiumExpiresAt: expireAt ?? null,
         },
         { merge: true }
       );
 
-      // (optional) log giao dịch
+      // 🔥 Ghi log lịch sử giao dịch
       await addDoc(collection(db, 'premiumPurchases'), {
         userId: user.uid,
         email: user.email ?? null,
-        planId: plan.id,
+        planId,
         planLabel: plan.label,
         price: plan.price,
         currency: plan.currency,
+        duration: plan.duration ?? null,
         createdAt: serverTimestamp(),
-        expireAt,
+        expireAt: expireAt ?? null,
         status: 'success',
       });
 
       Alert.alert(
-        'Purchase successful',
-        'Your Premium plan is now active. Enjoy your learning journey! 🎉'
+        'Thành công 🎉',
+        `Bạn đã nâng cấp gói ${plan.label}.`
       );
 
       options?.onSuccess?.();
@@ -108,10 +111,7 @@ export function usePremiumPurchase() {
         // ignore
       }
 
-      Alert.alert(
-        'Payment failed',
-        'Something went wrong. Please try again later.'
-      );
+      Alert.alert('Thanh toán thất bại', 'Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }

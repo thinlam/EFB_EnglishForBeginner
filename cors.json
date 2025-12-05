@@ -1,8 +1,14 @@
 [
   {
-    "origin": ["http://localhost:8081", "http://localhost:19006"],
-    "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    "responseHeader": ["Content-Type", "Authorization"],
+    "origin": ["*"],
+    "method": ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Access-Control-Allow-Origin",
+      "Access-Control-Allow-Headers",
+      "Authorization"
+    ],    
     "maxAgeSeconds": 3600
   }
 ]
+  

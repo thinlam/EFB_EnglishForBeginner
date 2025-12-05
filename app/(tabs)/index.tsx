@@ -143,35 +143,39 @@ export default function HomeScreen() {
     );
   };
 
-  const handlePress = (item: Item) => {
-      if (item.title === 'Reading') {
-    // app/(tabs)/reading/index.tsx
+const handlePress = (item: Item) => {
+  if (item.title === 'Reading') {
     router.push('/reading');
     return;
   }
-  if(item.title === 'Speaking') {
+
+  if (item.title === 'Speaking') {
     router.push('/speaking');
     return;
   }
-    if (item.id === '6' || item.title === 'Dịch' || item.title === 'Translate') {
-      router.push('/translate');
-      return;
-    }
-    if (item.id === '1' || item.title === 'Listening') {
-      router.push('/listen');
-      return;
-    }
-    if (
-      item.id === '8' ||
-      item.title === 'Play Game' ||
-      item.title === 'Play & learn'
-    ) {
-      router.push('/(tabs)/playgame');
-      return;
-    }
-    // TODO: các card khác define route sau
-  };
 
+  if (item.title === 'Writing') {
+    router.push('/writing');   // ⭐ CHÍNH XÁC 100%
+    return;
+}
+  if (item.title === 'Test') {
+    router.push('/test/A1');
+    return;
+  }
+  if (item.title === 'Translate') {
+    router.push('/translate');
+    return;
+  }
+  if (item.title === 'Listening') {
+    router.push('/listen/listen');  // ⭐ CHỈ 1 router.push — không được 2!
+    return;
+  }
+
+  if (item.title === 'Play & learn') {
+    router.push('/(tabs)/playgame');
+    return;
+  }
+};
   const renderItem = ({ item }: { item: Item }) => (
     <TouchableOpacity
       activeOpacity={0.92}

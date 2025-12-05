@@ -1,7 +1,6 @@
 import { styles } from '@/components/style/HomeStyles';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-
 import {
   ScrollView,
   Text,
@@ -9,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 export default function AdminHomeScreen() {
   const router = useRouter();
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
@@ -17,21 +17,22 @@ export default function AdminHomeScreen() {
     {
       title: '🎓 Quản lý nội dung học',
       children: [
-        { title: 'Luyện nghe',path: '/(admin)/listen/listen-screen' },
+        { title: 'Luyện nghe', path: '/(admin)/listen/listen-screen' },
         { title: 'Luyện nói', path: '/(admin)/speaking/speaking-screen' },
-        { title: 'Luyện đọc', path: '/(admin)/reading/reading-screen'},
-        { title: 'Luyện viết' },
-      { title: 'Bài kiểm tra', path: '/(admin)/testList' },
-
+        { title: 'Luyện đọc', path: '/(admin)/reading/reading-screen' },
+        { title: 'Luyện viết', path: '/(admin)/writing/writing-screen' },
+        { title: 'Bài kiểm tra', path: '/(admin)/testList' },
       ],
     },
+
     {
-  title: '🗓️ Lịch học & Kế hoạch',
-  children: [
-    { title: 'Quản lý lịch học', path: '/(admin)/schedule' },
-    { title: 'Kế hoạch học tập', path: '/(admin)/learning-plan' },
-  ],
-},
+      title: '🗓️ Lịch học & Kế hoạch',
+      children: [
+        { title: 'Quản lý lịch học', path: '/(admin)/schedule' },
+        { title: 'Kế hoạch học tập', path: '/(admin)/learning-plan' },
+      ],
+    },
+
     {
       title: '📚 Tài liệu & Hỗ trợ',
       children: [
@@ -39,29 +40,38 @@ export default function AdminHomeScreen() {
         { title: 'Hỗ trợ kỹ thuật', path: '/(admin)/support' },
       ],
     },
+
     {
-  title: '💰 Điểm & Thưởng',
-  children: [
-    { title: 'Quản lý coin', path: '/(admin)/coin' },
-    { title: 'Phần thưởng / Xếp hạng', path: '/(admin)/rewards' },
-  ],
-},
-  
+      title: '💰 Điểm & Thưởng',
+      children: [
+        { title: 'Quản lý coin', path: '/(admin)/coin' },
+        { title: 'Phần thưởng / Xếp hạng', path: '/(admin)/rewards' },
+      ],
+    },
+
     {
       title: '📊 Thống kê & Thông báo',
       children: [
-        { title: 'Thống kê & Xếp hạng' },
-        { title: 'Gửi thông báo' },
+        { title: 'Thống kê & Xếp hạng', path: '/(admin)/stats' },
+        { title: 'Gửi thông báo', path: '/(admin)/notifications' },
       ],
     },
     {
-  title: '💎 Gói học & Nâng cấp',
+  title: '💎 Quản lý - Giao dịch - Nâng cấp',
   children: [
-    { title: 'Quản lý gói học', path: '/(admin)/plans' },
+    { title: 'Quản lý gói Premium', path: '/(admin)/premium' },
+
     { title: 'Giao dịch & Nâng cấp', path: '/(admin)/transactions' },
   ],
 },
 
+    {
+      title: '💎 Gói học & Nâng cấp',
+      children: [
+        { title: 'Quản lý gói học', path: '/(admin)/plans' },
+        { title: 'Giao dịch & Nâng cấp', path: '/(admin)/transactions' },
+      ],
+    },
 
     {
       title: '👥 Người dùng & Hệ thống',
@@ -96,7 +106,7 @@ export default function AdminHomeScreen() {
                 <TouchableOpacity
                   key={i}
                   style={styles.cardSubItem}
-                  onPress={() => child.path && router.push(child.path as any)}
+                  onPress={() => child.path && router.push(child.path)}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.cardSubText}>• {child.title}</Text>

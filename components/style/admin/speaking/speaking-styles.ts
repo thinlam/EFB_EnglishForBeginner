@@ -148,4 +148,63 @@ export const SpeakingStyles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+ /* ================= MODAL OVERLAY ================= */
+
+overlayDim: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0,0,0,0.55)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 99,
+},
+
+levelDialog: {
+  width: '90%',
+  maxWidth: 380,
+  backgroundColor: COLORS.card,          // dark mode
+  borderRadius: 16,
+  paddingBottom: 12,
+  borderWidth: 1,
+  borderColor: COLORS.borderSoft,
+},
+
+levelHeader: {
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  borderBottomWidth: 1,
+  borderColor: COLORS.borderSoft,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+},
+
+levelTitle: {
+  fontSize: 17,
+  fontWeight: '700',
+  color: COLORS.text,
+},
+
+levelItemRow: {
+  paddingHorizontal: 16,
+  paddingVertical: 14,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+},
+
+levelItemText: {
+  fontSize: 15,
+  color: COLORS.text,
+},
+
+levelItemTextSelected: {
+  fontSize: 15,
+  fontWeight: '700',
+  color: COLORS.create,
+},
+
 });
