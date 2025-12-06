@@ -18,7 +18,7 @@ import { doc, getDoc } from "firebase/firestore";
 export default function DoTestA1() {
   const router = useRouter();
   const { testId } = useLocalSearchParams();
-  const insets = useSafeAreaInsets(); // ⭐ lấy notch + giọt nước
+  const insets = useSafeAreaInsets();
 
   const [testData, setTestData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -106,15 +106,15 @@ export default function DoTestA1() {
   const saveAnswer = (qid: string, value: any) =>
     setAnswers((prev) => ({ ...prev, [qid]: value }));
 
-  // ⭐ Wrapper cho UI 3 phần
+  // ⭐ Wrapper UI layout
   const Wrap = ({ children }: any) => (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: 20,
-          paddingTop: insets.top + 20,       // ⭐ nằm dưới tai thỏ iOS
-          paddingBottom: insets.bottom + 50, // ⭐ tránh giọt nước Android
+          paddingTop: insets.top + 20,
+          paddingBottom: insets.bottom + 50,
         }}
       >
         {children}
@@ -151,7 +151,7 @@ export default function DoTestA1() {
             const selected = answers[q.id] === i;
             return (
               <TouchableOpacity
-                key={i}
+                key={`${q.id}-opt-${i}`}
                 onPress={() => saveAnswer(q.id, i)}
                 style={{
                   padding: 15,
@@ -206,7 +206,7 @@ export default function DoTestA1() {
             const selected = answers[q.id] === i;
             return (
               <TouchableOpacity
-                key={i}
+                key={`${q.id}-opt-${i}`}
                 onPress={() => saveAnswer(q.id, i)}
                 style={{
                   padding: 15,
@@ -256,13 +256,13 @@ export default function DoTestA1() {
               {idx + 1}. {q.question}
             </Text>
 
-            {/* Multiple-choice */}
+            {/* Multiple choice */}
             {["fill_blank", "choose_sentence"].includes(kind) &&
               q.options.map((opt: any, i: number) => {
                 const selected = answers[q.id] === i;
                 return (
                   <TouchableOpacity
-                    key={i}
+                    key={`${q.id}-opt-${i}`}
                     onPress={() => saveAnswer(q.id, i)}
                     style={{
                       padding: 15,
@@ -286,7 +286,7 @@ export default function DoTestA1() {
 
                 return (
                   <TouchableOpacity
-                    key={i}
+                    key={`${q.id}-reorder-${i}`}
                     onPress={() => {
                       let cur = [...arr];
                       cur.includes(opt)
