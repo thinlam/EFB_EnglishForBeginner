@@ -6,12 +6,14 @@ export const ListenCreateStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bgScreen,
+    overflow: "visible", // ⭐ Fix dropdown bị cắt bởi container
   },
 
   scroll: {
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
+    overflow: "visible", // ⭐ ScrollView phải cho phép dropdown tràn
   },
 
   /** HEADER */
@@ -24,6 +26,7 @@ export const ListenCreateStyles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLORS.border,
+    overflow: "visible",
   },
 
   headerLeft: {
@@ -77,6 +80,8 @@ export const ListenCreateStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: 16,
+
+    overflow: "visible", // ⭐ Không chặn dropdown trong card
   },
 
   sectionHeader: {
@@ -98,6 +103,7 @@ export const ListenCreateStyles = StyleSheet.create({
   /** FORM */
   formRow: {
     marginTop: 8,
+    overflow: "visible", // ⭐ Cho Level/Topic dropdown bung ra
   },
 
   formLabel: {
@@ -121,11 +127,13 @@ export const ListenCreateStyles = StyleSheet.create({
   textarea: {
     minHeight: 120,
     textAlignVertical: "top",
+    overflow: "visible", // ⭐ Fix dropdown bị che khi quá gần textarea
   },
 
   /** MEDIA PREVIEW */
   mediaPreviewWrapper: {
     marginTop: 12,
+    overflow: "visible",
   },
 
   mediaPreviewTitle: {
@@ -170,6 +178,7 @@ export const ListenCreateStyles = StyleSheet.create({
     backgroundColor: COLORS.card2,
     borderRadius: 12,
     marginTop: 10,
+    overflow: "visible",
   },
 
   audioText: {
@@ -185,6 +194,7 @@ export const ListenCreateStyles = StyleSheet.create({
     alignItems: "center",
     gap: 18,
     marginTop: 10,
+    overflow: "visible",
   },
 
   exerciseActionRow: {
@@ -193,6 +203,7 @@ export const ListenCreateStyles = StyleSheet.create({
     alignItems: "center",
     gap: 18,
     marginTop: 10,
+    overflow: "visible",
   },
 
   actionBtnRow: {
@@ -219,7 +230,7 @@ export const ListenCreateStyles = StyleSheet.create({
     color: COLORS.textMuted,
   },
 
-  /** ⭐ PROGRESS TEXT (nằm ngang, không lệch) */
+  /** PROGRESS TEXT */
   progressText: {
     fontSize: 12,
     color: COLORS.textMuted,
@@ -234,6 +245,8 @@ export const ListenCreateStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+
+    overflow: "visible",
   },
 
   exerciseText: {
@@ -241,7 +254,7 @@ export const ListenCreateStyles = StyleSheet.create({
     color: COLORS.text,
   },
 
-  /** MODAL VIDEO */
+  /** VIDEO MODAL */
   videoModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.85)",

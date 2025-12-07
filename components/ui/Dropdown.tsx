@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
-  Animated,
+  DimensionValue,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -11,6 +12,7 @@ import {
 } from "react-native";
 
 type Option = { label: string; value: string };
+
 export default function Dropdown({
   value,
   onChange,
@@ -22,46 +24,20 @@ export default function Dropdown({
   onChange: (v: string) => void;
   placeholder?: string;
   options: Option[];
-  width?: any;
+  width?: number | string; // allow "100%"
 }) {
   const [open, setOpen] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const toggle = () => {
-    setOpen(!open);
-    Animated.timing(fadeAnim, {
-      toValue: open ? 0 : 1,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  // AUTO CLOSE - CHỈ WEB CHẠY
-  useEffect(() => {
-    if (Platform.OS !== "web") return; // ⛔ MOBILE DỪNG TẠI ĐÂY
-
-    const close = () => setOpen(false);
-
-    if (open) {
-      document.addEventListener("click", close);
-    }
-
-    return () => {
-      document.removeEventListener("click", close);
-    };
-  }, [open]);
+  /** Convert width into correct DimensionValue */
+  const resolvedWidth: DimensionValue = typeof width === "number" ? width : (width as DimensionValue);
 
   return (
-    <View style={{ width, position: "relative" }}>
+    <View style={{ width: resolvedWidth }}>
       {/* SELECT BOX */}
       <TouchableOpacity
-        onPress={(e) => {
-          if (Platform.OS === "web") {
-            e.stopPropagation(); // chỉ web dùng
-          }
-          toggle();
-        }}
+        onPress={() => setOpen(true)}
         style={styles.selectBox}
+        activeOpacity={0.8}
       >
         <Text style={styles.selectText}>
           {value ? options.find((o) => o.value === value)?.label : placeholder}
@@ -74,48 +50,38 @@ export default function Dropdown({
         />
       </TouchableOpacity>
 
-      {/* DROPDOWN */}
-      {open && (
-        <Animated.View
-          style={[
-            styles.dropdown,
-            {
-              opacity: fadeAnim,
-              transform: [
-                {
-                  translateY: fadeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-5, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          {options.map((opt) => (
-            <Pressable
-              key={opt.value}
-              onPress={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-              style={({ hovered }) => [
-                styles.item,
-                {
-                  backgroundColor:
-                    opt.value === value
-                      ? "#eee"
-                      : hovered && Platform.OS === "web"
-                      ? "#f5f5f5"
-                      : "white",
-                },
-              ]}
-            >
-              <Text style={styles.itemText}>{opt.label}</Text>
-            </Pressable>
-          ))}
-        </Animated.View>
-      )}
+      {/* DROPDOWN PORTAL */}
+      <Modal visible={open} transparent animationType="fade">
+        <Pressable style={styles.overlay} onPress={() => setOpen(false)}>
+          <View style={[styles.dropdownContainer, { width: resolvedWidth }]}>
+            {options.map((opt) => {
+              const isActive = opt.value === value;
+
+              return (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  style={({ hovered }) => [
+                    styles.item,
+                    {
+                      backgroundColor: isActive
+                        ? "#EEE"
+                        : hovered && Platform.OS === "web"
+                        ? "#F5F5F5"
+                        : "white",
+                    },
+                  ]}
+                >
+                  <Text style={styles.itemText}>{opt.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -144,11 +110,16 @@ const styles = StyleSheet.create({
     color: "#222",
   },
 
-  dropdown: {
-    position: "absolute",
-    top: 56,
-    left: 0,
-    right: 0,
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+
+  dropdownContainer: {
+    maxHeight: "50%",
     backgroundColor: "#fff",
     borderRadius: 12,
     borderWidth: 1,
@@ -159,15 +130,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-
-    zIndex: 9999,
+    elevation: 10,
   },
 
   item: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 6,
   },
 
   itemText: {

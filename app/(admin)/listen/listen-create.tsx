@@ -42,6 +42,9 @@ import {
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+/* ============================
+ * HELPERS
+ * ============================ */
 function slugify(s: string) {
   return s
     .toLowerCase()
@@ -60,12 +63,15 @@ function inferMediaType(url: string) {
   return "audio/mpeg";
 }
 
+/* ============================
+ * MAIN COMPONENT
+ * ============================ */
 export default function ListenCreate() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-
   const params = useLocalSearchParams<{ id?: string }>();
-  const editId = params?.id || "";
+
+  const editId = params.id || "";
 
   const [loadingDoc, setLoadingDoc] = useState(!!editId);
 
@@ -86,16 +92,16 @@ export default function ListenCreate() {
   const [exerciseUploading, setExerciseUploading] = useState(false);
   const [exerciseProgress, setExerciseProgress] = useState(0);
 
-  const [videoModal, setVideoModal] = useState({
-    visible: false,
-    url: "",
-  });
+  const [videoModal, setVideoModal] = useState({ visible: false, url: "" });
 
-  const videoPlayer = useVideoPlayer({ uri: videoModal.url || "" });
+  const videoPlayer = useVideoPlayer({ uri: videoModal.url });
 
   const [audioSound, setAudioSound] = useState<Audio.Sound | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
 
+  /* ============================
+   * AUDIO PLAYER
+   * ============================ */
   async function playAudio(uri: string) {
     try {
       if (audioSound) {
@@ -110,9 +116,7 @@ export default function ListenCreate() {
       setAudioPlaying(true);
 
       sound.setOnPlaybackStatusUpdate((status: any) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setAudioPlaying(false);
-        }
+        if (status.didJustFinish) setAudioPlaying(false);
       });
     } catch {
       Alert.alert("Cannot play audio");
@@ -126,6 +130,9 @@ export default function ListenCreate() {
     }
   }
 
+  /* ============================
+   * LOAD DOCUMENT FOR EDITING
+   * ============================ */
   useEffect(() => {
     if (!editId) return;
 
@@ -143,18 +150,18 @@ export default function ListenCreate() {
 
         setOriginalMedia({ url: d.audioUrl, mediaType: d.mediaType });
         setOriginalExercise({ url: d.exerciseFileUrl, name: d.exerciseFileName });
+
       } catch {
-        Toast.show({
-          type: "error",
-          text1: "Load failed",
-          text2: "Unable to fetch data",
-        });
+        Toast.show({ type: "error", text1: "Load failed" });
       } finally {
         setLoadingDoc(false);
       }
     })();
-  }, [editId, router]);
+  }, [editId]);
 
+  /* ============================
+   * FILE UPLOAD
+   * ============================ */
   const uploadToFirebase = async (localUri: string, path: string, onProgress?: any) => {
     const blob = await (await fetch(localUri)).blob();
     const storageRef = ref(storage, path);
@@ -164,8 +171,7 @@ export default function ListenCreate() {
       uploadTask.on(
         "state_changed",
         (snap) => {
-          let pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-          pct = pct > 100 ? 100 : pct;
+          const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
           onProgress?.(pct);
         },
         reject,
@@ -174,75 +180,70 @@ export default function ListenCreate() {
     });
   };
 
+  /* ============================
+   * PICK MEDIA
+   * ============================ */
   const pickMedia = async () => {
     const r = await DocumentPicker.getDocumentAsync({
       type: ["audio/*", "video/*"],
       copyToCacheDirectory: true,
     });
-    if (r.canceled) return;
 
-    const f = r.assets?.[0];
-    if (f?.uri) {
-      setPickedMedia({ name: f.name ?? "media", uri: f.uri });
+    if (!r.canceled) {
+      const f = r.assets?.[0];
+      if (f?.uri) setPickedMedia({ name: f.name ?? "media", uri: f.uri });
     }
   };
 
+  /* ============================
+   * PICK EXERCISE FILE
+   * ============================ */
   const pickExercise = async () => {
     const r = await DocumentPicker.getDocumentAsync({
-      type: [
-        "application/pdf",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ],
+      type: ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
       copyToCacheDirectory: true,
     });
 
-    if (r.canceled) return;
+    if (!r.canceled) {
+      const f = r.assets?.[0];
+      if (!f?.uri) return;
 
-    const f = r.assets?.[0];
-    if (!f?.uri) return;
+      setExerciseUploading(true);
+      setExerciseProgress(0);
 
-    setExerciseUploading(true);
-    setExerciseProgress(0);
+      try {
+        const ext = f.name.split(".").pop();
 
-    try {
-      const ext = f.name.split(".").pop();
+        const url = await uploadToFirebase(
+          f.uri,
+          `listen/files/${slugify(title || "exercise")}_${Date.now()}.${ext}`,
+          (p: number) => setExerciseProgress(p)
+        );
 
-      const url = await uploadToFirebase(
-        f.uri,
-        `listen/files/${slugify(title || "exercise")}_${Date.now()}.${ext}`,
-        (p: number) => setExerciseProgress(p)
-      );
+        setOriginalExercise({ url, name: f.name });
+        setPickedExercise(null);
 
-      setOriginalExercise({
-        url,
-        name: f.name,
-      });
-
-      setPickedExercise(null);
-    } catch {
-      Toast.show({
-        type: "error",
-        text1: "Upload failed",
-        text2: "Cannot upload exercise file",
-      });
-    } finally {
-      setExerciseUploading(false);
+      } catch {
+        Toast.show({ type: "error", text1: "Upload failed" });
+      } finally {
+        setExerciseUploading(false);
+      }
     }
   };
 
-  async function openExerciseFile() {
-    if (!originalExercise.url) {
-      return Alert.alert("File not available", "Please upload file first.");
-    }
+  /* ============================
+   * OPEN EXERCISE FILE
+   * ============================ */
+  const openExerciseFile = async () => {
+    if (!originalExercise.url)
+      return Alert.alert("File not available");
 
-    try {
-      await WebBrowser.openBrowserAsync(originalExercise.url);
-    } catch {
-      Alert.alert("Cannot open file");
-    }
-  }
+    await WebBrowser.openBrowserAsync(originalExercise.url);
+  };
 
+  /* ============================
+   * SAVE LESSON
+   * ============================ */
   const onSave = async () => {
     Keyboard.dismiss();
 
@@ -257,17 +258,17 @@ export default function ListenCreate() {
     setProgress(0);
 
     try {
-      let finalMediaUrl = originalMedia.url;
+      let finalUrl = originalMedia.url;
       let mediaType = originalMedia.mediaType;
 
       if (pickedMedia?.uri) {
         const ext = pickedMedia.name.split(".").pop();
-        finalMediaUrl = await uploadToFirebase(
+        finalUrl = await uploadToFirebase(
           pickedMedia.uri,
           `listen/${slugify(title)}_${Date.now()}.${ext}`,
           (p: number) => setProgress(p)
         );
-        mediaType = inferMediaType(finalMediaUrl!);
+        mediaType = inferMediaType(finalUrl!);
       }
 
       const payload = {
@@ -275,53 +276,39 @@ export default function ListenCreate() {
         transcript: transcript.trim(),
         level,
         topic,
-        audioUrl: finalMediaUrl!,
+        audioUrl: finalUrl!,
         mediaType,
         exerciseFileUrl: originalExercise.url || null,
-        exerciseFileName: originalExercise?.name || null,
+        exerciseFileName: originalExercise.name || null,
         updatedAt: serverTimestamp(),
       };
 
       if (editId) {
         await updateDoc(doc(db, "listens", editId), payload);
-        Toast.show({
-          type: "success",
-          text1: "Updated successfully",
-          text2: "Listening lesson updated.",
-        });
       } else {
         await addDoc(collection(db, "listens"), {
           ...payload,
           isPublished: false,
           createdAt: serverTimestamp(),
         });
-        Toast.show({
-          type: "success",
-          text1: "Saved successfully",
-          text2: "New listening lesson added.",
-        });
       }
 
+      Toast.show({ type: "success", text1: "Saved!" });
       router.replace("/(admin)/listen/listen-screen");
+
     } catch {
-      Toast.show({
-        type: "error",
-        text1: editId ? "Update failed" : "Save failed",
-        text2: "Please try again.",
-      });
+      Toast.show({ type: "error", text1: "Save failed" });
     } finally {
       setBusy(false);
     }
   };
 
-  const effectiveUrl = pickedMedia?.uri || originalMedia.url;
-  const isVideo = effectiveUrl?.endsWith(".mp4") || effectiveUrl?.endsWith(".mov");
-  const isAudio = !isVideo && !!effectiveUrl;
-
-  const isSaveEnabled = title.trim() && level && topic && effectiveUrl && !busy;
-
+  /* ============================
+   * RENDER UI
+   * ============================ */
   const Form = (
     <>
+      {/* HEADER */}
       <View style={CS.header}>
         <View style={CS.headerLeft}>
           <TouchableOpacity onPress={() => router.back()} style={CS.backBtn}>
@@ -333,17 +320,17 @@ export default function ListenCreate() {
               {editId ? "Edit Listening" : "Create Listening"}
             </Text>
             <Text style={CS.headerSubtitle}>
-              {editId ? "Update existing listening" : "Add a new listening lesson"}
+              {editId ? "Update existing lesson" : "Add a new listening lesson"}
             </Text>
           </View>
         </View>
 
         <TouchableOpacity
           onPress={onSave}
-          disabled={!isSaveEnabled}
+          disabled={!title.trim() || !level || !topic || busy}
           style={[
             CS.saveBtn,
-            { backgroundColor: isSaveEnabled ? COLORS.primary : COLORS.border },
+            { backgroundColor: title.trim() && level && topic ? COLORS.primary : COLORS.border },
           ]}
         >
           {busy ? (
@@ -357,21 +344,22 @@ export default function ListenCreate() {
         </TouchableOpacity>
       </View>
 
+      {/* BODY */}
       {loadingDoc ? (
         <View style={CS.loadingContainer}>
           <ActivityIndicator color={COLORS.primary} />
         </View>
       ) : (
-        <ScrollView
-          style={CS.scroll}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-        >
+        <ScrollView style={CS.scroll} contentContainerStyle={{ paddingBottom: 120 }}>
+          
+          {/* INFO CARD */}
           <View style={CS.sectionCard}>
             <View style={CS.sectionHeader}>
               <Text style={CS.sectionTitle}>Listening Info</Text>
               <Text style={CS.sectionSubtitle}>Title, level, topic & transcript</Text>
             </View>
 
+            {/* TITLE */}
             <View style={CS.formRow}>
               <Text style={CS.formLabel}>Title *</Text>
               <TextInput
@@ -383,7 +371,8 @@ export default function ListenCreate() {
               />
             </View>
 
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 10 }}>
+            {/* LEVEL + TOPIC */}
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 10 }}>
               <View style={{ flex: 1 }}>
                 <Text style={CS.formLabel}>Level *</Text>
                 <Dropdown
@@ -422,6 +411,7 @@ export default function ListenCreate() {
               </View>
             </View>
 
+            {/* TRANSCRIPT */}
             <View style={CS.formRow}>
               <Text style={CS.formLabel}>Transcript</Text>
               <TextInput
@@ -435,28 +425,35 @@ export default function ListenCreate() {
             </View>
           </View>
 
+          {/* MEDIA FILE */}
           <View style={CS.sectionCard}>
             <Text style={CS.sectionTitle}>Media File</Text>
             <Text style={CS.sectionSubtitle}>Audio or Video</Text>
 
-            {effectiveUrl ? (
-              <>
-                {isVideo && (
+            {/* PREVIEW */}
+            {(() => {
+              const url = pickedMedia?.uri || originalMedia.url;
+
+              if (!url) return null;
+
+              const isVideo = url.endsWith(".mp4") || url.endsWith(".mov");
+              const isAudio = !isVideo;
+
+              if (isVideo) {
+                return (
                   <TouchableOpacity
-                    onPress={() => setVideoModal({ visible: true, url: effectiveUrl! })}
+                    onPress={() => setVideoModal({ visible: true, url })}
                     style={CS.videoThumb}
                   >
                     <Ionicons name="play-circle" size={48} color={COLORS.primary} />
                   </TouchableOpacity>
-                )}
+                );
+              }
 
-                {isAudio && (
+              if (isAudio) {
+                return (
                   <View style={CS.audioBar}>
-                    <TouchableOpacity
-                      onPress={() =>
-                        audioPlaying ? stopAudio() : playAudio(effectiveUrl!)
-                      }
-                    >
+                    <TouchableOpacity onPress={() => (audioPlaying ? stopAudio() : playAudio(url))}>
                       <Ionicons
                         name={audioPlaying ? "pause-circle" : "play-circle"}
                         size={40}
@@ -465,15 +462,18 @@ export default function ListenCreate() {
                     </TouchableOpacity>
 
                     <Text style={CS.audioText}>
-                      {pickedMedia?.name || originalMedia.url?.split("/").pop()}
+                      {pickedMedia?.name || url.split("/").pop()}
                     </Text>
                   </View>
-                )}
-              </>
-            ) : null}
+                );
+              }
 
+              return null;
+            })()}
+
+            {/* ACTIONS */}
             <View style={CS.mediaActionRow}>
-              {effectiveUrl ? (
+              {(pickedMedia || originalMedia.url) && (
                 <TouchableOpacity
                   style={CS.actionBtnRow}
                   onPress={() => {
@@ -481,15 +481,15 @@ export default function ListenCreate() {
                     setOriginalMedia({ url: null, mediaType: null });
                   }}
                 >
-                  <Ionicons name="trash-outline" size={18} color="#d11a2a" />
+                  <Ionicons name="trash-outline" size={20} color="#d11a2a" />
                   <Text style={CS.actionRemoveText}>Remove</Text>
                 </TouchableOpacity>
-              ) : null}
+              )}
 
               <TouchableOpacity style={CS.actionBtnRow} onPress={pickMedia}>
-                <Ionicons name="cloud-upload-outline" size={18} color={COLORS.primary} />
+                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.primary} />
                 <Text style={CS.actionChangeText}>
-                  {effectiveUrl ? "Change" : "Upload"}
+                  {pickedMedia || originalMedia.url ? "Change" : "Upload"}
                 </Text>
               </TouchableOpacity>
 
@@ -501,6 +501,7 @@ export default function ListenCreate() {
             </View>
           </View>
 
+          {/* EXERCISE FILE */}
           <View style={CS.sectionCard}>
             <Text style={CS.sectionTitle}>Exercise File (Optional)</Text>
             <Text style={CS.sectionSubtitle}>PDF / Word</Text>
@@ -509,18 +510,19 @@ export default function ListenCreate() {
               <View style={CS.exercisePreview}>
                 <Ionicons name="document-text-outline" size={22} color={COLORS.text} />
                 <Text style={CS.fileName}>
-                  {originalExercise.name || pickedExercise?.name}
+                  {pickedExercise?.name || originalExercise.name}
                 </Text>
               </View>
             )}
 
+            {/* ACTIONS */}
             <View style={CS.exerciseActionRow}>
               {originalExercise.url && (
                 <TouchableOpacity
                   style={CS.actionBtnRow}
                   onPress={() => {
-                    setPickedExercise(null);
                     setOriginalExercise({ url: null, name: null });
+                    setPickedExercise(null);
                   }}
                 >
                   <Ionicons name="close-circle" size={20} color="#d11a2a" />
@@ -536,35 +538,23 @@ export default function ListenCreate() {
               )}
 
               <TouchableOpacity style={CS.actionBtnRow} onPress={pickExercise}>
-                <Ionicons name="cloud-upload-outline" size={18} color={COLORS.primary} />
+                <Ionicons name="cloud-upload-outline" size={20} color={COLORS.primary} />
                 <Text style={CS.actionChangeText}>
                   {originalExercise.url ? "Change" : "Upload"}
                 </Text>
               </TouchableOpacity>
 
               {exerciseUploading && (
-                <Text style={[CS.progressText, { marginLeft: 8 }]}>
-                  Uploading {exerciseProgress}%
-                </Text>
+                <Text style={CS.progressText}>Uploading {exerciseProgress}%</Text>
               )}
             </View>
+
           </View>
         </ScrollView>
       )}
-    </>
-  );
 
-  if (Platform.OS === "web") {
-    return <View style={[CS.container, { paddingTop: insets.top }]}>{Form}</View>;
-  }
-
-  return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={[CS.container, { paddingTop: insets.top }]}>{Form}</View>
-      </TouchableWithoutFeedback>
-
-      <Modal visible={videoModal.visible} animationType="fade" transparent>
+      {/* VIDEO MODAL */}
+      <Modal visible={videoModal.visible} transparent animationType="fade">
         <View style={CS.videoModalOverlay}>
           <TouchableOpacity
             style={CS.videoModalClose}
@@ -574,16 +564,34 @@ export default function ListenCreate() {
           </TouchableOpacity>
 
           <View style={CS.videoModalBox}>
-            <VideoView
-              player={videoPlayer}
-              style={CS.videoModalPlayer}
-              contentFit="contain"
-            />
+            <VideoView player={videoPlayer} style={CS.videoModalPlayer} contentFit="contain" />
           </View>
         </View>
       </Modal>
+    </>
+  );
+
+  /* ============================
+   * WEB WRAPPER
+   * ============================ */
+  if (Platform.OS === "web") {
+    return (
+      <View style={[CS.container, { paddingTop: insets.top }]}>
+        {Form}
+      </View>
+    );
+  }
+
+  /* ============================
+   * MOBILE WRAPPER
+   * ============================ */
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={[CS.container, { paddingTop: insets.top }]}>
+          {Form}
+        </View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
-
-
