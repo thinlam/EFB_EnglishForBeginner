@@ -1,6 +1,6 @@
 // app/(admin)/speaking/speaking-screen.tsx
-import { COLORS } from '@/components/style/admin/AdminColors';
 import { SpeakingStyles as S } from '@/components/style/admin/speaking/speaking-styles';
+import { COLORS } from '@/components/style/colors/AppColors';
 import { db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';

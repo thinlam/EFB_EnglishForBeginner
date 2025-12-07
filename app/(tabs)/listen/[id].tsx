@@ -1,10 +1,12 @@
 // app/(tabs)/listen/[id].tsx
-import { ItemStyles as ST } from '@/components/style/user/listen/ItemStyles';
-import { db } from '@/scripts/firebase';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
-import React, { useEffect, useMemo, useState } from 'react';
+
+import { ItemStyles as ST } from "@/components/style/user/listen/ItemStyles";
+import { db } from "@/scripts/firebase";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   LayoutAnimation,
@@ -12,16 +14,16 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
 
-/* expo-video */
-import { VideoView, useVideoPlayer } from 'expo-video';
-
-/* -------------------- TYPES -------------------- */
+import { VideoView, useVideoPlayer } from "expo-video";
+import { SafeAreaView } from "react-native-safe-area-context";
+/* -----------------------------------------------
+ * TYPES
+ * ----------------------------------------------- */
 type Question = {
   id: string;
-  kind: 'mcq' | 'fill' | 'dictation' | 'listen_segment';
+  kind: "mcq" | "fill" | "dictation" | "listen_segment";
   prompt: string;
   answer?: string;
   options?: string[];
@@ -37,14 +39,18 @@ type ListenDoc = {
   level?: string;
 };
 
-/* -------------------- HELPERS -------------------- */
-const isHls = (u: string) => u?.toLowerCase().endsWith('.m3u8');
+/* -----------------------------------------------
+ * HELPERS
+ * ----------------------------------------------- */
+const isHls = (u: string) => u?.toLowerCase().endsWith(".m3u8");
 const isVideoByExt = (u: string) =>
-  u?.toLowerCase().endsWith('.mp4') ||
-  u?.toLowerCase().endsWith('.m4v') ||
+  u?.toLowerCase().endsWith(".mp4") ||
+  u?.toLowerCase().endsWith(".m4v") ||
   isHls(u);
 
-/* -------------------- MAIN -------------------- */
+/* -----------------------------------------------
+ * MAIN SCREEN
+ * ----------------------------------------------- */
 export default function ListenItemScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,27 +59,29 @@ export default function ListenItemScreen() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* STATE LƯU ĐÁP ÁN USER */
+  /* User answer states */
   const [picked, setPicked] = useState<Record<string, number | null>>({});
   const [checked, setChecked] = useState<Record<string, boolean | null>>({});
 
-  /* -------------------- LOAD LESSON + QUESTIONS -------------------- */
+  /* -----------------------------------------------
+   * LOAD LESSON + QUESTIONS
+   * ----------------------------------------------- */
   useEffect(() => {
     if (!id) return;
 
     (async () => {
       setLoading(true);
 
-      const snap = await getDoc(doc(db, 'listens', id));
+      const snap = await getDoc(doc(db, "listens", id));
       setData(snap.exists() ? (snap.data() as ListenDoc) : null);
 
       const list: Question[] = [];
-      const qSnap = await getDocs(collection(db, 'listens', id, 'questions'));
+      const qSnap = await getDocs(collection(db, "listens", id, "questions"));
       qSnap.forEach((d) => list.push({ id: d.id, ...(d.data() as any) }));
 
       setQuestions(list);
 
-      // init state
+      // init user state
       const initPick: any = {};
       const initCheck: any = {};
       list.forEach((q) => {
@@ -87,16 +95,18 @@ export default function ListenItemScreen() {
     })();
   }, [id]);
 
-  /* -------------------- MEDIA PLAYER -------------------- */
-  const uri = data?.audioUrl || '';
-  const mediaType = data?.mediaType?.toLowerCase() || '';
+  /* -----------------------------------------------
+   * MEDIA PLAYER
+   * ----------------------------------------------- */
+  const uri = data?.audioUrl || "";
+  const mediaType = data?.mediaType?.toLowerCase() || "";
 
   const isVideo = useMemo(() => {
     if (!uri) return false;
-    return mediaType.startsWith('video') || isVideoByExt(uri);
+    return mediaType.startsWith("video") || isVideoByExt(uri);
   }, [mediaType, uri]);
 
-  const player = useVideoPlayer('' as any, (p) => {
+  const player = useVideoPlayer("" as any, (p) => {
     p.loop = false;
   });
 
@@ -104,7 +114,9 @@ export default function ListenItemScreen() {
     if (uri) player.replace(uri);
   }, [uri]);
 
-  /* -------------------- TRANSCRIPT -------------------- */
+  /* -----------------------------------------------
+   * TRANSCRIPT TOGGLE
+   * ----------------------------------------------- */
   const [openTran, setOpenTran] = useState(false);
 
   const toggleTranscript = () => {
@@ -112,7 +124,9 @@ export default function ListenItemScreen() {
     setOpenTran((v) => !v);
   };
 
-  /* -------------------- PLAY SEGMENT -------------------- */
+  /* -----------------------------------------------
+   * PLAY SEGMENT
+   * ----------------------------------------------- */
   const playSegment = (q: Question) => {
     if (q.startSec == null) return;
 
@@ -125,7 +139,9 @@ export default function ListenItemScreen() {
     }
   };
 
-  /* -------------------- SUBMIT ANSWER -------------------- */
+  /* -----------------------------------------------
+   * SUBMIT ANSWER
+   * ----------------------------------------------- */
   const submitAnswer = (q: Question) => {
     if (!q.options || !q.answer) return;
     if (picked[q.id] === null) return;
@@ -136,11 +152,13 @@ export default function ListenItemScreen() {
     setChecked((prev) => ({ ...prev, [q.id]: ok }));
   };
 
-  /* -------------------- UI -------------------- */
+  /* -----------------------------------------------
+   * LOADING OR NOT FOUND
+   * ----------------------------------------------- */
   if (loading) {
     return (
       <SafeAreaView style={ST.loadingWrap}>
-        <ActivityIndicator color="#60a5fa" />
+        <ActivityIndicator color="#2563eb" />
       </SafeAreaView>
     );
   }
@@ -148,17 +166,20 @@ export default function ListenItemScreen() {
   if (!data) {
     return (
       <SafeAreaView style={ST.loadingWrap}>
-        <Text style={{ color: '#fff' }}>Không tìm thấy bài nghe.</Text>
+        <Text style={{ color: "#111" }}>Không tìm thấy bài nghe.</Text>
       </SafeAreaView>
     );
   }
 
+  /* -----------------------------------------------
+   * RENDER UI
+   * ----------------------------------------------- */
   return (
     <SafeAreaView style={ST.safeWrapDark}>
-      {/* Header */}
+      {/* HEADER */}
       <View style={ST.header}>
         <TouchableOpacity onPress={() => router.back()} style={ST.iconBtn}>
-          <Ionicons name="arrow-back" size={22} color="#e5e7eb" />
+          <Ionicons name="arrow-back" size={22} color="#1e293b" />
         </TouchableOpacity>
 
         <Text numberOfLines={1} style={[ST.title, ST.headerTitleText]}>
@@ -174,12 +195,12 @@ export default function ListenItemScreen() {
           <View style={ST.mediaCard}>
             <View style={ST.mediaCardHeader}>
               <Ionicons
-                name={isVideo ? 'videocam' : 'musical-notes'}
+                name={isVideo ? "videocam" : "musical-notes"}
                 size={18}
-                color="#93c5fd"
+                color="#2563eb"
               />
               <Text style={ST.mediaCardHeaderText}>
-                {isVideo ? 'Video' : 'Audio'} Player
+                {isVideo ? "Video Player" : "Audio Player"}
               </Text>
             </View>
 
@@ -204,14 +225,11 @@ export default function ListenItemScreen() {
             <View style={ST.transcriptHeader}>
               <Text style={ST.transcriptHeaderTitle}>Transcript</Text>
 
-              <TouchableOpacity
-                onPress={toggleTranscript}
-                style={ST.transcriptToggleBtn}
-              >
+              <TouchableOpacity onPress={toggleTranscript}>
                 <Ionicons
-                  name={openTran ? 'chevron-up' : 'chevron-down'}
-                  size={16}
-                  color="#d1d5db"
+                  name={openTran ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color="#6b7280"
                 />
               </TouchableOpacity>
             </View>
@@ -225,107 +243,112 @@ export default function ListenItemScreen() {
             </Text>
           </View>
         )}
-{/* QUESTIONS */}
-<View style={ST.quizCard}>
-  <Text style={ST.quizHeaderTitle}>Câu hỏi</Text>
 
-  {questions.map((q, i) => {
-    const sel = picked[q.id];
-    const result = checked[q.id];
+        {/* QUESTIONS */}
+        <View style={ST.quizCard}>
+          <Text style={ST.quizHeaderTitle}>Câu hỏi</Text>
 
-    return (
-      <View key={q.id} style={ST.quizItem}>
+          {questions.map((q, i) => {
+            const sel = picked[q.id];
+            const result = checked[q.id];
 
-        {/* ===== TITLE + PLAY SEGMENT ===== */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text style={ST.quizItemTitle}>Câu {i + 1}</Text>
+            return (
+              <View key={q.id} style={ST.quizItem}>
+                {/* TITLE */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text style={ST.quizItemTitle}>Câu {i + 1}</Text>
 
-          {q.startSec != null && (
-            <TouchableOpacity
-              onPress={() => playSegment(q)}
-            >
-              <Text style={ST.quizSegmentText}>
-                ▶ {q.startSec}s → {q.endSec ?? '...'}s
-              </Text>
-            </TouchableOpacity>
+                  {q.startSec != null && (
+                    <TouchableOpacity onPress={() => playSegment(q)}>
+                      <Text style={ST.quizSegmentText}>
+                        ▶ {q.startSec}s → {q.endSec ?? "..."}s
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                <Text style={ST.quizItemText}>{q.prompt}</Text>
+
+                {/* MULTIPLE CHOICE */}
+                {q.kind === "mcq" && (
+                  <View style={{ marginTop: 10 }}>
+                    {q.options?.map((op, idx) => {
+                      const isActive = sel === idx;
+                      const isCorrect = result === true && op === q.answer;
+                      const isWrong = result === false && isActive;
+
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          onPress={() =>
+                            setPicked((prev) => ({ ...prev, [q.id]: idx }))
+                          }
+                          style={[
+                            ST.choiceBtn,
+                            isActive && ST.choiceSelected,
+                            isCorrect && ST.choiceCorrect,
+                            isWrong && ST.choiceWrong,
+                          ]}
+                        >
+                          <Text style={ST.choiceText}>
+                            {String.fromCharCode(65 + idx)}. {op}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+
+                    {/* SUBMIT */}
+                    <TouchableOpacity
+                      onPress={() => submitAnswer(q)}
+                      style={ST.checkBtn}
+                    >
+                      <Text style={ST.checkBtnText}>Xác nhận</Text>
+                    </TouchableOpacity>
+
+                    {/* RESULT */}
+                    {result != null && (
+                      <Text
+                        style={[
+                          ST.quizResult,
+                          result
+                            ? ST.quizResultCorrect
+                            : ST.quizResultWrong,
+                        ]}
+                      >
+                        {result
+                          ? "🎉 Chính xác!"
+                          : `❌ Sai rồi. Đáp án đúng: ${q.answer}`}
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                {/* LISTEN SEGMENT */}
+                {q.kind === "listen_segment" && (
+                  <TouchableOpacity
+                    style={[ST.choiceBtn, { marginTop: 14 }]}
+                    onPress={() => playSegment(q)}
+                  >
+                    <Text style={ST.choiceText}>
+                      ▶ Nghe đoạn {q.startSec}s → {q.endSec}s
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })}
+
+          {questions.length === 0 && (
+            <Text style={{ color: "#9ca3af", marginTop: 10 }}>
+              Chưa có câu hỏi nào.
+            </Text>
           )}
         </View>
-
-        {/* ===== PROMPT ===== */}
-        <Text style={ST.quizItemText}>{q.prompt}</Text>
-
-        {/* ===== MULTIPLE CHOICE ===== */}
-        {q.kind === 'mcq' && (
-          <View style={{ marginTop: 10 }}>
-            {q.options?.map((op, idx) => {
-              const isActive = sel === idx;
-              const isCorrect = result === true && op === q.answer;
-              const isWrong = result === false && isActive;
-
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() =>
-                    setPicked(prev => ({ ...prev, [q.id]: idx }))
-                  }
-                  style={[
-                    ST.choiceBtn,
-                    isActive && ST.choiceSelected,
-                    isCorrect && ST.choiceCorrect,
-                    isWrong && ST.choiceWrong,
-                  ]}
-                >
-                  <Text style={ST.choiceText}>
-                    {String.fromCharCode(65 + idx)}. {op}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-
-            {/* Nút xác nhận */}
-            <TouchableOpacity onPress={() => submitAnswer(q)} style={ST.checkBtn}>
-              <Text style={ST.checkBtnText}>Xác nhận</Text>
-            </TouchableOpacity>
-
-            {/* Kết quả */}
-            {result != null && (
-              <Text
-                style={[
-                  ST.quizResult,
-                  result ? ST.quizResultCorrect : ST.quizResultWrong,
-                ]}
-              >
-                {result
-                  ? '🎉 Chính xác!'
-                  : `❌ Sai rồi. Đáp án đúng: ${q.answer}`}
-              </Text>
-            )}
-          </View>
-        )}
-
-        {/* ===== LISTEN ONLY (KHÔNG MCQ) ===== */}
-        {q.kind === 'listen_segment' && (
-          <TouchableOpacity
-            style={[ST.choiceBtn, { marginTop: 14 }]}
-            onPress={() => playSegment(q)}
-          >
-            <Text style={ST.choiceText}>
-              ▶ Nghe đoạn {q.startSec}s → {q.endSec}s
-            </Text>
-          </TouchableOpacity>
-        )}
-
-      </View>
-    );
-  })}
-
-  {questions.length === 0 && (
-    <Text style={{ color: '#aaa', marginTop: 10 }}>
-      Chưa có câu hỏi nào.
-    </Text>
-  )}
-</View>
-
       </ScrollView>
     </SafeAreaView>
   );

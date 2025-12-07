@@ -1,6 +1,6 @@
 // components/style/admin/speaking/speaking-styles.ts
+import { COLORS } from '@/components/style/colors/AppColors';
 import { StyleSheet } from 'react-native';
-import { COLORS } from '../AdminColors';
 
 export const SpeakingStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
