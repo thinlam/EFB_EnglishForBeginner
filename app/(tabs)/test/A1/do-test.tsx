@@ -22,7 +22,9 @@ export default function DoTestA1() {
 
   const [testData, setTestData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [currentPart, setCurrentPart] = useState<"listening" | "reading" | "writing">("listening");
+  const [currentPart, setCurrentPart] = useState<
+    "listening" | "reading" | "writing"
+  >("listening");
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [sound, setSound] = useState<Audio.Sound | null>(null);
 
@@ -142,7 +144,10 @@ export default function DoTestA1() {
       </TouchableOpacity>
 
       {listening.questions.map((q: any, index: number) => (
-        <View key={q.id} style={{ marginBottom: 25 }}>
+        <View
+          key={q.id ?? `listening-${index}`}
+          style={{ marginBottom: 25 }}
+        >
           <Text style={{ fontSize: 20, marginBottom: 10 }}>
             {index + 1}. {q.question}
           </Text>
@@ -151,7 +156,7 @@ export default function DoTestA1() {
             const selected = answers[q.id] === i;
             return (
               <TouchableOpacity
-                key={`${q.id}-opt-${i}`}
+                key={`${q.id ?? `lq-${index}`}-opt-${i}`}
                 onPress={() => saveAnswer(q.id, i)}
                 style={{
                   padding: 15,
@@ -197,7 +202,10 @@ export default function DoTestA1() {
       </Text>
 
       {reading.questions.map((q: any, index: number) => (
-        <View key={q.id} style={{ marginBottom: 25 }}>
+        <View
+          key={q.id ?? `reading-${index}`}
+          style={{ marginBottom: 25 }}
+        >
           <Text style={{ fontSize: 20, marginBottom: 10 }}>
             {index + 1}. {q.question}
           </Text>
@@ -206,7 +214,7 @@ export default function DoTestA1() {
             const selected = answers[q.id] === i;
             return (
               <TouchableOpacity
-                key={`${q.id}-opt-${i}`}
+                key={`${q.id ?? `rq-${index}`}-opt-${i}`}
                 onPress={() => saveAnswer(q.id, i)}
                 style={{
                   padding: 15,
@@ -251,7 +259,7 @@ export default function DoTestA1() {
         const kind = (q.kind || q.type || "").trim().toLowerCase();
 
         return (
-          <View key={q.id} style={{ marginBottom: 20 }}>
+          <View key={q.id ?? `writing-${idx}`} style={{ marginBottom: 20 }}>
             <Text style={{ fontSize: 20, marginBottom: 10 }}>
               {idx + 1}. {q.question}
             </Text>
@@ -262,7 +270,7 @@ export default function DoTestA1() {
                 const selected = answers[q.id] === i;
                 return (
                   <TouchableOpacity
-                    key={`${q.id}-opt-${i}`}
+                    key={`${q.id ?? `wq-${idx}`}-opt-${i}`}
                     onPress={() => saveAnswer(q.id, i)}
                     style={{
                       padding: 15,
@@ -286,7 +294,7 @@ export default function DoTestA1() {
 
                 return (
                   <TouchableOpacity
-                    key={`${q.id}-reorder-${i}`}
+                    key={`${q.id ?? `wq-${idx}`}-reorder-${i}`}
                     onPress={() => {
                       let cur = [...arr];
                       cur.includes(opt)
