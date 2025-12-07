@@ -1,33 +1,29 @@
 // ===============================
 // SCREEN: Listen Questions – Create Questions for a Listen lesson
 // ===============================
-
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { db } from "@/scripts/firebase";
 import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    serverTimestamp,
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
+import { ListenQuestionStyles as S } from "@/components/style/admin/listen";
 import { VideoView, useVideoPlayer } from "expo-video";
-
-// ==========================
-// TYPES
-// ==========================
 type QuestionKind = "mcq" | "fill" | "dictation" | "listen_segment";
 
 type ListenDoc = {
@@ -37,9 +33,6 @@ type ListenDoc = {
   transcript: string;
 };
 
-// ==========================
-// COMPONENT
-// ==========================
 export default function ListenQuestions() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -47,7 +40,6 @@ export default function ListenQuestions() {
   const [loading, setLoading] = useState(true);
   const [listen, setListen] = useState<ListenDoc | null>(null);
 
-  // Question states
   const [kind, setKind] = useState<QuestionKind>("mcq");
   const [prompt, setPrompt] = useState("");
   const [answer, setAnswer] = useState("");
@@ -56,63 +48,54 @@ export default function ListenQuestions() {
   const [startSec, setStartSec] = useState<number | null>(null);
   const [endSec, setEndSec] = useState<number | null>(null);
 
-  // ❗ FIX: phải là null, không được undefined
-  const player = useVideoPlayer(null, (p) => {
-    p.loop = false;
-  });
+  const player = useVideoPlayer(null, (p) => (p.loop = false));
 
   // ==========================
-  // LOAD LESSON DATA
+  // LOAD DATA
   // ==========================
-  useEffect(() => {
-    (async () => {
-      try {
-        if (!id) return;
-        const snap = await getDoc(doc(db, "listens", id));
+  // ⚠ ESLint: player & router intentionally excluded 
+ 
+useEffect(() => {
+  (async () => {
+    try {
+      if (!id) return;
 
-        if (!snap.exists()) {
-          Alert.alert("Không tìm thấy bài nghe");
-          router.back();
-          return;
-        }
+      const snap = await getDoc(doc(db, "listens", id));
 
-        const data = snap.data() as ListenDoc;
-        setListen(data);
-
-        // ❗ FIX: gọi replace sau khi player tồn tại
-        if (data.audioUrl) {
-          player.replace(data.audioUrl);
-        }
-
-        setLoading(false);
-      } catch (err) {
-        Alert.alert("Lỗi", "Không tải được bài nghe");
+      if (!snap.exists()) {
+        Alert.alert("Không tìm thấy bài nghe");
         router.back();
+        return;
       }
-    })();
-  }, [id]);
 
-  // ==========================
-  // SET START & END
-  // ==========================
+      const data = snap.data() as ListenDoc;
+      setListen(data);
+
+      if (data.audioUrl) {
+        player.replace(data.audioUrl);
+      }
+
+      setLoading(false);
+    } catch (err) {
+      Alert.alert("Lỗi", "Không tải được bài nghe");
+      router.back();
+    }
+  })();
+}, [id]);
+
+
   const markStart = () => {
-    const t = player.currentTime ?? 0;
-    setStartSec(Math.round(t * 100) / 100);
+    setStartSec(Number((player.currentTime ?? 0).toFixed(2)));
   };
 
   const markEnd = () => {
-    const t = player.currentTime ?? 0;
-    setEndSec(Math.round(t * 100) / 100);
+    setEndSec(Number((player.currentTime ?? 0).toFixed(2)));
   };
 
-  // ==========================
-  // SAVE QUESTION
-  // ==========================
   const saveQuestion = async () => {
     if (!prompt.trim()) return Alert.alert("Thiếu câu hỏi.");
-
     if (kind === "listen_segment" && (!startSec || !endSec)) {
-      return Alert.alert("Hãy chọn đoạn Start/End từ audio.");
+      return Alert.alert("Hãy chọn đoạn Start/End.");
     }
 
     const payload: any = {
@@ -141,179 +124,103 @@ export default function ListenQuestions() {
     }
   };
 
-  // ==========================
-  // UI
-  // ==========================
   if (loading || !listen) {
     return (
-      <View style={{ marginTop: 60 }}>
+      <View style={S.loadingWrap}>
         <ActivityIndicator />
       </View>
     );
   }
 
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+    <ScrollView style={S.container} contentContainerStyle={S.content}>
       {/* BACK */}
       <TouchableOpacity onPress={() => router.back()}>
-        <Text style={{ fontSize: 16, marginBottom: 14 }}>⬅ Quay lại</Text>
+        <Text style={S.backText}>⬅ Quay lại</Text>
       </TouchableOpacity>
 
-      {/* TITLE */}
-      <Text style={{ fontSize: 24, fontWeight: "700" }}>
-        Câu hỏi – {listen.title}
-      </Text>
+      <Text style={S.title}>Câu hỏi – {listen.title}</Text>
 
-      {/* MEDIA PREVIEW */}
-      <Text style={{ marginTop: 20, fontSize: 18, fontWeight: "600" }}>
-        Audio / Video Preview
-      </Text>
+      {/* PREVIEW */}
+      <Text style={S.sectionTitle}>Audio / Video Preview</Text>
 
-      <VideoView
-        player={player}
-        style={{
-          width: "100%",
-          height: 220,
-          backgroundColor: "#000",
-          borderRadius: 10,
-          marginTop: 10,
-        }}
-        contentFit="contain"
-      />
+      <VideoView player={player} style={S.video} contentFit="contain" />
 
-      <View style={{ flexDirection: "row", marginTop: 14 }}>
-        <TouchableOpacity
-          onPress={markStart}
-          style={{
-            flex: 1,
-            padding: 12,
-            marginRight: 6,
-            backgroundColor: "#22c55e",
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: "#fff", textAlign: "center" }}>📍 Set Start</Text>
+      <View style={S.segmentRow}>
+        <TouchableOpacity style={S.btnStart} onPress={markStart}>
+          <Text style={S.btnText}> Set Start</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={markEnd}
-          style={{
-            flex: 1,
-            padding: 12,
-            marginLeft: 6,
-            backgroundColor: "#ef4444",
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: "#fff", textAlign: "center" }}>📍 Set End</Text>
+        <TouchableOpacity style={S.btnEnd} onPress={markEnd}>
+          <Text style={S.btnText}> Set End</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={{ marginTop: 10, color: "#555" }}>
+      <Text style={S.segmentInfo}>
         Start: {startSec ?? "—"}s • End: {endSec ?? "—"}s
       </Text>
 
       {/* QUESTION TYPE */}
-      <Text style={{ marginTop: 26, fontSize: 18, fontWeight: "600" }}>
-        Loại câu hỏi
-      </Text>
+      <Text style={S.sectionTitle}>Loại câu hỏi</Text>
 
-      <View style={{ flexDirection: "row", marginTop: 10, flexWrap: "wrap" }}>
+      <View style={S.kindWrap}>
         {(["mcq", "fill", "dictation", "listen_segment"] as QuestionKind[]).map(
           (t) => (
             <TouchableOpacity
               key={t}
               onPress={() => setKind(t)}
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 12,
-                borderRadius: 8,
-                backgroundColor: t === kind ? "#4f46e5" : "#e5e7eb",
-                marginRight: 8,
-                marginBottom: 8,
-              }}
+              style={[S.kindBtn, kind === t && S.kindBtnActive]}
             >
-              <Text style={{ color: t === kind ? "#fff" : "#111" }}>{t}</Text>
+              <Text style={[S.kindText, kind === t && S.kindTextActive]}>
+                {t}
+              </Text>
             </TouchableOpacity>
           )
         )}
       </View>
 
       {/* PROMPT */}
-      <Text style={{ marginTop: 20, fontSize: 16 }}>Câu hỏi</Text>
+      <Text style={S.label}>Câu hỏi</Text>
       <TextInput
         value={prompt}
         onChangeText={setPrompt}
-        style={{
-          backgroundColor: "#f3f4f6",
-          padding: 12,
-          borderRadius: 8,
-          marginTop: 6,
-        }}
         placeholder="Nhập câu hỏi…"
+        style={S.input}
       />
 
-      {/* MCQ OPTIONS */}
-      {kind === "mcq" && (
-        <>
-          <Text style={{ marginTop: 20, fontSize: 16 }}>Các lựa chọn</Text>
-
-          {options.map((o, idx) => (
-            <TextInput
-              key={idx}
-              value={o}
-              onChangeText={(v) => {
-                const arr = [...options];
-                arr[idx] = v;
-                setOptions(arr);
-              }}
-              style={{
-                backgroundColor: "#f3f4f6",
-                padding: 12,
-                borderRadius: 8,
-                marginTop: 6,
-              }}
-              placeholder={`Option ${idx + 1}`}
-            />
-          ))}
-        </>
-      )}
+      {/* MCQ */}
+      {kind === "mcq" &&
+        options.map((o, i) => (
+          <TextInput
+            key={i}
+            value={o}
+            onChangeText={(v) => {
+              const arr = [...options];
+              arr[i] = v;
+              setOptions(arr);
+            }}
+            placeholder={`Option ${i + 1}`}
+            style={S.input}
+          />
+        ))}
 
       {/* ANSWER */}
-      <Text style={{ marginTop: 20, fontSize: 16 }}>Đáp án</Text>
+      <Text style={S.label}>Đáp án</Text>
       <TextInput
         value={answer}
         onChangeText={setAnswer}
-        style={{
-          backgroundColor: "#f3f4f6",
-          padding: 12,
-          borderRadius: 8,
-          marginTop: 6,
-        }}
         placeholder="Nhập đáp án…"
+        style={S.input}
       />
 
-      {/* Segment preview */}
       {kind === "listen_segment" && (
-        <Text style={{ marginTop: 10, fontSize: 15, color: "#333" }}>
+        <Text style={S.segmentInfoSmall}>
           Đoạn trích: {startSec ?? "—"}s → {endSec ?? "—"}s
         </Text>
       )}
 
-      {/* SAVE BUTTON */}
-      <TouchableOpacity
-        onPress={saveQuestion}
-        style={{
-          marginTop: 28,
-          marginBottom: 40,
-          padding: 16,
-          borderRadius: 10,
-          backgroundColor: "#4f46e5",
-        }}
-      >
-        <Text style={{ color: "#fff", textAlign: "center", fontSize: 16 }}>
-          Lưu câu hỏi
-        </Text>
+      <TouchableOpacity style={S.saveBtn} onPress={saveQuestion}>
+        <Text style={S.saveText}>Lưu câu hỏi</Text>
       </TouchableOpacity>
     </ScrollView>
   );

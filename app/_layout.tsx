@@ -1,4 +1,5 @@
 // app/_layout.tsx
+import { COLORS } from "@/components/style/colors/AppColors";
 import { Stack } from 'expo-router';
 import React from 'react';
 import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
@@ -14,7 +15,6 @@ const toastConfig = {
         borderRadius: 18,
         backgroundColor: '#FFFFFF',
         marginHorizontal: 16,
-        // bóng cho card
         shadowColor: '#000',
         shadowOpacity: 0.12,
         shadowRadius: 8,
@@ -71,7 +71,14 @@ const toastConfig = {
 export default function RootLayout() {
   return (
     <>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+
+          // ⭐⭐ DÒNG QUAN TRỌNG NHẤT – ÉP NỀN SÁNG TOÀN APP ⭐⭐
+          contentStyle: { backgroundColor: COLORS.bgScreen },
+        }}
+      >
         <Stack.Screen name="Welcome" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="listen" />
@@ -79,7 +86,6 @@ export default function RootLayout() {
         <Stack.Screen name="Profile/EditProfile" />
       </Stack>
 
-      {/* 🔔 Global toast notification */}
       <Toast config={toastConfig} />
     </>
   );

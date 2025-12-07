@@ -1,73 +1,83 @@
 // app/(tabs)/_layout.tsx
-
 /**
  * Dự án: EFB - English For Beginners
- * Mục đích: App học tiếng Anh cơ bản (React Native + Expo Router)
+ * Tab Layout (Expo Router)
  */
 
-import { styles } from '@/components/style/LayoutStyles';
-import { useAuthProfile } from '@/hooks/tab/useAuthProfile';
-import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Redirect, Tabs } from 'expo-router';
-import React from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { COLORS } from "@/components/style/colors/AppColors";
+import { styles } from "@/components/style/LayoutStyles";
+import { useAuthProfile } from "@/hooks/tab/useAuthProfile";
+
+import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Redirect, Tabs } from "expo-router";
+
+import React from "react";
+import { ActivityIndicator, Text, View } from "react-native";
 
 export default function TabLayout() {
   const { loading, user, profile } = useAuthProfile();
 
-  // Đang load profile
+  // Loading profile
   if (loading) {
     return (
       <View
         style={{
           flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: COLORS.bgScreen, // nền sáng
         }}
       >
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
-  // ❌ Chưa login → không cho vào tabs → quay về Welcome
+  // Chưa login → chuyển Welcome
   if (!user || !profile) {
     return <Redirect href="/Welcome" />;
   }
 
-  // ✅ Đã login → render Tabs bình thường
   return (
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: false,
         tabBarHideOnKeyboard: true,
-        tabBarStyle: { height: 70 },
+
+        /** ⭐ FIX NỀN BỊ TỐI */
+        sceneContainerStyle: { backgroundColor: COLORS.bgScreen },
+        tabBarStyle: {
+          height: 70,
+          backgroundColor: COLORS.bg, // màu trắng
+          borderTopWidth: 1,
+          borderTopColor: COLORS.border,
+        },
 
         tabBarIcon: ({ focused }) => {
-          const color = focused ? '#4F46E5' : '#666';
-          let icon: React.ReactNode;
+          const color = focused ? COLORS.primary : "#666";
+          let icon: React.ReactNode = null;
 
           switch (route.name) {
-            case 'index':
+            case "index":
               icon = <Ionicons name="home" size={24} color={color} />;
               break;
-            case 'WordBook':
+
+            case "WordBook":
               icon = <FontAwesome5 name="book" size={22} color={color} />;
               break;
-            case 'Premium':
-              icon = <Text style={{ fontSize: 24 }}>{'🐵'}</Text>;
-              break;
-            case 'Profile':
-              icon = <Ionicons name="person" size={24} color={color} />;
-              break;
-            case 'more':
-              icon = <MaterialIcons name="more-horiz" size={24} color={color} />;
+
+            case "Premium":
+              icon = <Text style={{ fontSize: 24 }}>🐵</Text>;
               break;
 
-            // Các screen ẩn (href:null) sẽ không hiển thị icon/tab
-            default:
-              icon = null;
+            case "Profile":
+              icon = <Ionicons name="person" size={24} color={color} />;
+              break;
+
+            case "more":
+              icon = <MaterialIcons name="more-horiz" size={24} color={color} />;
+              break;
           }
 
           if (!icon) return null;
@@ -96,144 +106,49 @@ export default function TabLayout() {
       <Tabs.Screen name="more" />
 
       {/* ====== SCREEN PHỤ (ẨN KHỎI TAB BAR) ====== */}
-      <Tabs.Screen
-        name="listen"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="translate"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="Profile/EditProfile"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="playgame"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="game/index"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="game/Caro/levels"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="game/Caro/[level]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="grammar/detail/[id]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-       name = "reading/[id]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-       name = "reading/questions"
-        options={{
-          href: null,
-        }}
-      />
-        <Tabs.Screen
-       name = "reading"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name= "speaking"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="speaking/item/[id]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="study/[id]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="notifications/index"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="notifications/[id]"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name='test'
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name='listen/listen'
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name='listen/[id]'
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name='listen/questions/[id]'
-        options={{
-          href: null,
-        }}
-      />
-     <Tabs.Screen
-      name="writing/index"
-      options={{
-        href: null,
-      }}
-    />
-  <Tabs.Screen
-    name="writing/detail"
-    options={{
-      href: null,
-    }}
-  />
-  <Tabs.Screen
-    name="writing/editor"
-    options={{
-      href: null,
-    }}
-  />
+      <Tabs.Screen name="listen" options={{ href: null }} />
+      <Tabs.Screen name="translate" options={{ href: null }} />
+
+      <Tabs.Screen name="Profile/EditProfile" options={{ href: null }} />
+
+      <Tabs.Screen name="playgame" options={{ href: null }} />
+
+      {/* Game caro */}
+      <Tabs.Screen name="game/index" options={{ href: null }} />
+      <Tabs.Screen name="game/Caro/levels" options={{ href: null }} />
+      <Tabs.Screen name="game/Caro/[level]" options={{ href: null }} />
+
+      {/* Grammar */}
+      <Tabs.Screen name="grammar/detail/[id]" options={{ href: null }} />
+
+      {/* Reading */}
+      <Tabs.Screen name="reading/[id]" options={{ href: null }} />
+      <Tabs.Screen name="reading/questions" options={{ href: null }} />
+      <Tabs.Screen name="reading" options={{ href: null }} />
+
+      {/* Speaking */}
+      <Tabs.Screen name="speaking" options={{ href: null }} />
+      <Tabs.Screen name="speaking/item/[id]" options={{ href: null }} />
+
+      {/* Study */}
+      <Tabs.Screen name="study/[id]" options={{ href: null }} />
+
+      {/* Notifications */}
+      <Tabs.Screen name="notifications/index" options={{ href: null }} />
+      <Tabs.Screen name="notifications/[id]" options={{ href: null }} />
+
+      {/* Test */}
+      <Tabs.Screen name="test" options={{ href: null }} />
+
+      {/* Listen */}
+      <Tabs.Screen name="listen/listen" options={{ href: null }} />
+      <Tabs.Screen name="listen/[id]" options={{ href: null }} />
+      <Tabs.Screen name="listen/questions/[id]" options={{ href: null }} />
+
+      {/* Writing */}
+      <Tabs.Screen name="writing/index" options={{ href: null }} />
+      <Tabs.Screen name="writing/detail" options={{ href: null }} />
+      <Tabs.Screen name="writing/editor" options={{ href: null }} />
     </Tabs>
   );
 }

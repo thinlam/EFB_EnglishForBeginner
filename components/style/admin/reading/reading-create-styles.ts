@@ -1,5 +1,5 @@
+import { COLORS } from '@/components/style/colors/AppColors';
 import { StyleSheet } from 'react-native';
-import { COLORS } from '../AdminColors';
 
 export const ReadingCreateStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
