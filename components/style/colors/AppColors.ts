@@ -50,4 +50,11 @@ export const COLORS = {
   choiceWrongBg: '#fef2f2',
   choiceWrongBorder: '#fecaca',
   choiceWrongText: '#b91c1c',
+    /* ================================
+   * EXTRA COLORS (needed by screens)
+   * ================================ */
+  subText: '#475569',     // dùng trong info, subtitle
+  edit: '#2563eb',        // màu icon sửa
+  del: '#ef4444',         // màu icon xoá
+  borderSoft: '#d1d5db',   // xám nhẹ, mềm hơn border
 };

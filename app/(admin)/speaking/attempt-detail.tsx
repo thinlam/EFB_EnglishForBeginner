@@ -1,26 +1,26 @@
 // app/(admin)/speaking/attempt-detail.tsx
-import { COLORS } from '@/components/style/admin/AdminColors';
+import { COLORS } from '@/components/style/colors/AppColors';
 import { auth, db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-    Timestamp,
-    doc,
-    getDoc,
-    serverTimestamp,
-    updateDoc,
+  Timestamp,
+  doc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Linking,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
