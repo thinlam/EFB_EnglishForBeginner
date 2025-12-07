@@ -2,27 +2,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
-    Timestamp,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
+  Timestamp,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
 } from 'firebase/firestore';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { COLORS } from '@/components/style/admin/AdminColors';
+import { COLORS } from '@/components/style/colors/AppColors';
 import { db } from '@/scripts/firebase';
 
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
