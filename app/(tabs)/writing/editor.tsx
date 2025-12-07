@@ -9,15 +9,20 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   Text,
   TextInput,
-  TouchableOpacity,
-  View,
+  TouchableOpacity
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WritingEditorScreen() {
   const { id } = useLocalSearchParams();
+
+  const insets = useSafeAreaInsets(); // 🔥 xử lý tai thỏ, giọt nước
+
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -38,19 +43,34 @@ export default function WritingEditorScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingTop: insets.top,
+        }}
+      >
         <ActivityIndicator size="large" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!task) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          padding: 20,
+          justifyContent: "center",
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }}
+      >
         <Text style={{ textAlign: "center", fontSize: 16, color: "#555" }}>
           Không tìm thấy bài viết.
         </Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -67,24 +87,58 @@ export default function WritingEditorScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={S.container}>
-      <Text style={S.label}>Bài viết của bạn</Text>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#fff",
+        paddingTop: insets.top, // 🛡 tránh tai thỏ iPhone
+      }}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            S.container,
+            {
+              paddingBottom: insets.bottom + 50, // 🛡 tránh giọt nước + nâng UI
+              paddingTop: 10,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={S.label}>Bài viết của bạn</Text>
 
-      <TextInput
-        multiline
-        style={S.input}
-        value={text}
-        onChangeText={setText}
-        placeholder="Viết bài vào đây..."
-      />
+          <TextInput
+            multiline
+            style={[
+              S.input,
+              {
+                paddingTop: 14,
+                paddingBottom: 14,
+                minHeight: 200, // tránh bị ép quá nhỏ
+              },
+            ]}
+            value={text}
+            onChangeText={setText}
+            placeholder="Viết bài vào đây..."
+            textAlignVertical="top"
+          />
 
-      <Text style={[S.count, tooFew && S.countWarn]}>
-        {words} / {task.wordMax} từ
-      </Text>
+          <Text style={[S.count, tooFew && S.countWarn]}>
+            {words} / {task.wordMax} từ
+          </Text>
 
-      <TouchableOpacity style={S.submit} onPress={submit}>
-        <Text style={S.submitText}>Nộp bài</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <TouchableOpacity
+            style={[S.submit, { marginBottom: 20 }]}
+            onPress={submit}
+          >
+            <Text style={S.submitText}>Nộp bài</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

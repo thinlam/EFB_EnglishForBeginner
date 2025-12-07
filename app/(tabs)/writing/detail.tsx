@@ -14,10 +14,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WritingDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -29,9 +31,7 @@ export default function WritingDetailScreen() {
     const fetch = async () => {
       try {
         const snap = await getDoc(doc(db, "writing_lessons", String(id)));
-        if (snap.exists()) {
-          setTask(snap.data());
-        }
+        if (snap.exists()) setTask(snap.data());
       } catch (e) {
         console.error(e);
       } finally {
@@ -42,75 +42,106 @@ export default function WritingDetailScreen() {
     fetch();
   }, [id]);
 
+  // ========= LOADING =========
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         <ActivityIndicator size="large" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!task) {
     return (
-      <View style={{ flex: 1, padding: 20, justifyContent: "center" }}>
-        <Text style={{ textAlign: "center", fontSize: 16, color: "#555" }}>
-          Không tìm thấy bài Writing này.
+      <SafeAreaView
+        style={{
+          flex: 1,
+          paddingTop: insets.top,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 17, marginBottom: 16 }}>
+          Không tìm thấy bài Writing.
         </Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={[S.startBtn, { marginTop: 20 }]}
-        >
-          <Text style={S.startText}>Quay lại</Text>
+
+        <TouchableOpacity style={S.backBtn} onPress={() => router.back()}>
+          <Text style={S.backBtnText}>Quay lại</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={S.container}>
-      {/* IMAGE */}
-      {task.imageUrl ? (
-        <Image source={{ uri: task.imageUrl }} style={S.image} />
-      ) : null}
-
-      {/* TITLE */}
-      <Text style={S.title}>{task.title}</Text>
-
-      {/* PROMPT */}
-      <Text style={S.label}>Prompt</Text>
-      <Text style={S.text}>{task.prompt}</Text>
-
-      {/* TIPS */}
-      {task.writingTips ? (
-        <>
-          <Text style={S.label}>Tips</Text>
-          <Text style={S.tips}>{task.writingTips}</Text>
-        </>
-      ) : null}
-
-      {/* SAMPLE */}
-      <TouchableOpacity onPress={() => setShowSample(!showSample)}>
-        <Text style={S.sampleToggle}>
-          {showSample ? "Ẩn sample" : "Xem sample"}
-        </Text>
-      </TouchableOpacity>
-
-      {showSample && (
-        <Text style={S.sample}>{task.sampleAnswer || "(Không có sample)"}</Text>
-      )}
-
-      {/* BUTTON */}
-      <TouchableOpacity
-        style={S.startBtn}
-        onPress={() =>
-          router.push({
-            pathname: "/writing/editor",
-            params: { id },
-          })
-        }
+    <SafeAreaView style={{ flex: 1 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 50,
+        }}
       >
-        <Text style={S.startText}>Bắt đầu viết</Text>
-      </TouchableOpacity>
-    </ScrollView>
+
+        {/* ================= HEADER HERO ================= */}
+        <View style={S.heroContainer}>
+          <Image source={{ uri: task.imageUrl }} style={S.heroImage} />
+
+          <View style={S.heroOverlay} />
+          <Text style={S.heroTitle}>{task.title}</Text>
+        </View>
+
+        {/* ================= CONTENT AREA ================= */}
+        <View style={S.contentCard}>
+          {/* Prompt */}
+          <Text style={S.sectionLabel}>Prompt</Text>
+          <Text style={S.sectionText}>{task.prompt}</Text>
+
+          {/* Tips */}
+          {task.writingTips && (
+            <>
+              <Text style={S.sectionLabel}>Gợi ý</Text>
+              <Text style={S.tipsText}>{task.writingTips}</Text>
+            </>
+          )}
+
+          {/* Sample */}
+          <TouchableOpacity
+            onPress={() => setShowSample(!showSample)}
+            style={S.sampleBtn}
+          >
+            <Text style={S.sampleBtnText}>
+              {showSample ? "Ẩn sample" : "Xem sample"}
+            </Text>
+          </TouchableOpacity>
+
+          {showSample && (
+            <View style={S.sampleCard}>
+              <Text style={S.sampleText}>
+                {task.sampleAnswer || "Không có sample."}
+              </Text>
+            </View>
+          )}
+
+          {/* Start Button */}
+          <TouchableOpacity
+            style={S.ctaBtn}
+            onPress={() =>
+              router.push({
+                pathname: "/writing/editor",
+                params: { id },
+              })
+            }
+          >
+            <Text style={S.ctaText}>Bắt đầu viết</Text>
+          </TouchableOpacity>
+          
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

@@ -1,78 +1,128 @@
-// components/style/writing/WritingDetailStyles.ts
+// components/style/user/writing/WritingDetailStyles.ts
+
 import { StyleSheet } from "react-native";
 
 export const WritingDetailStyles = StyleSheet.create({
-  container: {
-    padding: 16,
-    backgroundColor: "#F8FAFC",
-    paddingBottom: 50,
-  },
 
-  image: {
+  // HERO
+  heroContainer: {
     width: "100%",
-    height: 170,
-    borderRadius: 12,
-    marginBottom: 14,
+    height: 260,
+    position: "relative",
   },
 
-  title: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#111827",
-    marginBottom: 12,
+  heroImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
 
-  label: {
-    fontSize: 15,
+  heroOverlay: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+
+  heroTitle: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    fontSize: 26,
     fontWeight: "700",
-    color: "#111827",
-    marginTop: 12,
-    marginBottom: 4,
+    color: "#fff",
+    letterSpacing: 0.3,
   },
 
-  text: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 22,
+  // CONTENT
+  contentCard: {
+    marginTop: -32,
+    marginHorizontal: 16,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
 
-  tips: {
-    fontSize: 14,
-    color: "#1E3A8A",
-    backgroundColor: "#EFF6FF",
-    padding: 10,
-    borderRadius: 10,
-    lineHeight: 20,
-  },
-
-  sampleToggle: {
+  sectionLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 6,
     marginTop: 14,
-    color: "#4F46E5",
+  },
+
+  sectionText: {
+    fontSize: 16,
+    lineHeight: 23,
+    color: "#444",
+  },
+
+  tipsText: {
+    fontSize: 15,
+    color: "#567",
+    lineHeight: 22,
+    backgroundColor: "#f4f6f8",
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+
+  // SAMPLE
+  sampleBtn: {
+    marginTop: 20,
+    alignSelf: "flex-start",
+  },
+
+  sampleBtnText: {
+    color: "#0066CC",
     fontSize: 15,
     fontWeight: "600",
   },
 
-  sample: {
-    fontSize: 14,
-    color: "#374151",
-    backgroundColor: "#F3F4F6",
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 8,
-    lineHeight: 20,
+  sampleCard: {
+    marginTop: 10,
+    padding: 18,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#eee",
   },
 
-  startBtn: {
-    marginTop: 20,
-    backgroundColor: "#4F46E5",
-    paddingVertical: 12,
-    borderRadius: 999,
+  sampleText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#444",
+  },
+
+  // CTA
+  ctaBtn: {
+    marginTop: 28,
+    backgroundColor: "#4A90E2",
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: "center",
   },
 
-  startText: {
-    color: "#FFFFFF",
-    fontSize: 15,
+  ctaText: {
+    color: "#fff",
+    fontSize: 17,
     fontWeight: "700",
+  },
+
+  // Back fallback
+  backBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: "#ddd",
+    borderRadius: 12,
+  },
+
+  backBtnText: {
+    fontSize: 15,
+    color: "#222",
   },
 });

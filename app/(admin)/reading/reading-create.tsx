@@ -1,6 +1,6 @@
 // app/(admin)/ReadingCreate.tsx
-import { COLORS } from '@/components/style/admin/AdminColors';
 import { ReadingCreateStyles as S } from '@/components/style/admin/reading/reading-create-styles';
+import { COLORS } from '@/components/style/colors/AppColors';
 import { db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
