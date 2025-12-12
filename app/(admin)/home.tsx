@@ -66,14 +66,6 @@ export default function AdminHomeScreen() {
 },
 
     {
-      title: '💎 Gói học & Nâng cấp',
-      children: [
-        { title: 'Quản lý gói học', path: '/(admin)/plans' },
-        { title: 'Giao dịch & Nâng cấp', path: '/(admin)/transactions' },
-      ],
-    },
-
-    {
       title: '👥 Người dùng & Hệ thống',
       children: [
         { title: 'Quản lý người dùng', path: '/(admin)/user-list' },
@@ -81,12 +73,10 @@ export default function AdminHomeScreen() {
       ],
     },
   ];
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Trang quản trị</Text>
-
         {features.map((item, index) => (
           <View key={index}>
             {/* Mục chính */}

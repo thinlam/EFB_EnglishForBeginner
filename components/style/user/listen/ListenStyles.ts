@@ -1,134 +1,140 @@
-// components/style/user/ListenStyles.ts
-import { StyleSheet } from 'react-native';
+import { COLORS } from '@/components/style/colors/AppColors';
+import { Platform, StyleSheet } from 'react-native';
 
 export const ListenStyles = StyleSheet.create({
-  /* ==== Root / Container ==== */
   wrap: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.bgScreen,
   },
 
-  /* ==== Header ==== */
   header: {
     paddingHorizontal: 16,
-    paddingBottom: 10,
-    backgroundColor: '#F8FAFC',
-  },
-
-  headerBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingBottom: 12,
+    backgroundColor: COLORS.bgScreen,
+    position: 'relative',
   },
 
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
 
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
-
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
-  },
-
-  backBtnPressed: {
-    opacity: 0.85,
-  },
-
-  headerTitleWrap: {
-    flex: 1,
-    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
   },
 
   headerTitle: {
-    color: '#111827',
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '800',
+    color: COLORS.text,
+    letterSpacing: 0.5,
   },
 
-  headerRightPlaceholder: {
-    width: 36,
-    height: 36,
-  },
+  /* ================= LEVEL BUTTON ================= */
+  levelSelectBtn: {
+    flexDirection: 'row',          // A1 + icon nằm ngang
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
 
-  /* ==== Level selector ==== */
-  levelsRow: {
-    flexDirection: 'row',
-    marginTop: 10,
-    gap: 8,
-  },
+    width: 96,                     // ✅ BẰNG dropdown
+    height: 48,                    // ✅ BẰNG levelOption
+    borderRadius: 14,
 
-  levelBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
+    backgroundColor: COLORS.bg,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: COLORS.border,
   },
 
-  levelBtnActive: {
-    borderColor: '#111827',
-    backgroundColor: '#111827',
+  levelSelectText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.text,
+    lineHeight: 16,
+    marginTop: Platform.OS === 'web' ? 1 : 0,
   },
 
-  levelBtnLocked: {
-    backgroundColor: '#E5E7EB',
-    opacity: 0.6,
+  /* ================= DROPDOWN ================= */
+  levelDropdown: {
+    position: 'absolute',
+    top: 56,
+    right: 16,
+
+    width: 96,
+    paddingVertical: 8,
+
+    backgroundColor: COLORS.bg,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+
+    zIndex: 100,
   },
 
-  levelBtnPressed: {
-    opacity: 0.85,
+  levelOption: {
+    height: 48,                    // ✅ cùng size với nút A1
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
-  levelText: {
-    fontSize: 13,
+  levelOptionActive: {
+    backgroundColor: COLORS.text,
+  },
+
+  levelOptionLocked: {
+    backgroundColor: COLORS.card2,
+  },
+
+  levelOptionText: {
+    fontSize: 14,
     fontWeight: '700',
-    color: '#111827',
+    color: COLORS.textMuted,
   },
 
-  levelTextActive: {
-    color: '#F9FAFB',
+  levelOptionTextActive: {
+    color: COLORS.bg,
   },
 
-  levelTextLocked: {
-    color: '#9CA3AF',
+  levelOptionTextLocked: {
+    color: COLORS.textSoft,
   },
 
-  /* ==== Search ==== */
+  /* ================= SEARCH ================= */
   searchWrap: {
+    marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#F3F4F6',
-    marginTop: 12,
+    backgroundColor: COLORS.card2,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
   },
 
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#111827',
+    color: COLORS.text,
   },
 
-  /* ==== List ==== */
   loading: {
     padding: 24,
-  },
-
-  list: {
-    flex: 1,
   },
 
   listContent: {
@@ -140,30 +146,13 @@ export const ListenStyles = StyleSheet.create({
     width: '100%',
   },
 
-  listFooter: {
-    paddingVertical: 12,
-  },
-
-  empty: {
-    padding: 24,
-    alignItems: 'center',
-  },
-
-  emptyText: {
-    color: '#6B7280',
-  },
-
-  /* ==== Card ==== */
+  /* ================= CARD ================= */
   card: {
+    backgroundColor: COLORS.card,
     borderRadius: 16,
     padding: 14,
-    backgroundColor: '#fff',
-
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
   },
 
   cardPressed: {
@@ -180,83 +169,45 @@ export const ListenStyles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 12,
-    backgroundColor: '#11182712',
+    backgroundColor: COLORS.card2,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   cardContent: {
     flex: 1,
-    minWidth: 0,
   },
 
   cardTitle: {
-    color: '#111827',
     fontSize: 16,
     fontWeight: '700',
+    color: COLORS.text,
   },
 
   cardSubtitle: {
-    color: '#4b5563',
     fontSize: 13,
+    color: COLORS.subText,
     marginTop: 2,
   },
 
   cardMetaRow: {
+    marginTop: 8,
     flexDirection: 'row',
     gap: 8,
-    marginTop: 8,
-    flexWrap: 'wrap',
   },
 
   cardLevelBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: '#1118270C',
+    paddingVertical: 4,
     borderRadius: 999,
+    backgroundColor: COLORS.card2,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: COLORS.borderLight,
   },
 
   cardLevelText: {
     fontSize: 12,
-    color: '#111827',
     fontWeight: '700',
-  },
-
-  cardExerciseBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-
-  cardExerciseText: {
-    fontSize: 12,
-    color: '#374151',
-  },
-
-  /* ==== Extra cho item screen ==== */
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
-  },
-
-  title: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '800',
+    color: COLORS.text,
   },
 });
