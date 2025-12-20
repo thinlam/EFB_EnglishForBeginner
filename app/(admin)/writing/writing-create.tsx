@@ -1,8 +1,9 @@
-// app/(admin)/speaking/speaking-create.tsx
-import { SpeakingCreateStyles as S } from '@/components/style/admin/speaking/speaking-create-styles';
+// app/(admin)/writing/writing-create.tsx
+import { WritingCreateStyles as S } from '@/components/style/admin/writing/writing-create-styles';
 import { COLORS } from '@/components/style/colors/AppColors';
-import { db } from '@/scripts/firebase';
+import { auth, db, storage } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
     addDoc,
@@ -12,10 +13,16 @@ import {
     serverTimestamp,
     updateDoc,
 } from 'firebase/firestore';
+import {
+    getDownloadURL,
+    ref,
+    uploadBytes,
+} from 'firebase/storage';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Image,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -29,7 +36,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
-type SpeakingType = 'repeat' | 'qa' | 'dialogue' | 'monologue';
+type WritingType = 'paragraph' | 'essay' | 'email' | 'report';
 type Topic =
   | 'Work & Office'
   | 'Travel & Transport'
@@ -40,6 +47,7 @@ type Topic =
   | 'Entertainment'
   | 'Health & Food'
   | 'Business';
+
 const LEVELS: CEFR[] = ['A1', 'A2', 'B1', 'B2', 'C1'];
 const TOPICS: Topic[] = [
   'Work & Office',
@@ -52,9 +60,9 @@ const TOPICS: Topic[] = [
   'Health & Food',
   'Business',
 ];
-const TYPES: SpeakingType[] = ['repeat', 'qa', 'dialogue', 'monologue'];
+const TYPES: WritingType[] = ['paragraph', 'essay', 'email', 'report'];
 
-export default function SpeakingCreate() {
+export default function WritingCreate() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
@@ -67,15 +75,20 @@ export default function SpeakingCreate() {
   const [title, setTitle] = useState('');
   const [level, setLevel] = useState<CEFR | null>(null);
   const [topic, setTopic] = useState<Topic | null>(null);
-  const [type, setType] = useState<SpeakingType | null>(null);
+  const [type, setType] = useState<WritingType | null>(null);
 
   const [bandMin, setBandMin] = useState<string>('4');
   const [bandMax, setBandMax] = useState<string>('6');
-  const [tasksCount, setTasksCount] = useState<string>('1');
 
-  const [audioUrl, setAudioUrl] = useState('');
+  const [wordMin, setWordMin] = useState<string>('150');
+  const [wordMax, setWordMax] = useState<string>('250');
+
   const [prompt, setPrompt] = useState('');
   const [sampleAnswer, setSampleAnswer] = useState('');
+  const [writingTips, setWritingTips] = useState('');
+
+  const [imageUrl, setImageUrl] = useState<string>('');
+  const [imageUploading, setImageUploading] = useState(false);
 
   // pickers
   const [levelPicker, setLevelPicker] = useState(false);
@@ -87,7 +100,7 @@ export default function SpeakingCreate() {
     const fetch = async () => {
       if (!editingId) return;
       try {
-        const snap = await getDoc(doc(db, 'speaking_lessons', editingId));
+        const snap = await getDoc(doc(db, 'writing_lessons', editingId));
         if (!snap.exists()) {
           Alert.alert('Không tìm thấy tài liệu');
           router.back();
@@ -98,15 +111,18 @@ export default function SpeakingCreate() {
         setTitle(raw.title ?? '');
         setLevel((raw.level as CEFR) ?? null);
         setTopic((raw.topic as Topic) ?? null);
-        setType((raw.type as SpeakingType) ?? null);
+        setType((raw.type as WritingType) ?? null);
 
         setBandMin(String(raw.bandMin ?? 4));
         setBandMax(String(raw.bandMax ?? 6));
-        setTasksCount(String(raw.tasksCount ?? 1));
 
-        setAudioUrl(raw.audioUrl ?? '');
+        setWordMin(String(raw.wordMin ?? 150));
+        setWordMax(String(raw.wordMax ?? 250));
+
         setPrompt(raw.prompt ?? '');
         setSampleAnswer(raw.sampleAnswer ?? '');
+        setWritingTips(raw.writingTips ?? '');
+        setImageUrl(raw.imageUrl ?? '');
       } catch (e: any) {
         console.error(e);
         Alert.alert('Lỗi', e?.message ?? 'Không tải được dữ liệu');
@@ -130,34 +146,118 @@ export default function SpeakingCreate() {
     if (bMin < 0 || bMax < 0) return false;
     if (bMax && bMin && bMin > bMax) return false;
 
-    const tc = Number(tasksCount);
-    if (Number.isNaN(tc) || tc < 0) return false;
+    const wMin = Number(wordMin);
+    const wMax = Number(wordMax);
+    if (Number.isNaN(wMin) || Number.isNaN(wMax)) return false;
+    if (wMin <= 0 || wMax <= 0) return false;
+    if (wMax && wMin && wMin > wMax) return false;
 
     return true;
-  }, [title, prompt, bandMin, bandMax, tasksCount, level, topic, type]);
+  }, [title, prompt, bandMin, bandMax, wordMin, wordMax, level, topic, type]);
 
   // ===== LABEL CHO TYPE =====
-  const renderTypeLabel = (tp: SpeakingType | null) => {
+  const renderTypeLabel = (tp: WritingType | null) => {
     switch (tp) {
-      case 'repeat':
-        return 'Repeat';
-      case 'qa':
-        return 'Q&A';
-      case 'dialogue':
-        return 'Dialogue';
-      case 'monologue':
-        return 'Monologue';
+      case 'paragraph':
+        return 'Paragraph';
+      case 'essay':
+        return 'Essay';
+      case 'email':
+        return 'Email / Letter';
+      case 'report':
+        return 'Report';
       default:
-        return 'Select form';
+        return 'Select type';
     }
+  };
+
+  // ===== UPLOAD IMAGE =====
+  const handlePickImage = async () => {
+    if (loading || imageUploading) return;
+
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Thiếu quyền truy cập',
+          'Ứng dụng cần quyền truy cập thư viện ảnh để chọn hình.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+      if (!asset?.uri) return;
+
+      const user = auth.currentUser;
+      if (!user?.uid) {
+        Alert.alert('Lỗi', 'Không tìm thấy thông tin người dùng.');
+        return;
+      }
+
+      setImageUploading(true);
+
+      const res = await fetch(asset.uri);
+      const blob = await res.blob();
+
+      const extFromName =
+        asset.fileName?.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const ext = extFromName.match(/(png|jpe?g|webp)/)
+        ? extFromName
+        : 'jpg';
+
+      const fileId = `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}.${ext}`;
+
+      const storageRef = ref(
+        storage,
+        `writing_images/${user.uid}/${fileId}`
+      );
+
+      await uploadBytes(storageRef, blob, {
+        contentType: blob.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+      });
+
+      const url = await getDownloadURL(storageRef);
+      setImageUrl(url);
+      Alert.alert('Thành công', 'Đã tải ảnh đề lên Writing.');
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert(
+        'Lỗi upload ảnh',
+        e?.message ?? 'Không thể tải ảnh, vui lòng thử lại.'
+      );
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    if (!imageUrl) return;
+    Alert.alert('Xoá ảnh', 'Bạn có chắc muốn xoá ảnh đề khỏi bài này?', [
+      { text: 'Huỷ', style: 'cancel' },
+      {
+        text: 'Xoá',
+        style: 'destructive',
+        onPress: () => setImageUrl(''),
+      },
+    ]);
   };
 
   // ===== SAVE =====
   const onSave = async () => {
-    if (!canSave || saving) {
+    if (!canSave || saving || imageUploading) {
       Alert.alert(
         'Thiếu thông tin',
-        'Vui lòng kiểm tra lại tiêu đề, prompt và các trường số.'
+        'Vui lòng kiểm tra lại tiêu đề, prompt, band, số từ và đảm bảo ảnh (nếu có) đã upload xong.'
       );
       return;
     }
@@ -168,26 +268,28 @@ export default function SpeakingCreate() {
       title: title.trim(),
       level: level as CEFR,
       topic: topic as Topic,
-      type: type as SpeakingType,
+      type: type as WritingType,
       bandMin: Number(bandMin),
       bandMax: Number(bandMax),
-      tasksCount: Number(tasksCount),
-      audioUrl: audioUrl.trim(),
+      wordMin: Number(wordMin),
+      wordMax: Number(wordMax),
       prompt: prompt.trim(),
       sampleAnswer: sampleAnswer.trim(),
+      writingTips: writingTips.trim(),
+      imageUrl: imageUrl.trim(),
       updatedAt: serverTimestamp(),
       ...(editingId ? {} : { createdAt: serverTimestamp() }),
     };
 
     try {
       if (editingId) {
-        await updateDoc(doc(db, 'speaking_lessons', editingId), payload);
+        await updateDoc(doc(db, 'writing_lessons', editingId), payload);
       } else {
-        await addDoc(collection(db, 'speaking_lessons'), payload);
+        await addDoc(collection(db, 'writing_lessons'), payload);
       }
       Alert.alert(
         'Thành công',
-        editingId ? 'Đã cập nhật bài Speaking.' : 'Đã tạo bài Speaking.'
+        editingId ? 'Đã cập nhật bài Writing.' : 'Đã tạo bài Writing.'
       );
       router.back();
     } catch (e: any) {
@@ -212,23 +314,24 @@ export default function SpeakingCreate() {
           </TouchableOpacity>
           <View>
             <Text style={S.headerTitle}>
-              {editingId ? 'Edit Speaking Lesson' : 'Create Speaking Lesson'}
+              {editingId ? 'Edit Writing Task' : 'Create Writing Task'}
             </Text>
             <Text style={S.headerSubtitle}>
               {editingId
-                ? 'Update an existing speaking task'
-                : 'Add a new speaking task to the system'}
+                ? 'Update an existing writing exercise'
+                : 'Add a new writing exercise to the system'}
             </Text>
           </View>
         </View>
 
         <TouchableOpacity
           onPress={onSave}
-          disabled={!canSave || saving || loading}
+          disabled={!canSave || saving || loading || imageUploading}
           style={[
             S.saveBtn,
             {
-              opacity: !canSave || saving || loading ? 0.6 : 1,
+              opacity:
+                !canSave || saving || loading || imageUploading ? 0.6 : 1,
               backgroundColor: canSave ? COLORS.create : COLORS.card2,
             },
           ]}
@@ -265,10 +368,10 @@ export default function SpeakingCreate() {
           contentContainerStyle={S.formWrap}
           keyboardShouldPersistTaps="handled"
         >
-          {/* SPEAKING INFO */}
+          {/* WRITING INFO */}
           <View style={S.sectionCard}>
             <View style={S.sectionHeader}>
-              <Text style={S.sectionTitle}>Speaking lesson info</Text>
+              <Text style={S.sectionTitle}>Writing task info</Text>
             </View>
 
             {/* Title */}
@@ -277,7 +380,7 @@ export default function SpeakingCreate() {
               <TextInput
                 value={title}
                 onChangeText={setTitle}
-                placeholder="E.g., Daily routine – Morning activities"
+                placeholder="E.g., Essay – Advantages of online learning"
                 placeholderTextColor={COLORS.muted}
                 style={S.input}
                 editable={!loading}
@@ -286,7 +389,7 @@ export default function SpeakingCreate() {
 
             {/* Level / Topic / Type */}
             <View style={S.formRow}>
-              <Text style={S.formLabel}>Level, Topic & speaking form</Text>
+              <Text style={S.formLabel}>Level, Topic & writing type</Text>
               <View style={S.formGroupRow}>
                 {/* Level */}
                 <TouchableOpacity
@@ -338,14 +441,14 @@ export default function SpeakingCreate() {
                   />
                 </TouchableOpacity>
 
-                {/* Speaking form */}
+                {/* Writing type */}
                 <TouchableOpacity
                   style={S.picker}
                   onPress={() => !loading && setTypePicker(true)}
                   activeOpacity={0.85}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={S.pickerLabel}>Form</Text>
+                    <Text style={S.pickerLabel}>Type</Text>
                     <Text
                       style={[
                         S.pickerValue,
@@ -353,7 +456,7 @@ export default function SpeakingCreate() {
                       ]}
                       numberOfLines={1}
                     >
-                      {type ? renderTypeLabel(type) : 'Select form'}
+                      {type ? renderTypeLabel(type) : 'Select type'}
                     </Text>
                   </View>
                   <Ionicons
@@ -397,13 +500,28 @@ export default function SpeakingCreate() {
                   editable={!loading}
                 />
               </View>
+            </View>
+
+            <View style={S.formGroupRow}>
               <View style={S.smallField}>
-                <Text style={S.formLabel}>Number of turns</Text>
+                <Text style={S.formLabel}>Min words</Text>
                 <TextInput
-                  value={tasksCount}
-                  onChangeText={setTasksCount}
+                  value={wordMin}
+                  onChangeText={setWordMin}
                   keyboardType="numeric"
-                  placeholder="1"
+                  placeholder="150"
+                  placeholderTextColor={COLORS.muted}
+                  style={S.input}
+                  editable={!loading}
+                />
+              </View>
+              <View style={S.smallField}>
+                <Text style={S.formLabel}>Max words</Text>
+                <TextInput
+                  value={wordMax}
+                  onChangeText={setWordMax}
+                  keyboardType="numeric"
+                  placeholder="250"
                   placeholderTextColor={COLORS.muted}
                   style={S.input}
                   editable={!loading}
@@ -424,12 +542,12 @@ export default function SpeakingCreate() {
               </View>
               <View style={S.badge}>
                 <Ionicons
-                  name="mic-outline"
+                  name="document-text-outline"
                   size={14}
                   color={COLORS.create}
                 />
                 <Text style={S.badgeText}>
-                  Turns: {tasksCount || '0'}
+                  Words: {wordMin || '?'} – {wordMax || '?'}
                 </Text>
               </View>
             </View>
@@ -438,26 +556,97 @@ export default function SpeakingCreate() {
           {/* CONTENT SECTION */}
           <View style={S.sectionCard}>
             <View style={S.sectionHeader}>
-              <Text style={S.sectionTitle}>Speaking content</Text>
+              <Text style={S.sectionTitle}>Writing content</Text>
               <Text style={S.sectionSubtitle}>
-                Optional audio, prompt and sample answer
+                Task image, prompt, sample answer and teacher tips
               </Text>
             </View>
 
-            {/* Audio URL */}
+            {/* Task image */}
             <View style={S.formRow}>
-              <Text style={S.formLabel}>Audio sample (URL)</Text>
-              <TextInput
-                value={audioUrl}
-                onChangeText={setAudioUrl}
-                placeholder="https://... (optional)"
-                style={S.input}
-                autoCapitalize="none"
-                placeholderTextColor={COLORS.muted}
-                editable={!loading}
-              />
+              <Text style={S.formLabel}>Task image (optional)</Text>
+              {imageUrl ? (
+                <>
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={S.imagePreview}
+                    resizeMode="cover"
+                  />
+                  <View style={S.imageActionsRow}>
+                    <TouchableOpacity
+                      style={[S.imageBtn, S.imageBtnPrimary]}
+                      onPress={handlePickImage}
+                      disabled={imageUploading || loading}
+                      activeOpacity={0.9}
+                    >
+                      {imageUploading ? (
+                        <ActivityIndicator size="small" color={COLORS.bg} />
+                      ) : (
+                        <>
+                          <Ionicons
+                            name="image-outline"
+                            size={14}
+                            color={COLORS.bg}
+                          />
+                          <Text style={[S.imageBtnText, S.imageBtnTextPrimary]}>
+                            Change image
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={S.imageBtn}
+                      onPress={handleRemoveImage}
+                      disabled={imageUploading || loading}
+                      activeOpacity={0.9}
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={14}
+                        color={COLORS.text}
+                      />
+                      <Text style={S.imageBtnText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={S.imageEmptyBox}>
+                    <Ionicons
+                      name="image-outline"
+                      size={22}
+                      color={COLORS.textMuted}
+                    />
+                    <Text style={S.imageEmptyText}>
+                      No task image selected.
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[S.imageBtn, S.imageBtnPrimary]}
+                    onPress={handlePickImage}
+                    disabled={imageUploading || loading}
+                    activeOpacity={0.9}
+                  >
+                    {imageUploading ? (
+                      <ActivityIndicator size="small" color={COLORS.bg} />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="cloud-upload-outline"
+                          size={14}
+                          color={COLORS.bg}
+                        />
+                        <Text style={[S.imageBtnText, S.imageBtnTextPrimary]}>
+                          Upload image
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
               <Text style={S.inlineHelpText}>
-                Can be a link from Firebase Storage, Cloudflare R2 or any CDN.
+                Ảnh đề bài (biểu đồ, infographic...) sẽ hiển thị cùng prompt.
               </Text>
             </View>
 
@@ -468,13 +657,13 @@ export default function SpeakingCreate() {
                 value={prompt}
                 onChangeText={setPrompt}
                 multiline
-                placeholder="E.g., Talk about your daily morning routine."
+                placeholder="E.g., Some people believe that... To what extent do you agree or disagree?"
                 style={[S.input, S.textarea]}
                 placeholderTextColor={COLORS.muted}
                 editable={!loading}
               />
               <Text style={S.inlineHelpText}>
-                This is the main content learners will see and answer.
+                Đây là đề bài / yêu cầu viết mà học viên sẽ nhìn thấy.
               </Text>
             </View>
 
@@ -485,13 +674,32 @@ export default function SpeakingCreate() {
                 value={sampleAnswer}
                 onChangeText={setSampleAnswer}
                 multiline
-                placeholder="E.g., I usually get up at 6 a.m. First, I brush my teeth..."
+                placeholder="E.g., In many countries, online learning has become..."
                 style={[S.input, S.textarea]}
                 placeholderTextColor={COLORS.muted}
                 editable={!loading}
               />
               <Text style={S.inlineHelpText}>
-                Use this to show a model answer / band sample for learners.
+                Dùng để lưu band sample / bài mẫu cho giáo viên hoặc hiển thị
+                cho học viên.
+              </Text>
+            </View>
+
+            {/* Writing tips */}
+            <View style={S.formRow}>
+              <Text style={S.formLabel}>Writing tips (optional)</Text>
+              <TextInput
+                value={writingTips}
+                onChangeText={setWritingTips}
+                multiline
+                placeholder="E.g., Remind students to cover all parts of the task, use linking words, and avoid very short paragraphs."
+                style={[S.input, S.textarea]}
+                placeholderTextColor={COLORS.muted}
+                editable={!loading}
+              />
+              <Text style={S.inlineHelpText}>
+                Gợi ý cho học viên: cấu trúc, ý chính, lỗi cần tránh, thời gian
+                đề nghị,...
               </Text>
             </View>
           </View>
@@ -505,7 +713,7 @@ export default function SpeakingCreate() {
         <View style={S.loadingOverlay}>
           <View style={S.loadingBox}>
             <ActivityIndicator size="small" color={COLORS.create} />
-            <Text style={S.loadingText}>Đang tải dữ liệu bài Speaking…</Text>
+            <Text style={S.loadingText}>Đang tải dữ liệu bài Writing…</Text>
           </View>
         </View>
       )}
@@ -623,7 +831,7 @@ export default function SpeakingCreate() {
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={S.modalBox}>
                 <View style={S.modalHeader}>
-                  <Text style={S.modalTitle}>Select speaking form</Text>
+                  <Text style={S.modalTitle}>Select writing type</Text>
                 </View>
                 {TYPES.map((tp) => {
                   const selected = type === tp;
@@ -643,7 +851,7 @@ export default function SpeakingCreate() {
                           { fontWeight: selected ? '700' : '500' },
                         ]}
                       >
-                        {renderTypeLabel(tp as SpeakingType)}
+                        {renderTypeLabel(tp as WritingType)}
                       </Text>
                       {selected && (
                         <Ionicons

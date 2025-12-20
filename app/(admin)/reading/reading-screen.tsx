@@ -1,10 +1,10 @@
-// app/(admin)/reading/reading-screen.tsx
-import { COLORS } from '@/components/style/admin/AdminColors';
-import { ReadingStyles as S } from '@/components/style/admin/reading/reading-styles';
+import { ReadingScreenStyles as S } from '@/components/style/admin/reading/reading-screen-styles';
+import { COLORS } from '@/components/style/colors/AppColors';
 import { db } from '@/scripts/firebase';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+
 import {
   collection,
   deleteDoc,
@@ -16,6 +16,7 @@ import {
   Timestamp,
   updateDoc,
 } from 'firebase/firestore';
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -35,6 +36,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+/* TYPES */
 type CEFR = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
 type ReadingType =
   | 'story'
@@ -45,6 +47,7 @@ type ReadingType =
   | 'blog'
   | 'dialogue'
   | 'instruction';
+
 type Topic =
   | 'Work & Office'
   | 'Travel & Transport'
@@ -63,7 +66,7 @@ type Reading = {
   sourceUrl?: string;
   level?: CEFR;
   topic?: Topic;
-  type?: ReadingType; // vẫn giữ trong dữ liệu nhưng không hiển thị/lọc
+  type?: ReadingType;
   bandMin?: number;
   bandMax?: number;
   questionsCount?: number;
@@ -85,6 +88,7 @@ const TOPICS: ('ALL' | Topic)[] = [
   'Business',
 ];
 
+/* Utils */
 function formatDate(d?: Date | null) {
   if (!d) return '';
   const dd = String(d.getDate()).padStart(2, '0');
@@ -95,18 +99,12 @@ function formatDate(d?: Date | null) {
 
 function colorForLevel(l?: string) {
   switch (l) {
-    case 'A1':
-      return '#22c55e';
-    case 'A2':
-      return '#10b981';
-    case 'B1':
-      return '#06b6d4';
-    case 'B2':
-      return '#60a5fa';
-    case 'C1':
-      return '#a78bfa';
-    default:
-      return '#9ca3af';
+    case 'A1': return '#22c55e';
+    case 'A2': return '#10b981';
+    case 'B1': return '#06b6d4';
+    case 'B2': return '#60a5fa';
+    case 'C1': return '#a78bfa';
+    default: return '#9ca3af';
   }
 }
 
@@ -126,23 +124,17 @@ async function openInApp(url?: string) {
   if (!url) return;
   const safe = normalizeUrl(url);
   try {
-    await WebBrowser.openBrowserAsync(safe, {
-      enableBarCollapsing: true,
-      showTitle: true,
-      enableDefaultShareMenuItem: false,
-      presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-    });
+    await WebBrowser.openBrowserAsync(safe);
   } catch {
-    const can = await Linking.canOpenURL(safe);
-    if (can) await Linking.openURL(safe);
-    else Alert.alert('Không mở được liên kết', safe);
+    const ok = await Linking.canOpenURL(safe);
+    if (ok) Linking.openURL(safe);
   }
 }
 
 function snippet(s?: string, max = 64) {
   if (!s) return '';
-  const oneLine = s.replace(/\s+/g, ' ').trim();
-  return oneLine.length > max ? oneLine.slice(0, max) + '…' : oneLine;
+  const oneline = s.replace(/\s+/g, ' ').trim();
+  return oneline.length > max ? oneline.slice(0, max) + '…' : oneline;
 }
 
 function wordsCount(s?: string) {
@@ -150,6 +142,7 @@ function wordsCount(s?: string) {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
+/* MAIN COMPONENT */
 export default function ReadingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -162,15 +155,9 @@ export default function ReadingScreen() {
   const [filterLevel, setFilterLevel] = useState<'ALL' | CEFR>('ALL');
   const [filterTopic, setFilterTopic] = useState<'ALL' | Topic>('ALL');
 
-  const [docModal, setDocModal] = useState<{
-    visible: boolean;
-    id?: string;
-    title: string;
-    content: string;
-    editing: boolean;
-  }>({
+  const [docModal, setDocModal] = useState({
     visible: false,
-    id: undefined,
+    id: undefined as string | undefined,
     title: '',
     content: '',
     editing: false,
@@ -179,43 +166,36 @@ export default function ReadingScreen() {
   const [levelCenter, setLevelCenter] = useState(false);
   const [topicCenter, setTopicCenter] = useState(false);
 
+  /* LOAD DATA */
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const q = query(collection(db, 'readings'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
-      const data: Reading[] = snap.docs.map((d) => {
-        const raw = d.data() as any;
-        return {
-          id: d.id,
-          title: raw.title ?? '(Không tiêu đề)',
-          passage: raw.passage ?? '',
-          sourceUrl: raw.sourceUrl ?? '',
-          level: (raw.level as CEFR) ?? 'A1',
-          topic: (raw.topic as Topic) ?? 'Daily Life',
-          type: (raw.type as ReadingType) ?? 'story',
-          bandMin:
-            typeof raw.bandMin === 'number' ? raw.bandMin : undefined,
-          bandMax:
-            typeof raw.bandMax === 'number' ? raw.bandMax : undefined,
-          questionsCount:
-            typeof raw.questionsCount === 'number'
-              ? raw.questionsCount
-              : undefined,
-          createdAt:
-            raw.createdAt instanceof Timestamp
-              ? raw.createdAt.toDate()
-              : null,
-          updatedAt:
-            raw.updatedAt instanceof Timestamp
-              ? raw.updatedAt.toDate()
-              : null,
-        };
-      });
-      setItems(data);
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert('Lỗi', e?.message ?? 'Không tải được danh sách');
+
+      setItems(
+        snap.docs.map((d) => {
+          const raw = d.data() as any;
+          return {
+            id: d.id,
+            title: raw.title ?? '(Không tiêu đề)',
+            passage: raw.passage ?? '',
+            sourceUrl: raw.sourceUrl ?? '',
+            level: raw.level ?? 'A1',
+            topic: raw.topic ?? 'Daily Life',
+            type: raw.type ?? 'story',
+            bandMin: raw.bandMin,
+            bandMax: raw.bandMax,
+            questionsCount: raw.questionsCount,
+            createdAt:
+              raw.createdAt instanceof Timestamp ? raw.createdAt.toDate() : null,
+            updatedAt:
+              raw.updatedAt instanceof Timestamp ? raw.updatedAt.toDate() : null,
+          };
+        })
+      );
+    } catch (e) {
+      Alert.alert('Lỗi load dữ liệu');
     } finally {
       setLoading(false);
     }
@@ -231,81 +211,34 @@ export default function ReadingScreen() {
     }, [loadData])
   );
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
-
   const filteredItems = useMemo(() => {
-    const text = searchText.trim().toLowerCase();
+    const txt = searchText.trim().toLowerCase();
     return items.filter((it) => {
       const matchText =
-        !text ||
-        it.title.toLowerCase().includes(text) ||
-        (it.passage ?? '').toLowerCase().includes(text) ||
-        (it.sourceUrl ?? '').toLowerCase().includes(text) ||
-        (it.topic ?? '').toLowerCase().includes(text);
-      // Loại (type) không còn được dùng để tìm
+        !txt ||
+        it.title.toLowerCase().includes(txt) ||
+        (it.passage ?? '').toLowerCase().includes(txt) ||
+        (it.sourceUrl ?? '').toLowerCase().includes(txt) ||
+        (it.topic ?? '').toLowerCase().includes(txt);
 
-      const matchLevel =
-        filterLevel === 'ALL' ? true : it.level === filterLevel;
-      const matchTopic =
-        filterTopic === 'ALL' ? true : it.topic === filterTopic;
+      const matchLevel = filterLevel === 'ALL' || it.level === filterLevel;
+      const matchTopic = filterTopic === 'ALL' || it.topic === filterTopic;
 
       return matchText && matchLevel && matchTopic;
     });
   }, [items, searchText, filterLevel, filterTopic]);
 
-  const onEdit = (id: string) => {
-    router.push({
-      pathname: '/(admin)/reading/reading-create',
-      params: { id },
-    });
-  };
-
-  const onManageQuestions = (item: Reading) => {
-    router.push({
-      pathname: '/(admin)/reading/reading-questions',
-      params: { id: item.id, title: item.title },
-    });
-  };
-
-  const onDelete = (id: string) => {
-    Alert.alert(
-      'Bạn muốn làm gì?',
-      'Sửa nội dung hay xoá hẳn bài đọc này?',
-      [
-        { text: 'Huỷ', style: 'cancel' },
-        { text: 'Sửa', onPress: () => onEdit(id) },
-        {
-          text: 'Xoá hẳn',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, 'readings', id));
-              setItems((prev) => prev.filter((i) => i.id !== id));
-            } catch (e: any) {
-              console.error(e);
-              Alert.alert('Lỗi', e?.message ?? 'Không xoá được');
-            }
-          },
-        },
-      ]
-    );
-  };
-
+  /* ACTIONS */
   const openPassage = (item: Reading) => {
-    const content = (item.passage || '').trim();
-    if (!content) {
-      Alert.alert('Chưa có nội dung bài đọc');
+    if (!item.passage?.trim()) {
+      Alert.alert('Bài đọc trống');
       return;
     }
     setDocModal({
       visible: true,
       id: item.id,
-      title: item.title || 'Bài đọc',
-      content,
+      title: item.title,
+      content: item.passage,
       editing: false,
     });
   };
@@ -317,18 +250,17 @@ export default function ReadingScreen() {
         passage: docModal.content.trim(),
         updatedAt: serverTimestamp(),
       });
+
       setItems((prev) =>
         prev.map((it) =>
-          it.id === docModal.id
-            ? { ...it, passage: docModal.content }
-            : it
+          it.id === docModal.id ? { ...it, passage: docModal.content } : it
         )
       );
+
       setDocModal((p) => ({ ...p, editing: false }));
-      Alert.alert('Đã lưu', 'Cập nhật bài đọc thành công.');
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert('Lỗi', e?.message ?? 'Không thể lưu bài đọc');
+      Alert.alert('Đã lưu bài đọc');
+    } catch {
+      Alert.alert('Lỗi lưu bài đọc');
     }
   };
 
@@ -337,111 +269,81 @@ export default function ReadingScreen() {
 
     return (
       <View style={S.card}>
+        {/* Header */}
         <View style={S.cardHeader}>
           <View style={{ flex: 1 }}>
             <View style={S.rowLine}>
-              <Ionicons
-                name="book-outline"
-                size={16}
-                color={COLORS.subText}
-              />
+              <Ionicons name="book-outline" size={16} color={COLORS.subText} />
               <Text style={S.rowLabel}>Tiêu đề:</Text>
               <Text style={S.cardTitle} numberOfLines={2}>
                 {item.title}
               </Text>
             </View>
           </View>
+
           <View
             style={[
               S.badge,
               { backgroundColor: colorForLevel(item.level) },
             ]}
           >
-            <Text style={S.badgeText}>{item.level ?? '—'}</Text>
+            <Text style={S.badgeText}>{item.level}</Text>
           </View>
         </View>
 
-        <View style={[S.rowLine, { marginTop: 6 }]}>
-          <Ionicons
-            name="albums-outline"
-            size={16}
-            color={COLORS.subText}
-          />
+        {/* Topic */}
+        <View style={S.rowLine}>
+          <Ionicons name="albums-outline" size={16} color={COLORS.subText} />
           <Text style={S.rowLabel}>Chủ đề:</Text>
-          <Text style={S.rowText}>{item.topic ?? '—'}</Text>
+          <Text style={S.rowText}>{item.topic}</Text>
         </View>
 
-        <View style={[S.rowLine, { marginTop: 4 }]}>
-          <Ionicons
-            name="speedometer-outline"
-            size={16}
-            color={COLORS.subText}
-          />
+        {/* Band + Questions */}
+        <View style={S.rowLine}>
+          <Ionicons name="speedometer-outline" size={16} color={COLORS.subText} />
           <Text style={S.rowLabel}>Band:</Text>
-          <Text style={S.rowText}>
-            {bandLabel(item.bandMin, item.bandMax)}
-          </Text>
-          {!!item.questionsCount && (
+          <Text style={S.rowText}>{bandLabel(item.bandMin, item.bandMax)}</Text>
+
+          {item.questionsCount && (
             <>
-              <Text
-                style={[S.rowLabel, { marginLeft: 8 }]}
-              >
-                Câu hỏi:
-              </Text>
-              <Text style={S.rowText}>
-                {item.questionsCount}
-              </Text>
+              <Text style={S.rowLabel}>Câu hỏi:</Text>
+              <Text style={S.rowText}>{item.questionsCount}</Text>
             </>
           )}
         </View>
 
-        {(item.updatedAt || item.createdAt) && (
-          <View style={[S.rowLine, { marginTop: 4 }]}>
+        {/* Date */}
+        {item.updatedAt && (
+          <View style={S.rowLine}>
             <Ionicons
-              name="calendar-clear-outline"
+              name="calendar-outline"
               size={16}
               color={COLORS.subText}
             />
             <Text style={S.rowLabel}>Cập nhật:</Text>
-            <Text style={S.rowText}>
-              {formatDate(item.updatedAt || item.createdAt)}
-            </Text>
+            <Text style={S.rowText}>{formatDate(item.updatedAt)}</Text>
           </View>
         )}
 
-        {!!item.passage?.trim() && (
+        {/* Passage */}
+        {item.passage?.trim() && (
           <View style={S.rowLine}>
-            <Ionicons
-              name="document-text-outline"
-              size={16}
-              color={COLORS.link}
-            />
+            <Ionicons name="document-text-outline" size={16} color={COLORS.link} />
             <Text style={S.rowLabel}>Bài đọc:</Text>
-            <TouchableOpacity
-              onPress={() => openPassage(item)}
-              activeOpacity={0.7}
-              style={{ flex: 1 }}
-            >
+            <TouchableOpacity onPress={() => openPassage(item)} style={{ flex: 1 }}>
               <Text style={S.rowTextLink} numberOfLines={1}>
-                {snippet(item.passage)} {wc ? `• ${wc} từ` : ''}
+                {snippet(item.passage)} • {wc} từ
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
+        {/* SOURCE LINK */}
         {!!item.sourceUrl?.trim() && (
           <View style={S.rowLine}>
-            <Ionicons
-              name="link-outline"
-              size={16}
-              color={COLORS.link}
-            />
+            <Ionicons name="link-outline" size={16} color={COLORS.link} />
             <Text style={S.rowLabel}>Nguồn:</Text>
-            <TouchableOpacity
-              onPress={() => openInApp(item.sourceUrl)}
-              activeOpacity={0.7}
-              style={{ flex: 1 }}
-            >
+            <TouchableOpacity onPress={() => openInApp(item.sourceUrl)} style={{ flex: 1 }}>
               <Text style={S.rowTextLink} numberOfLines={1}>
                 {item.sourceUrl}
               </Text>
@@ -449,415 +351,196 @@ export default function ReadingScreen() {
           </View>
         )}
 
-        <View
-          style={[
-            S.cardActions,
-            {
-              flexWrap: 'nowrap',
-              justifyContent: 'flex-start',
-              gap: 12,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={S.iconBtn}
-            onPress={() => openPassage(item)}
-          >
-            <Ionicons
-              name="eye-outline"
-              size={20}
-              color={COLORS.text}
-            />
+        {/* ACTION BUTTONS */}
+        <View style={S.cardActions}>
+          <TouchableOpacity style={S.iconBtn} onPress={() => openPassage(item)}>
+            <Ionicons name="eye-outline" size={20} color={COLORS.text} />
             <Text style={S.iconBtnText}>Xem bài</Text>
           </TouchableOpacity>
 
-          {!!item.sourceUrl?.trim() && (
-            <TouchableOpacity
-              style={S.iconBtn}
-              onPress={() => openInApp(item.sourceUrl)}
-            >
-              <Ionicons
-                name="open-outline"
-                size={20}
-                color={COLORS.text}
-              />
-              <Text style={S.iconBtnText}>Mở nguồn</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Nút quản lý câu hỏi */}
           <TouchableOpacity
             style={S.iconBtn}
-            onPress={() => onManageQuestions(item)}
+            onPress={() =>
+              router.push({
+                pathname: '/(admin)/reading/reading-questions',
+                params: { id: item.id, title: item.title },
+              })
+            }
           >
-            <Ionicons
-              name="help-circle-outline"
-              size={20}
-              color={COLORS.text}
-            />
+            <Ionicons name="help-circle-outline" size={20} color={COLORS.text} />
             <Text style={S.iconBtnText}>Câu hỏi</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={S.iconBtn}
-            onPress={() => onEdit(item.id)}
+            onPress={() =>
+              router.push({
+                pathname: '/(admin)/reading/reading-create',
+                params: { id: item.id },
+              })
+            }
           >
-            <Ionicons
-              name="create-outline"
-              size={20}
-              color={COLORS.edit}
-            />
-            <Text
-              style={[
-                S.iconBtnText,
-                { color: COLORS.edit },
-              ]}
-            >
-              Sửa
-            </Text>
+            <Ionicons name="create-outline" size={20} color={COLORS.edit} />
+            <Text style={[S.iconBtnText, { color: COLORS.edit }]}>Sửa</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={S.iconBtn}
-            onPress={() => onDelete(item.id)}
+            onPress={() =>
+              deleteDoc(doc(db, 'readings', item.id)).then(loadData)
+            }
           >
-            <Ionicons
-              name="trash-outline"
-              size={20}
-              color={COLORS.del}
-            />
-            <Text
-              style={[
-                S.iconBtnText,
-                { color: COLORS.del },
-              ]}
-            >
-              Xoá
-            </Text>
+            <Ionicons name="trash-outline" size={20} color={COLORS.del} />
+            <Text style={[S.iconBtnText, { color: COLORS.del }]}>Xoá</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
+  /* RENDER MAIN */
   return (
     <View style={[S.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" />
 
+      {/* HEADER */}
       <View style={S.header}>
         <TouchableOpacity
           onPress={() => router.push('/(admin)/home')}
           style={S.backBtn}
-          activeOpacity={0.7}
         >
-          <Ionicons
-            name="arrow-back-outline"
-            size={22}
-            color={COLORS.text}
-          />
+          <Ionicons name="arrow-back-outline" size={22} color={COLORS.text} />
         </TouchableOpacity>
+
         <Text style={S.headerTitle}>Quản lý Reading</Text>
-        <View style={{ width: 22 }} />
+
+        <View style={{ width: 24 }} />
       </View>
 
-      {/* SEARCH ROW (hàng 1) */}
-      <View style={[S.filterRow, { gap: 8 }]}>
-        <View style={[S.searchBox, { flex: 1 }]}>
-          <Ionicons
-            name="search-outline"
-            size={18}
-            color={COLORS.muted}
-            style={{ marginRight: 6 }}
-          />
+      {/* SEARCH BAR */}
+      <View style={S.filterRow}>
+        <View style={S.searchBox}>
+          <Ionicons name="search-outline" size={18} color={COLORS.muted} />
           <TextInput
             placeholder="Tìm theo tiêu đề, bài đọc, link, chủ đề…"
             placeholderTextColor={COLORS.muted}
             value={searchText}
             onChangeText={setSearchText}
             style={S.searchInput}
-            returnKeyType="search"
             onSubmitEditing={Keyboard.dismiss}
             autoCapitalize="none"
           />
         </View>
       </View>
 
-      {/* FILTER ROW (hàng 2: Level + Topic) */}
-      <View style={[S.filterRow, { gap: 8 }]}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setLevelCenter(true)}
-          style={[S.filterPicker, { flex: 1 }]}
-        >
+      {/* FILTER ROW */}
+      <View style={S.filterRow}>
+        {/* LEVEL */}
+        <TouchableOpacity style={S.filterPicker} onPress={() => setLevelCenter(true)}>
           <Text style={S.filterValueText}>
-            {filterLevel === 'ALL'
-              ? 'Level: All'
-              : `Level: ${filterLevel}`}
+            {filterLevel === 'ALL' ? 'Level: All' : `Level: ${filterLevel}`}
           </Text>
-          <Ionicons
-            name="chevron-down"
-            size={16}
-            color={COLORS.muted}
-            style={S.filterChevron}
-          />
+          <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => setTopicCenter(true)}
-          style={[S.filterPicker, { flex: 1 }]}
-        >
+        {/* TOPIC */}
+        <TouchableOpacity style={[S.filterPicker, { marginLeft: 8 }]} onPress={() => setTopicCenter(true)}>
           <Text style={S.filterValueText}>
-            {filterTopic === 'ALL'
-              ? 'Topic: All'
-              : `Topic: ${filterTopic}`}
+            {filterTopic === 'ALL' ? 'Topic: All' : `Topic: ${filterTopic}`}
           </Text>
-          <Ionicons
-            name="chevron-down"
-            size={16}
-            color={COLORS.muted}
-            style={S.filterChevron}
-          />
+          <Ionicons name="chevron-down" size={16} color={COLORS.muted} />
         </TouchableOpacity>
       </View>
 
+      {/* LIST */}
       {loading ? (
-        <ActivityIndicator
-          style={{ marginTop: 40 }}
-          color={COLORS.create}
-        />
+        <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.create} />
       ) : (
         <FlatList
           data={filteredItems}
           keyExtractor={(item) => item.id}
+          renderItem={renderItem}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={loadData} />
           }
-          contentContainerStyle={{
-            paddingBottom: insets.bottom + 24,
-          }}
           ListEmptyComponent={
             <View style={S.emptyWrap}>
               <Text style={S.emptyTitle}>Chưa có bài đọc</Text>
               <Text style={S.emptyText}>
-                Bấm <Text style={S.emptyEm}>+</Text> để tạo bài đọc đầu
-                tiên.
+                Bấm <Text style={S.emptyEm}>+</Text> để tạo bài đọc đầu tiên
               </Text>
             </View>
-          }
-          renderItem={renderItem}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          ListFooterComponent={
-            <View style={{ height: 84 + insets.bottom }} />
           }
         />
       )}
 
+      {/* FLOATING ADD BUTTON */}
       <TouchableOpacity
         style={[S.fab, { bottom: 24 + insets.bottom }]}
-        onPress={() =>
-          router.push('/(admin)/reading/reading-create')
-        }
-        activeOpacity={0.85}
+        onPress={() => router.push('/(admin)/reading/reading-create')}
       >
         <Ionicons name="add-outline" size={28} color={COLORS.bg} />
       </TouchableOpacity>
 
-      {/* DOC MODAL (tap outside to close) */}
-      <Modal
-        visible={docModal.visible}
-        transparent
-        animationType="fade"
-        onRequestClose={() =>
-          setDocModal((p) => ({ ...p, visible: false }))
-        }
-      >
+      {/* ===================== MODALS ===================== */}
+
+      {/* VIEW / EDIT PASSAGE */}
+      <Modal visible={docModal.visible} transparent animationType="fade">
         <TouchableWithoutFeedback
-          onPress={() =>
-            setDocModal((p) => ({ ...p, visible: false }))
-          }
+          onPress={() => setDocModal((p) => ({ ...p, visible: false }))}
         >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 16,
-            }}
-          >
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <View
-                style={{
-                  width: '92%',
-                  maxWidth: 520,
-                  maxHeight: '80%',
-                  backgroundColor: COLORS.card,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: COLORS.borderSoft,
-                  overflow: 'hidden',
-                  position: 'relative',
-                }}
-              >
+          <View style={S.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={S.modalBox}>
+                {/* CLOSE */}
                 <TouchableOpacity
+                  style={S.modalCloseBtn}
                   onPress={() =>
                     setDocModal((p) => ({ ...p, visible: false }))
                   }
-                  style={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    zIndex: 2,
-                    padding: 6,
-                    borderRadius: 10,
-                    backgroundColor: COLORS.card2,
-                    borderWidth: 1,
-                    borderColor: COLORS.borderSoft,
-                  }}
-                  hitSlop={{
-                    top: 8,
-                    right: 8,
-                    bottom: 8,
-                    left: 8,
-                  }}
                 >
-                  <Ionicons
-                    name="close"
-                    size={18}
-                    color={COLORS.text}
-                  />
+                  <Ionicons name="close" size={18} color={COLORS.text} />
                 </TouchableOpacity>
 
-                <View
-                  style={{
-                    paddingHorizontal: 16,
-                    paddingTop: 14,
-                    paddingBottom: 8,
-                    borderBottomWidth: 1,
-                    borderBottomColor: COLORS.border,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: COLORS.text,
-                      fontSize: 16,
-                      fontWeight: '700',
-                    }}
-                    numberOfLines={2}
-                  >
-                    {docModal.title || 'Bài đọc'}
-                  </Text>
+                {/* HEADER */}
+                <View style={S.modalHeader}>
+                  <Text style={S.modalTitle}>{docModal.title}</Text>
                 </View>
 
+                {/* CONTENT */}
                 {docModal.editing ? (
-                  <ScrollView
-                    style={{
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                    }}
-                  >
+                  <ScrollView style={S.modalScroll}>
                     <TextInput
                       multiline
                       value={docModal.content}
                       onChangeText={(t) =>
-                        setDocModal((p) => ({
-                          ...p,
-                          content: t,
-                        }))
+                        setDocModal((p) => ({ ...p, content: t }))
                       }
-                      style={{
-                        color: COLORS.text,
-                        backgroundColor: COLORS.card2,
-                        borderWidth: 1,
-                        borderColor: COLORS.borderSoft,
-                        borderRadius: 10,
-                        padding: 12,
-                        minHeight: 160,
-                        textAlignVertical: 'top',
-                      }}
-                      placeholder="Nhập nội dung bài đọc…"
-                      placeholderTextColor={COLORS.muted}
+                      style={S.modalInput}
                     />
                   </ScrollView>
                 ) : (
-                  <ScrollView
-                    style={{
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: COLORS.subText,
-                        fontSize: 14,
-                        lineHeight: 22,
-                      }}
-                    >
-                      {docModal.content}
-                    </Text>
+                  <ScrollView style={S.modalScroll}>
+                    <Text style={S.modalText}>{docModal.content}</Text>
                   </ScrollView>
                 )}
 
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'flex-end',
-                    gap: 12,
-                    padding: 12,
-                    borderTopWidth: 1,
-                    borderTopColor: COLORS.border,
-                  }}
-                >
+                {/* FOOTER */}
+                <View style={S.modalFooter}>
                   {!docModal.editing ? (
                     <TouchableOpacity
-                      style={[
-                        S.iconBtn,
-                        { backgroundColor: COLORS.card2 },
-                      ]}
+                      style={S.iconBtn}
                       onPress={() =>
-                        setDocModal((p) => ({
-                          ...p,
-                          editing: true,
-                        }))
+                        setDocModal((p) => ({ ...p, editing: true }))
                       }
                     >
-                      <Ionicons
-                        name="create-outline"
-                        size={20}
-                        color={COLORS.text}
-                      />
+                      <Ionicons name="create-outline" size={20} color={COLORS.text} />
                       <Text style={S.iconBtnText}>Chỉnh sửa</Text>
                     </TouchableOpacity>
                   ) : (
-                    <TouchableOpacity
-                      style={[
-                        S.iconBtn,
-                        {
-                          backgroundColor: COLORS.create,
-                          borderColor: COLORS.border,
-                        },
-                      ]}
-                      onPress={savePassage}
-                      activeOpacity={0.9}
-                    >
-                      <Ionicons
-                        name="save-outline"
-                        size={20}
-                        color={COLORS.bg}
-                      />
-                      <Text
-                        style={[
-                          S.iconBtnText,
-                          { color: COLORS.bg },
-                        ]}
-                      >
-                        Lưu
-                      </Text>
+                    <TouchableOpacity style={S.iconBtn} onPress={savePassage}>
+                      <Ionicons name="save-outline" size={20} color={COLORS.text} />
+                      <Text style={S.iconBtnText}>Lưu</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -867,84 +550,36 @@ export default function ReadingScreen() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* LEVEL PICKER (tap outside to close) */}
-      <Modal
-        visible={levelCenter}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setLevelCenter(false)}
-      >
-        <TouchableWithoutFeedback
-          onPress={() => setLevelCenter(false)}
-        >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: 'rgba(0,0,0,0.45)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 16,
-            }}
-          >
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <View
-                style={{
-                  width: 260,
-                  backgroundColor: COLORS.card,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: COLORS.borderSoft,
-                  overflow: 'hidden',
-                }}
-              >
-                <View
-                  style={{
-                    padding: 14,
-                    borderBottomWidth: 1,
-                    borderBottomColor: COLORS.border,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: COLORS.text,
-                      fontSize: 16,
-                      fontWeight: '700',
-                    }}
-                  >
-                    Chọn cấp độ
-                  </Text>
+      {/* LEVEL PICKER */}
+      <Modal visible={levelCenter} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setLevelCenter(false)}>
+          <View style={S.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={S.pickerBox}>
+                <View style={S.pickerHeader}>
+                  <Text style={S.pickerHeaderText}>Chọn cấp độ</Text>
                 </View>
 
                 {LEVELS.map((lv) => {
-                  const label = lv === 'ALL' ? 'All' : lv;
                   const selected = filterLevel === lv;
                   return (
                     <TouchableOpacity
                       key={lv}
-                      activeOpacity={0.9}
+                      style={S.pickerItem}
                       onPress={() => {
                         setFilterLevel(lv);
                         setLevelCenter(false);
                       }}
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottomWidth: 1,
-                        borderBottomColor: COLORS.borderSoft,
-                      }}
                     >
                       <Text
-                        style={{
-                          color: COLORS.text,
-                          fontSize: 15,
-                          fontWeight: selected ? '700' : '500',
-                        }}
+                        style={[
+                          S.pickerItemText,
+                          selected && { fontWeight: '700', color: COLORS.create },
+                        ]}
                       >
-                        {label}
+                        {lv === 'ALL' ? 'All' : lv}
                       </Text>
+
                       {selected && (
                         <Ionicons
                           name="checkmark"
@@ -961,84 +596,36 @@ export default function ReadingScreen() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* TOPIC PICKER (tap outside to close) */}
-      <Modal
-        visible={topicCenter}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setTopicCenter(false)}
-      >
-        <TouchableWithoutFeedback
-          onPress={() => setTopicCenter(false)}
-        >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: 'rgba(0,0,0,0.45)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 16,
-            }}
-          >
-            <TouchableWithoutFeedback onPress={() => {}}>
-              <View
-                style={{
-                  width: 300,
-                  backgroundColor: COLORS.card,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: COLORS.borderSoft,
-                  overflow: 'hidden',
-                }}
-              >
-                <View
-                  style={{
-                    padding: 14,
-                    borderBottomWidth: 1,
-                    borderBottomColor: COLORS.border,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: COLORS.text,
-                      fontSize: 16,
-                      fontWeight: '700',
-                    }}
-                  >
-                    Chọn chủ đề
-                  </Text>
+      {/* TOPIC PICKER */}
+      <Modal visible={topicCenter} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setTopicCenter(false)}>
+          <View style={S.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[S.pickerBox, { width: 300 }]}>
+                <View style={S.pickerHeader}>
+                  <Text style={S.pickerHeaderText}>Chọn chủ đề</Text>
                 </View>
 
                 {TOPICS.map((tp) => {
-                  const label = tp === 'ALL' ? 'All' : tp;
                   const selected = filterTopic === tp;
                   return (
                     <TouchableOpacity
                       key={tp}
-                      activeOpacity={0.9}
+                      style={S.pickerItem}
                       onPress={() => {
                         setFilterTopic(tp);
                         setTopicCenter(false);
                       }}
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottomWidth: 1,
-                        borderBottomColor: COLORS.borderSoft,
-                      }}
                     >
                       <Text
-                        style={{
-                          color: COLORS.text,
-                          fontSize: 15,
-                          fontWeight: selected ? '700' : '500',
-                        }}
+                        style={[
+                          S.pickerItemText,
+                          selected && { fontWeight: '700', color: COLORS.create },
+                        ]}
                       >
-                        {label}
+                        {tp === 'ALL' ? 'All' : tp}
                       </Text>
+
                       {selected && (
                         <Ionicons
                           name="checkmark"

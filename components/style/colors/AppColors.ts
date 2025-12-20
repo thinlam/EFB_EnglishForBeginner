@@ -1,39 +1,44 @@
 // components/style/colors/AppColors.ts
 
-// 🎨 LIGHT THEME — dịu hơn, bớt chói
+// 🌤️ LIGHT THEME — tone sáng, sạch, hiện đại
 export const COLORS = {
   /* ================================
    * BACKGROUND
    * ================================ */
-  bgScreen: '#e5e7eb',   // nền ngoài (xám nhạt hơn, đỡ trắng gắt)
-  bg: '#f3f4f6',         // nền chính phía sau card
-  card: '#ffffff',       // card trắng
-  card2: '#edf1f7',      // input / block phụ (xám xanh rất nhẹ)
+  bgScreen: '#f3f4f6',     // nền tổng thể — rất sáng, trung tính
+  bg: '#ffffff',           // nền chính — trắng sáng
+  card: '#ffffff',         // card — màu trắng sạch
+  card2: '#f9fafb',        // block phụ — siêu sáng (gần trắng)
 
   /* ================================
    * BORDER
    * ================================ */
-  border: '#d4d4d8',
-  borderLight: '#e5e7eb',
+  border: '#e5e7eb',       // xám sáng
+  borderLight: '#f1f5f9',  // siêu sáng, chỉ vừa đủ nhìn
 
   /* ================================
-   * TEXT
+   * TEXT — giữ độ tương phản cao
    * ================================ */
-  text: '#0f172a',        // text chính, đậm hơn 1 chút
-  textMuted: '#6b7280',   // mô tả
-  textSoft: '#9ca3af',    // hint
-  muted: '#9ca3af',       // dùng cho placeholderTextColor
+  text: '#0f172a',         // text chính — xanh đen hiện đại
+  textMuted: '#6b7280',    // mô tả
+  textSoft: '#9ca3af',     // hint
+  muted: '#9ca3af',        // placeholder
 
   /* ================================
    * ACTION COLORS
    * ================================ */
-  primary: '#2563eb',
-  create: '#2563eb',
+  primary: '#2563eb',      // xanh dương sáng — modern
+  create: '#2563eb',       // dùng chung
   danger: '#ef4444',
   warning: '#f97316',
 
   /* ================================
-   * CHOICE COLORS (Listening / Quiz)
+   * LINK COLOR (bạn yêu cầu)
+   * ================================ */
+  link: '#3b82f6',         // xanh link tươi — nổi bật + hiện đại
+
+  /* ================================
+   * QUIZ / LISTENING COLORS
    * ================================ */
   choiceBg: '#ffffff',
   choiceBorder: '#d4d4d8',
@@ -45,4 +50,11 @@ export const COLORS = {
   choiceWrongBg: '#fef2f2',
   choiceWrongBorder: '#fecaca',
   choiceWrongText: '#b91c1c',
+    /* ================================
+   * EXTRA COLORS (needed by screens)
+   * ================================ */
+  subText: '#475569',     // dùng trong info, subtitle
+  edit: '#2563eb',        // màu icon sửa
+  del: '#ef4444',         // màu icon xoá
+  borderSoft: '#d1d5db',   // xám nhẹ, mềm hơn border
 };

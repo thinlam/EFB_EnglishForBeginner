@@ -1,4 +1,5 @@
 // app/(tabs)/test/A1/do-test.tsx
+
 import { Audio } from "expo-av";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -9,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { db } from "@/scripts/firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -16,14 +18,13 @@ import { doc, getDoc } from "firebase/firestore";
 export default function DoTestA1() {
   const router = useRouter();
   const { testId } = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
 
   const [testData, setTestData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
   const [currentPart, setCurrentPart] = useState<
     "listening" | "reading" | "writing"
   >("listening");
-
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [sound, setSound] = useState<Audio.Sound | null>(null);
 
@@ -34,17 +35,13 @@ export default function DoTestA1() {
     };
   }, [sound]);
 
-  // Load test from Firestore
+  // Load Test
   useEffect(() => {
     const loadTest = async () => {
       try {
         const ref = doc(db, "tests_cefr", "A1", "pools", String(testId));
         const snap = await getDoc(ref);
-        if (snap.exists()) {
-          setTestData(snap.data());
-        }
-      } catch (err) {
-        console.error(err);
+        if (snap.exists()) setTestData(snap.data());
       } finally {
         setLoading(false);
       }
@@ -52,35 +49,47 @@ export default function DoTestA1() {
     loadTest();
   }, [testId]);
 
+  // Loading UI
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }}
+      >
         <Text>Đang tải bài test...</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!testData) {
     return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }}
+      >
         <Text>Lỗi tải test!</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   const { listening, reading, writing, meta } = testData;
 
-  // ======================================================
-  // Play Audio
-  // ======================================================
+  // ================= AUDIO =================
   const playAudio = async () => {
     try {
       if (Platform.OS === "web") {
         const audio = new window.Audio(listening.audioUrl);
-        audio.play().catch(() =>
-          alert("Trình duyệt chặn phát audio! Nhấn lại lần nữa nhé.")
-        );
-        return;
+        return audio.play();
       }
 
       if (sound) await sound.unloadAsync();
@@ -96,21 +105,28 @@ export default function DoTestA1() {
     }
   };
 
-  // ======================================================
-  // SAVE ANSWER
-  // ======================================================
-  const saveAnswer = (qid: string, value: any) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [qid]: value,
-    }));
-  };
+  const saveAnswer = (qid: string, value: any) =>
+    setAnswers((prev) => ({ ...prev, [qid]: value }));
 
-  // ======================================================
-  // LISTENING UI
-  // ======================================================
+  // ⭐ Wrapper UI layout
+  const Wrap = ({ children }: any) => (
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: insets.top + 20,
+          paddingBottom: insets.bottom + 50,
+        }}
+      >
+        {children}
+      </ScrollView>
+    </SafeAreaView>
+  );
+
+  // ================= LISTENING =================
   const renderListening = () => (
-    <ScrollView style={{ padding: 20 }}>
+    <Wrap>
       <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20 }}>
         Listening
       </Text>
@@ -128,7 +144,10 @@ export default function DoTestA1() {
       </TouchableOpacity>
 
       {listening.questions.map((q: any, index: number) => (
-        <View key={q.id} style={{ marginBottom: 25 }}>
+        <View
+          key={q.id ?? `listening-${index}`}
+          style={{ marginBottom: 25 }}
+        >
           <Text style={{ fontSize: 20, marginBottom: 10 }}>
             {index + 1}. {q.question}
           </Text>
@@ -137,7 +156,7 @@ export default function DoTestA1() {
             const selected = answers[q.id] === i;
             return (
               <TouchableOpacity
-                key={i}
+                key={`${q.id ?? `lq-${index}`}-opt-${i}`}
                 onPress={() => saveAnswer(q.id, i)}
                 style={{
                   padding: 15,
@@ -168,14 +187,12 @@ export default function DoTestA1() {
           Next → Reading
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </Wrap>
   );
 
-  // ======================================================
-  // READING UI
-  // ======================================================
+  // ================= READING =================
   const renderReading = () => (
-    <ScrollView style={{ padding: 20 }}>
+    <Wrap>
       <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20 }}>
         Reading
       </Text>
@@ -185,7 +202,10 @@ export default function DoTestA1() {
       </Text>
 
       {reading.questions.map((q: any, index: number) => (
-        <View key={q.id} style={{ marginBottom: 25 }}>
+        <View
+          key={q.id ?? `reading-${index}`}
+          style={{ marginBottom: 25 }}
+        >
           <Text style={{ fontSize: 20, marginBottom: 10 }}>
             {index + 1}. {q.question}
           </Text>
@@ -194,7 +214,7 @@ export default function DoTestA1() {
             const selected = answers[q.id] === i;
             return (
               <TouchableOpacity
-                key={i}
+                key={`${q.id ?? `rq-${index}`}-opt-${i}`}
                 onPress={() => saveAnswer(q.id, i)}
                 style={{
                   padding: 15,
@@ -225,14 +245,12 @@ export default function DoTestA1() {
           Next → Writing
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </Wrap>
   );
 
-  // ======================================================
-  // WRITING UI
-  // ======================================================
+  // ================= WRITING =================
   const renderWriting = () => (
-    <ScrollView style={{ padding: 20 }}>
+    <Wrap>
       <Text style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20 }}>
         Writing
       </Text>
@@ -241,18 +259,18 @@ export default function DoTestA1() {
         const kind = (q.kind || q.type || "").trim().toLowerCase();
 
         return (
-          <View key={q.id} style={{ marginBottom: 20 }}>
+          <View key={q.id ?? `writing-${idx}`} style={{ marginBottom: 20 }}>
             <Text style={{ fontSize: 20, marginBottom: 10 }}>
               {idx + 1}. {q.question}
             </Text>
 
-            {/* fill_blank + choose_sentence */}
+            {/* Multiple choice */}
             {["fill_blank", "choose_sentence"].includes(kind) &&
               q.options.map((opt: any, i: number) => {
                 const selected = answers[q.id] === i;
                 return (
                   <TouchableOpacity
-                    key={i}
+                    key={`${q.id ?? `wq-${idx}`}-opt-${i}`}
                     onPress={() => saveAnswer(q.id, i)}
                     style={{
                       padding: 15,
@@ -268,7 +286,7 @@ export default function DoTestA1() {
                 );
               })}
 
-            {/* reorder */}
+            {/* Reorder */}
             {kind === "reorder" &&
               q.options.map((opt: any, i: number) => {
                 const arr = answers[q.id] || [];
@@ -276,14 +294,12 @@ export default function DoTestA1() {
 
                 return (
                   <TouchableOpacity
-                    key={i}
+                    key={`${q.id ?? `wq-${idx}`}-reorder-${i}`}
                     onPress={() => {
                       let cur = [...arr];
-                      if (cur.includes(opt)) {
-                        cur = cur.filter((x) => x !== opt);
-                      } else {
-                        cur.push(opt);
-                      }
+                      cur.includes(opt)
+                        ? (cur = cur.filter((x) => x !== opt))
+                        : cur.push(opt);
                       saveAnswer(q.id, cur);
                     }}
                     style={{
@@ -316,12 +332,10 @@ export default function DoTestA1() {
           Submit Test
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </Wrap>
   );
 
-  // ======================================================
-  // SUBMIT TEST
-  // ======================================================
+  // ================= SUBMIT =================
   const submitTest = () => {
     let score = 0;
 
@@ -331,10 +345,12 @@ export default function DoTestA1() {
       if (kind === "reorder") {
         const user = answers[q.id] || [];
         const correct = q.answer;
-        if (user.length === correct.length) {
-          if (user.every((x: any, i: number) => x === correct[i])) {
-            return q.score;
-          }
+
+        if (
+          user.length === correct.length &&
+          user.every((x: any, i: number) => x === correct[i])
+        ) {
+          return q.score;
         }
         return 0;
       }
@@ -357,7 +373,6 @@ export default function DoTestA1() {
     });
   };
 
-  // ======================================================
   return currentPart === "listening"
     ? renderListening()
     : currentPart === "reading"

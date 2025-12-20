@@ -40,7 +40,6 @@ export const ItemStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-
   iconBtn: {
     width: 36,
     height: 36,
@@ -49,7 +48,6 @@ export const ItemStyles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#11182744',
   },
-
   title: {
     fontSize: 18,
     fontWeight: '700',
@@ -77,7 +75,6 @@ export const ItemStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
-
   mediaCardHeader: {
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -96,18 +93,15 @@ export const ItemStyles = StyleSheet.create({
     aspectRatio: 16 / 9,
     backgroundColor: '#000',
   },
-
   mediaPlayerAudio: {
     width: '100%',
     height: 64,
     backgroundColor: '#000',
   },
-
   videoView: {
     width: '100%',
     height: '100%',
   },
-
   noMediaCard: {
     padding: 16,
     backgroundColor: COLORS.cardBg,
@@ -134,7 +128,6 @@ export const ItemStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-
   transcriptHeaderTitle: {
     color: COLORS.textSoft,
     fontWeight: '700',
