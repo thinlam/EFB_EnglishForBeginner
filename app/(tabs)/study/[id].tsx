@@ -175,7 +175,7 @@ export default function StudyDetail() {
         ) : null}
 
         {/* Content (text mode) */}
-        {data.type === 'text' && data.content ? (
+        {data.content ? (
           <View
             style={{
               backgroundColor: '#F3F4F6',
