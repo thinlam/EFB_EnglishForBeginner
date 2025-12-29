@@ -5,5 +5,6 @@ export type GameItem = {
   gradient: readonly [string, string];
   subtitle: string;
   levels?: string[];
-  route: string; // <- thêm
+  route: string;
+  comingSoon?: boolean;
 };

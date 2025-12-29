@@ -167,7 +167,7 @@ const handlePress = (item: Item) => {
     return;
   }
   if (item.title === 'Listening') {
-    router.push('/listen/listen');  // ⭐ CHỈ 1 router.push — không được 2!
+    router.push('/listen/listen');  
     return;
   }
 
@@ -175,6 +175,11 @@ const handlePress = (item: Item) => {
     router.push('/(tabs)/playgame');
     return;
   }
+if (item.title === 'Ranking') {
+  router.push('/ranking' as any);
+  return;
+}
+
 };
   const renderItem = ({ item }: { item: Item }) => (
     <TouchableOpacity

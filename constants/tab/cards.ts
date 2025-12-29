@@ -27,8 +27,8 @@ export const DATA: Item[] = [
     gradient: ['#2DD4BF', '#0EA5E9'] as const, subtitle: 'Bài tập tổng hợp', levels: ['All'] },
   { id: '6', title: 'Translate', icon: 'globe',
     gradient: ['#34D399', '#14B8A6'] as const, subtitle: 'Dịch văn bản', levels: ['Tool'] },
-  { id: '7', title: 'Bảng xếp hạng', icon: 'trophy',
-    gradient: ['#FB923C', '#B91C1C'] as const, subtitle: 'Xếp hạng', levels: ['Ranking'] },
+  { id: '7', title: 'Ranking', icon: 'trophy',
+    gradient: ['#FB923C', '#B91C1C'] as const, subtitle: 'rank', levels: ['Ranking'] },
   { id: '8', title: 'Play & learn', icon: 'game-controller',
     gradient: ['#FBBF24', '#D97706'] as const, subtitle: 'Game', levels: ['Tool'] },
 ];

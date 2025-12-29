@@ -96,7 +96,7 @@ export default function AdminHomeScreen() {
                 <TouchableOpacity
                   key={i}
                   style={styles.cardSubItem}
-                  onPress={() => child.path && router.push(child.path)}
+                  onPress={() => child.path && router.push(child.path as any)}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.cardSubText}>• {child.title}</Text>

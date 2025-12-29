@@ -1,5 +1,3 @@
-// app/(tabs)/test/A1/index.tsx
-
 import { db } from "@/scripts/firebase";
 import { useRouter } from "expo-router";
 import { collection, getDocs } from "firebase/firestore";
@@ -8,7 +6,8 @@ import {
   ActivityIndicator,
   ScrollView,
   Text,
-  TouchableOpacity
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -39,42 +38,88 @@ export default function TestA1List() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom,
+          backgroundColor: "#F9FAFB",
         }}
       >
         <ActivityIndicator size="large" />
-        <Text style={{ marginTop: 10 }}>Đang tải bài kiểm tra...</Text>
+        <Text style={{ marginTop: 12, color: "#6B7280" }}>
+          Đang tải bài kiểm tra...
+        </Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: "#fff",
-      }}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: 20,
-
-          // ⭐ Nằm ngay dưới tai thỏ, không sát quá cũng không tụt quá
-          paddingTop: insets.top + 8,
-
-          // ⭐ Tránh giọt nước Android, và chân màn hình iPhone
-          paddingBottom: insets.bottom + 20,
+          paddingTop: insets.top + 12,
+          paddingBottom: insets.bottom + 32,
         }}
       >
-        <Text style={{ fontSize: 26, fontWeight: "bold", marginBottom: 20 }}>
-          Chọn bài test A1
-        </Text>
+        {/* ===== HEADER INLINE ===== */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-start",
+            marginBottom: 24,
+          }}
+        >
+          {/* Back to Home */}
+          <TouchableOpacity
+            onPress={() => router.replace("/")}
+            hitSlop={12}
+            style={{
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: "#E5E7EB",
+              marginRight: 12,
+              marginTop: 2,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "600",
+                color: "#111827",
+              }}
+            >
+              ← Trang chủ
+            </Text>
+          </TouchableOpacity>
 
-        {tests.map((t) => (
+          {/* Title */}
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 28,
+                fontWeight: "700",
+                color: "#111827",
+                marginBottom: 4,
+              }}
+            >
+              Chọn bài test A1
+            </Text>
+
+            <Text
+              style={{
+                fontSize: 15,
+                color: "#6B7280",
+              }}
+            >
+              Cấp độ Beginner • Chuẩn CEFR
+            </Text>
+          </View>
+        </View>
+
+        {/* ===== TEST LIST ===== */}
+        {tests.map((t, index) => (
           <TouchableOpacity
             key={t.id}
+            activeOpacity={0.9}
             onPress={() =>
               router.push({
                 pathname: "/test/A1/do-test",
@@ -82,17 +127,97 @@ export default function TestA1List() {
               })
             }
             style={{
+              backgroundColor: "#FFFFFF",
+              borderRadius: 16,
               padding: 20,
-              backgroundColor: "#e0f2fe",
-              marginBottom: 15,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: "#38bdf8",
+              marginBottom: 16,
+              shadowColor: "#000",
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 6 },
+              elevation: 4,
             }}
           >
-            <Text style={{ fontSize: 20, fontWeight: "600" }}>
-              {t?.title || `Test ${t.id}`}
+            {/* Badge */}
+            <View
+              style={{
+                alignSelf: "flex-start",
+                backgroundColor: "#E0F2FE",
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 999,
+                marginBottom: 12,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "600",
+                  color: "#0284C7",
+                }}
+              >
+                CEFR A1 • Test {index + 1}
+              </Text>
+            </View>
+
+            {/* Title */}
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "700",
+                color: "#111827",
+                marginBottom: 6,
+              }}
+            >
+              {t?.title || "Bài kiểm tra A1"}
             </Text>
+
+            {/* Skills */}
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#6B7280",
+                marginBottom: 14,
+              }}
+            >
+              Listening • Reading • Writing
+            </Text>
+
+            {/* Meta */}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                marginBottom: 14,
+              }}
+            >
+              <Text style={{ fontSize: 13, color: "#374151" }}>
+                ⏱ ~30 phút
+              </Text>
+              <Text style={{ fontSize: 13, color: "#374151" }}>
+                📊 30 câu hỏi
+              </Text>
+            </View>
+
+            {/* CTA */}
+            <View
+              style={{
+                backgroundColor: "#0EA5E9",
+                borderRadius: 10,
+                paddingVertical: 12,
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
+              >
+                Bắt đầu làm bài
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>

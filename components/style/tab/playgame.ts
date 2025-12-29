@@ -44,4 +44,20 @@ export const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   pillText: { color: '#fff', fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
+  badge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    zIndex: 10,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
 });
