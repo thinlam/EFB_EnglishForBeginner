@@ -38,8 +38,6 @@ export default function TestA1List() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom,
           backgroundColor: "#F9FAFB",
         }}
       >
@@ -61,29 +59,63 @@ export default function TestA1List() {
           paddingBottom: insets.bottom + 32,
         }}
       >
-        {/* Header */}
-        <Text
+        {/* ===== HEADER INLINE ===== */}
+        <View
           style={{
-            fontSize: 28,
-            fontWeight: "700",
-            color: "#111827",
-            marginBottom: 6,
-          }}
-        >
-          Chọn bài test A1
-        </Text>
-
-        <Text
-          style={{
-            fontSize: 15,
-            color: "#6B7280",
+            flexDirection: "row",
+            alignItems: "flex-start",
             marginBottom: 24,
           }}
         >
-          Cấp độ Beginner • Chuẩn CEFR
-        </Text>
+          {/* Back to Home */}
+          <TouchableOpacity
+            onPress={() => router.replace("/")}
+            hitSlop={12}
+            style={{
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: "#E5E7EB",
+              marginRight: 12,
+              marginTop: 2,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "600",
+                color: "#111827",
+              }}
+            >
+              ← Trang chủ
+            </Text>
+          </TouchableOpacity>
 
-        {/* Test list */}
+          {/* Title */}
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 28,
+                fontWeight: "700",
+                color: "#111827",
+                marginBottom: 4,
+              }}
+            >
+              Chọn bài test A1
+            </Text>
+
+            <Text
+              style={{
+                fontSize: 15,
+                color: "#6B7280",
+              }}
+            >
+              Cấp độ Beginner • Chuẩn CEFR
+            </Text>
+          </View>
+        </View>
+
+        {/* ===== TEST LIST ===== */}
         {tests.map((t, index) => (
           <TouchableOpacity
             key={t.id}
@@ -137,7 +169,7 @@ export default function TestA1List() {
                 marginBottom: 6,
               }}
             >
-              {t?.title || `Bài kiểm tra A1`}
+              {t?.title || "Bài kiểm tra A1"}
             </Text>
 
             {/* Skills */}

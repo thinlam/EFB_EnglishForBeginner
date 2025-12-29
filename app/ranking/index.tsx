@@ -1,4 +1,3 @@
-// app/ranking/index.tsx
 import { styles } from '@/components/style/ranking.styles';
 import { useRanking } from '@/hooks/ranking/useRanking';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,11 +5,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    FlatList,
-    Image,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -40,7 +39,6 @@ export default function RankingScreen() {
 
         <Text style={styles.headerTitle}>Global Ranking</Text>
 
-        {/* giữ layout cân bằng */}
         <View style={{ width: 26 }} />
       </View>
 
@@ -60,6 +58,9 @@ export default function RankingScreen() {
           const rank = index + 1;
           const isTop3 = rank <= 3;
 
+          const medalIcon =
+            rank === 1 ? 'trophy' : rank === 2 ? 'medal' : 'ribbon';
+
           return (
             <LinearGradient
               colors={
@@ -71,13 +72,30 @@ export default function RankingScreen() {
             >
               <Text style={styles.rank}>#{rank}</Text>
 
+              {isTop3 && (
+                <Ionicons
+                  name={medalIcon}
+                  size={20}
+                  color="#FACC15"
+                  style={{ marginRight: 6 }}
+                />
+              )}
+
               {item.photoURL ? (
                 <Image
                   source={{ uri: item.photoURL }}
-                  style={styles.avatar}
+                  style={[
+                    styles.avatar,
+                    isTop3 && styles.avatarTop,
+                  ]}
                 />
               ) : (
-                <View style={styles.avatarFallback}>
+                <View
+                  style={[
+                    styles.avatarFallback,
+                    isTop3 && styles.avatarTop,
+                  ]}
+                >
                   <Text style={styles.avatarText}>
                     {item.displayName?.[0]?.toUpperCase() || 'U'}
                   </Text>
@@ -91,7 +109,12 @@ export default function RankingScreen() {
                 </Text>
               </View>
 
-              <Text style={styles.score}>{item.avgScore}</Text>
+              <View style={styles.scoreBox}>
+                <Text style={styles.scoreValue}>
+                  {item.avgScore}
+                </Text>
+                <Text style={styles.scoreLabel}>AVG</Text>
+              </View>
             </LinearGradient>
           );
         }}
