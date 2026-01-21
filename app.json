@@ -22,8 +22,6 @@
     },
     "android": {
       "package": "com.efb.userapp",
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#FFE3B0"
@@ -46,11 +44,12 @@
         }
       ],
       "expo-secure-store",
-      "expo-video"
+      "expo-video",
+      "expo-audio",
+      "expo-asset"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "router": true
+      "typedRoutes": true
     },
     "extra": {
       "router": {},
