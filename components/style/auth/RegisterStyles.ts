@@ -2,16 +2,17 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 100,
+    paddingTop: 50,
     paddingHorizontal: 30,
     backgroundColor: '#fff',
   },
   title: {
+    flex: 0.75,
     fontSize: 28,
     fontWeight: 'bold',
     color: '#4F46E5',
     textAlign: 'center',
-    marginBottom:5,
+    marginBottom: 0,
   },
   label: {
     marginBottom: 4,
@@ -86,4 +87,21 @@ googleText: {
   fontSize: 15,
   fontWeight: '600',
 },
+headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 29,
+  },
+  backButton: {//styles for the back button
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 8,
+  },
+  backText: {//styles for the back button text
+    fontSize: 14,
+    color: '#4F46E5',
+    fontWeight: 'bold',
+  },
 });

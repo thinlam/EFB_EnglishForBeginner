@@ -26,7 +26,17 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={[styles.container, { flexGrow: 1 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
-        <Text style={styles.title}>WELCOME{"\n"}EFB</Text>
+        <View style={styles.headerRow}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => router.replace('/Welcome')}
+                >
+                  <Text style={styles.backText}>⬅ BACK</Text>
+                </TouchableOpacity>
+        
+                <Text style={styles.title}>WELCOME{'\n'}EFB
+                </Text>
+              </View>
 
         <Text style={styles.label}>NAME</Text>
         <TextInput

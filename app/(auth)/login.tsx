@@ -22,7 +22,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header: Back + Title on same row */}
+      {/* ===== HEADER ===== */}
       <View style={styles.headerRow}>
         <TouchableOpacity
           style={styles.backButton}
@@ -31,11 +31,12 @@ export default function LoginScreen() {
           <Text style={styles.backText}>⬅ BACK</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>WELCOME{'\n'}EFB
+        <Text style={styles.title}>
+          WELCOME{'\n'}EFB
         </Text>
       </View>
 
-      {/* Email / Username */}
+      {/* ===== EMAIL / USERNAME ===== */}
       <Text style={styles.label}>EMAIL OR USERNAME</Text>
       <TextInput
         placeholder="your@gmail.com or username"
@@ -46,7 +47,7 @@ export default function LoginScreen() {
         autoCapitalize="none"
       />
 
-      {/* Password */}
+      {/* ===== PASSWORD ===== */}
       <Text style={styles.label}>PASSWORD</Text>
       <View style={{ position: 'relative' }}>
         <TextInput
@@ -80,7 +81,7 @@ export default function LoginScreen() {
         </Text>
       </TouchableOpacity>
 
-      {/* Sign in button */}
+      {/* ===== SIGN IN ===== */}
       <TouchableOpacity
         style={[styles.button, { opacity: loading ? 0.6 : 1 }]}
         onPress={handleLogin}
@@ -91,7 +92,7 @@ export default function LoginScreen() {
         </Text>
       </TouchableOpacity>
 
-      {/* Sign up link */}
+      {/* ===== SIGN UP ===== */}
       <Text
         style={styles.switch}
         onPress={() => router.push('/register')}
@@ -99,7 +100,7 @@ export default function LoginScreen() {
         You do not have an account ? Sign up
       </Text>
 
-      {/* OR separator */}
+      {/* ===== OR ===== */}
       <View
         style={{
           flexDirection: 'row',
@@ -112,7 +113,7 @@ export default function LoginScreen() {
         <View style={{ flex: 1, height: 1, backgroundColor: '#ccc' }} />
       </View>
 
-      {/* Google sign-in */}
+      {/* ===== GOOGLE ===== */}
       <TouchableOpacity
         style={[
           styles.socialButton,
@@ -137,7 +138,7 @@ export default function LoginScreen() {
         </Text>
       </TouchableOpacity>
 
-      {/* Facebook (disabled for now) */}
+      {/* ===== FACEBOOK (DISABLED) ===== */}
       <TouchableOpacity
         style={[
           styles.socialButton,
@@ -153,6 +154,53 @@ export default function LoginScreen() {
         />
         <Text style={styles.socialText}>Facebook Sign in</Text>
       </TouchableOpacity>
+
+      {/* ===== TRUST CARD ===== */}
+      <View
+        style={{
+          marginTop: 24,
+          padding: 14,
+          borderRadius: 12,
+          backgroundColor: '#F7F8FF',
+          borderWidth: 1,
+          borderColor: '#E3E6FF',
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={{ color: '#4F46E5', marginRight: 8 }}>✓</Text>
+          <Text style={{ color: '#555', fontSize: 13 }}>
+            Learn English by CEFR (A1–B1)
+          </Text>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={{ color: '#4F46E5', marginRight: 8 }}>✓</Text>
+          <Text style={{ color: '#555', fontSize: 13 }}>
+            Practice with mini games & tests
+          </Text>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={{ color: '#4F46E5', marginRight: 8 }}>✓</Text>
+          <Text style={{ color: '#555', fontSize: 13 }}>
+            Track progress & earn EXP
+          </Text>
+        </View>
+      </View>
+
+      {/* ===== FOOTER ===== */}
+      <View
+        style={{
+          marginTop: 20,
+          alignItems: 'center',
+          paddingBottom: 12,
+          opacity: 0.4,
+        }}
+      >
+        <Text style={{ fontSize: 11 }}>English For Beginner</Text>
+        <Text style={{ fontSize: 11 }}>Version 1.0.0</Text>
+        <Text style={{ fontSize: 11 }}>© 2026 EFB Team</Text>
+      </View>
     </View>
   );
 }
