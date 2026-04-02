@@ -1,17 +1,14 @@
 // scripts/firebase.ts
-import { Platform } from "react-native";
-
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-
 import {
   browserLocalPersistence,
   getAuth,
   indexedDBLocalPersistence,
   onAuthStateChanged,
 } from "firebase/auth";
-
-import { getFirestore } from "firebase/firestore"; // ✔ ONLY THIS
+import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { Platform } from "react-native";
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -23,22 +20,38 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+if (!firebaseConfig.apiKey) {
+  throw new Error("Missing EXPO_PUBLIC_FIREBASE_API_KEY");
+}
+if (!firebaseConfig.authDomain) {
+  throw new Error("Missing EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN");
+}
+if (!firebaseConfig.projectId) {
+  throw new Error("Missing EXPO_PUBLIC_FIREBASE_PROJECT_ID");
+}
+if (!firebaseConfig.storageBucket) {
+  throw new Error("Missing EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET");
+}
+if (!firebaseConfig.messagingSenderId) {
+  throw new Error("Missing EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID");
+}
+if (!firebaseConfig.appId) {
+  throw new Error("Missing EXPO_PUBLIC_FIREBASE_APP_ID");
+}
+
 const app: FirebaseApp = getApps().length
   ? getApp()
   : initializeApp(firebaseConfig);
 
-// AUTH
-let auth = getAuth(app);
+const auth = getAuth(app);
+
 if (Platform.OS === "web") {
   auth
     .setPersistence(indexedDBLocalPersistence)
     .catch(() => auth.setPersistence(browserLocalPersistence));
 }
 
-// FIRESTORE ✔ FIX
 const db = getFirestore(app);
-
-// STORAGE
 const storage = getStorage(app);
 
 export { app, auth, db, onAuthStateChanged, storage };
