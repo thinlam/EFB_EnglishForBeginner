@@ -1,5 +1,4 @@
 // app/(admin)/editTest.tsx
-import { db } from '@/scripts/firebase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
@@ -11,6 +10,7 @@ import {
   TextInput,
   TouchableOpacity
 } from 'react-native';
+import { db } from '../../scripts/firebase';
 
 export default function EditTestScreen() {
   const { id } = useLocalSearchParams();
