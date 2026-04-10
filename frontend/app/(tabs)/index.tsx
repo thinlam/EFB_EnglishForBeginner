@@ -25,7 +25,6 @@ import { DATA, Item } from '@/constants/tab/cards';
 /* Styles */
 import { styles } from '@/components/style/tab/HomeScreenStyles';
 
-/* CEFR Pill có nước lượn sóng */
 import { CefrPill } from '@/components/CefrPill';
 
 const FILTER_CARDS_BY_LEVEL = true;
@@ -143,44 +142,47 @@ export default function HomeScreen() {
     );
   };
 
-const handlePress = (item: Item) => {
-  if (item.title === 'Reading') {
-    router.push('/reading');
-    return;
-  }
+  const handlePress = (item: Item) => {
+    if (item.title === 'Reading') {
+      router.push('/reading');
+      return;
+    }
 
-  if (item.title === 'Speaking') {
-    router.push('/speaking');
-    return;
-  }
+    if (item.title === 'Speaking') {
+      router.push('/speaking');
+      return;
+    }
 
-  if (item.title === 'Writing') {
-    router.push('/writing');   // ⭐ CHÍNH XÁC 100%
-    return;
-}
-  if (item.title === 'Test') {
-    router.push('/test/A1');
-    return;
-  }
-  if (item.title === 'Translate') {
-    router.push('/translate');
-    return;
-  }
-  if (item.title === 'Listening') {
-    router.push('/listen/listen');  
-    return;
-  }
+    if (item.title === 'Writing') {
+      router.push('/writing');
+      return;
+    }
 
-  if (item.title === 'Play & learn') {
-    router.push('/(tabs)/playgame');
-    return;
-  }
-if (item.title === 'Ranking') {
-  router.push('/ranking' as any);
-  return;
-}
+    if (item.title === 'Test') {
+      router.push('/test/A1');
+      return;
+    }
 
-};
+    if (item.title === 'Translate') {
+      router.push('/translate');
+      return;
+    }
+
+    if (item.title === 'Listening') {
+      router.push('/listen/listen');
+      return;
+    }
+
+    if (item.title === 'Play & learn') {
+      router.push('/(tabs)/playgame');
+      return;
+    }
+
+    if (item.title === 'Ranking') {
+      router.push('/ranking' as any);
+      return;
+    }
+  };
   const renderItem = ({ item }: { item: Item }) => (
     <TouchableOpacity
       activeOpacity={0.92}
