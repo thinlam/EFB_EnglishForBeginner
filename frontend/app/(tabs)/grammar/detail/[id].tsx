@@ -6,8 +6,11 @@ import React, { useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// eslint-disable-next-line import/no-unresolved
 import { styles } from '@/components/style/grammar/GrammarDetailStyles';
+// eslint-disable-next-line import/no-unresolved
 import { getGrammarByLevel, type GrammarPoint } from '@/hooks/grammar/useLevelGrammar';
+// eslint-disable-next-line import/no-unresolved
 import { useAuthProfile } from '@/hooks/tab/useAuthProfile';
 
 export default function GrammarDetailScreen() {

@@ -2,9 +2,11 @@ import React from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 
 /* Styles */
+// eslint-disable-next-line import/no-unresolved
 import { styles } from '@/components/style/onboarding/TestIntroStyles';
 
 /* Hook */
+// eslint-disable-next-line import/no-unresolved
 import { useTestIntro } from '@/hooks/onboarding/useTestIntro';
 
 export default function TestIntroScreen() {

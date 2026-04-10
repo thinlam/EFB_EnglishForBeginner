@@ -1,4 +1,6 @@
+// eslint-disable-next-line import/no-unresolved
 import { styles } from '@/components/style/auth/LoginStyles';
+// eslint-disable-next-line import/no-unresolved
 import { useLogin } from '@/hooks/auth/useLogin';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';

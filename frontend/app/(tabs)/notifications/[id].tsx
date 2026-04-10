@@ -2,19 +2,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 /** Firebase */
+// eslint-disable-next-line import/no-unresolved
 import { db } from '@/scripts/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 /** Styles */
+// eslint-disable-next-line import/no-unresolved
 import { notificationDetailStyles as S } from '@/components/style/tab/NotificationDetailStyles';
 
 export default function NotificationDetail() {

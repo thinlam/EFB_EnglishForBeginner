@@ -3,12 +3,15 @@ import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 /* Styles */
+// eslint-disable-next-line import/no-unresolved
 import { styles } from '@/components/style/onboarding/ChooseStartModeStyles';
 
 /* Constants */
+// eslint-disable-next-line import/no-unresolved
 import { START_OPTIONS } from '@/constants/onboarding/startModes';
 
 /* Hook */
+// eslint-disable-next-line import/no-unresolved
 import { useChooseStartMode } from '@/hooks/onboarding/useChooseStartMode';
 
 export default function ChooseStartModeScreen() {

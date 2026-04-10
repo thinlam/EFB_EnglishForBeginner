@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 
+// eslint-disable-next-line import/no-unresolved
 import { db } from "@/scripts/firebase";
 import {
   addDoc,

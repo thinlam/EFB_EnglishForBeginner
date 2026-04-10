@@ -5,9 +5,11 @@ import {
 } from 'react-native';
 
 /* Styles */
+// eslint-disable-next-line import/no-unresolved
 import { styles } from '@/components/style/auth/ForgotPasswordStyles';
 
 /* Hook */
+// eslint-disable-next-line import/no-unresolved
 import { useForgotPassword } from '@/hooks/auth/useForgotPassword';
 
 export default function ForgotPasswordScreen() {

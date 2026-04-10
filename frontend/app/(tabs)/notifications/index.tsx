@@ -5,10 +5,12 @@ import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 /** Firebase */
+// eslint-disable-next-line import/no-unresolved
 import { auth, db } from '@/scripts/firebase';
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 
 /** Styles */
+// eslint-disable-next-line import/no-unresolved
 import { notificationStyles as S } from '@/components/style/tab/NotificationStyles';
 
 export default function NotificationScreen() {

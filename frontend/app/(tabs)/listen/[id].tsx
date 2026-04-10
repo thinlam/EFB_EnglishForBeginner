@@ -1,6 +1,8 @@
 // app/(tabs)/listen/[id].tsx
 
+// eslint-disable-next-line import/no-unresolved
 import { ItemStyles as ST } from "@/components/style/user/listen/ItemStyles";
+// eslint-disable-next-line import/no-unresolved
 import { db } from "@/scripts/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";

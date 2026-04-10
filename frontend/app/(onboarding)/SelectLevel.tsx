@@ -4,12 +4,15 @@ import { FlatList, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 /* Styles */
+// eslint-disable-next-line import/no-unresolved
 import { styles } from '@/components/style/onboarding/SelectLevelStyles';
 
 /* Hooks */
+// eslint-disable-next-line import/no-unresolved
 import { useSelectLevel } from '@/hooks/onboarding/useSelectLevel';
 
 /* Constants */
+// eslint-disable-next-line import/no-unresolved
 import { levels } from '@/constants/onboarding/levels';
 
 export default function SelectLevelScreen() {

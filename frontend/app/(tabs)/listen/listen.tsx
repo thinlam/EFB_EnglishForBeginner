@@ -12,9 +12,9 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-
+// eslint-disable-next-line import/no-unresolved
 import { ListenStyles as LS } from '@/components/style/user/listen/ListenStyles';
-
+// eslint-disable-next-line import/no-unresolved
 import { db } from '@/scripts/firebase';
 import {
   DocumentData,

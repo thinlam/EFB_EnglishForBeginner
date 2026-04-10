@@ -1,5 +1,8 @@
+// eslint-disable-next-line import/no-unresolved
 import { styles } from '@/components/style/auth/RegisterStyles';
+// eslint-disable-next-line import/no-unresolved
 import { useRegister } from '@/hooks/auth/useRegister';
+// eslint-disable-next-line import/no-unresolved
 import { useGoogleLogin } from '@/scripts/googleAuth';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
